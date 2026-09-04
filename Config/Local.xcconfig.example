@@ -1,0 +1,3 @@
+// Copy to Config/Local.xcconfig (git-ignored) and fill in.
+DEVELOPMENT_TEAM = ABCDE12345          // your Apple Development team (free personal team works)
+BUNDLE_ID_SUFFIX = .dev-yourname       // avoids TCC / Launch Services collisions with a release install

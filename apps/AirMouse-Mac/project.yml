@@ -1,0 +1,95 @@
+name: AirMouseHelper
+options:
+  bundleIdPrefix: com.airmouse
+  xcodeVersion: "26.6"
+  deploymentTarget: { macOS: "15.0" }
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+  defaultConfig: Debug
+configs: { Debug: debug, Release: release }
+configFiles:
+  Debug: ../../Config/Base.xcconfig
+  Release: ../../Config/Base.xcconfig
+packages:
+  AirMouseKit: { path: ../../Packages/AirMouseKit }
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ARCHS: "arm64 x86_64"
+    ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_APP_SANDBOX: NO
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: $(DEVELOPMENT_TEAM)
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+  configs:
+    Debug:
+      ONLY_ACTIVE_ARCH: YES
+      CODE_SIGN_IDENTITY: "Apple Development"
+    Release:
+      CODE_SIGN_IDENTITY: "Developer ID Application"
+      OTHER_CODE_SIGN_FLAGS: "--timestamp"
+      SWIFT_COMPILATION_MODE: wholemodule
+targets:
+  AirMouseHelper:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources
+        excludes: ["Info.plist"]
+      - path: Resources
+    dependencies:
+      - package: AirMouseKit
+        product: AirMouseCore
+      - package: AirMouseKit
+        product: AirMouseProtocol
+      - package: AirMouseKit
+        product: AirMouseCrypto
+      - package: AirMouseKit
+        product: AirMouseFilters
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.airmouse.helper$(BUNDLE_ID_SUFFIX)
+        PRODUCT_NAME: Air Mouse
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Air Mouse
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true
+        LSMinimumSystemVersion: "15.0"
+        LSApplicationCategoryType: public.app-category.utilities
+        NSHumanReadableCopyright: "© 2026 Air Mouse contributors. MIT License."
+        NSLocalNetworkUsageDescription: "Air Mouse finds and connects to your Mac on your local network. Nothing is sent over the internet."
+        NSBonjourServices: [_airmouse._tcp, _airmouse._udp]
+        NSAppleEventsUsageDescription: "Only used by macros you create on this Mac that run AppleScript. Off by default."
+        SUEnableAutomaticChecks: false
+        SUScheduledCheckInterval: 86400
+        SUAutomaticallyUpdate: false
+    entitlements:
+      path: Sources/AirMouseHelper.entitlements
+      properties:
+        com.apple.security.automation.apple-events: true
+  AirMouseHelperTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [Tests]
+    dependencies: [{ target: AirMouseHelper }]
+  AirMouseHelperIntegrationTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [IntegrationTests]
+    dependencies: [{ target: AirMouseHelper }]
+schemes:
+  AirMouseHelper:
+    build: { targets: { AirMouseHelper: all, AirMouseHelperTests: [test], AirMouseHelperIntegrationTests: [test] } }
+    run:
+      config: Debug
+      commandLineArguments: { "--log-level debug": false, "--loopback": false, "--bench": false }
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets: [AirMouseHelperTests, AirMouseHelperIntegrationTests]
+    archive: { config: Release }

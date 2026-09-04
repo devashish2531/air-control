@@ -1,0 +1,94 @@
+name: AirMouse
+options:
+  bundleIdPrefix: com.airmouse
+  xcodeVersion: "26.6"
+  deploymentTarget: { iOS: "18.0" }
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+  defaultConfig: Debug
+configs:
+  Debug: debug
+  Release: release
+configFiles:
+  Debug: ../../Config/Base.xcconfig
+  Release: ../../Config/Base.xcconfig
+packages:
+  AirMouseKit: { path: ../../Packages/AirMouseKit }
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: $(DEVELOPMENT_TEAM)
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+  configs:
+    Debug: { SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG, ONLY_ACTIVE_ARCH: YES }
+    Release: { SWIFT_COMPILATION_MODE: wholemodule }
+targets:
+  AirMouse:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+        excludes: ["Info.plist"]
+      - path: Resources
+    dependencies:
+      - package: AirMouseKit
+        product: AirMouseCore
+      - package: AirMouseKit
+        product: AirMouseProtocol
+      - package: AirMouseKit
+        product: AirMouseCrypto
+      - package: AirMouseKit
+        product: AirMouseFilters
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.airmouse.app$(BUNDLE_ID_SUFFIX)
+        PRODUCT_NAME: Air Mouse
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Air Mouse
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UIRequiresFullScreen: false
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UIRequiredDeviceCapabilities: [arm64]
+        ITSAppUsesNonExemptEncryption: false
+        NSLocalNetworkUsageDescription: "Air Mouse finds and connects to your Mac on your local network. Nothing is sent over the internet."
+        NSBonjourServices: [_airmouse._tcp, _airmouse._udp]
+        NSCameraUsageDescription: "The camera is used only to scan the pairing QR code shown on your Mac."
+        NSMotionUsageDescription: "Motion sensors turn your iPhone into an air mouse: pointing the phone moves the Mac's cursor. Sensor data never leaves the device except as cursor movement."
+        CFBundleURLTypes:
+          - CFBundleURLName: com.airmouse.pair
+            CFBundleURLSchemes: [airmouse]
+            CFBundleTypeRole: Viewer
+    entitlements:
+      path: AirMouse.entitlements
+      properties: {}
+  AirMouseTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies: [{ target: AirMouse }]
+  AirMouseUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies: [{ target: AirMouse }]
+schemes:
+  AirMouse:
+    build: { targets: { AirMouse: all, AirMouseTests: [test], AirMouseUITests: [test] } }
+    run: { config: Debug }
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets: [AirMouseTests]
+    archive: { config: Release }

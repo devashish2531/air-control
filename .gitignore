@@ -1,0 +1,20 @@
+# Xcode / SwiftPM
+*.xcodeproj/
+!*.xcodeproj/project.pbxproj.keep
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+*.xcuserstate
+Package.resolved.lock
+# Local config
+Config/Local.xcconfig
+# Tools
+tools/bin/
+# OS
+.DS_Store
+# Build outputs
+build/
+*.dmg
+*.zip

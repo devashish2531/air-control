@@ -1,0 +1,8 @@
+// Config/Base.xcconfig — committed. Local overrides go in Local.xcconfig (git-ignored).
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+BUNDLE_ID_SUFFIX =
+DEVELOPMENT_TEAM =
+SWIFT_TREAT_WARNINGS_AS_ERRORS = $(AIRMOUSE_WARNINGS_AS_ERRORS)
+AIRMOUSE_WARNINGS_AS_ERRORS = NO
+#include? "Local.xcconfig"
