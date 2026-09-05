@@ -147,7 +147,13 @@ struct PairingContentView: View {
     }
 
     private func openWindow() async {
-        guard let urlString = try? await environment.hostService.openPairingWindow() else {
+        Log.ui.debug("PairingContentView.openWindow: calling hostService.openPairingWindow()")
+        let urlString: String
+        do {
+            urlString = try await environment.hostService.openPairingWindow()
+            Log.ui.debug("PairingContentView.openWindow: openPairingWindow() returned, len=\(urlString.count, privacy: .public)")
+        } catch {
+            Log.ui.error("PairingContentView.openWindow: openPairingWindow() threw \(String(describing: error), privacy: .public)")
             statusPhase = .unavailable
             return
         }

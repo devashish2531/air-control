@@ -146,7 +146,9 @@ public struct PairingURL: Sendable, Equatable {
         fingerprint: Data,
         secret: Data
     ) throws -> PairingURL {
-        var candidateAddresses = addresses
+        // Pre-trim to the schema limit so a multi-homed host (VPN, hotspot, link-local IPv6) does not
+        // fail validation before truncation gets a chance to run (found on a Mac with 14 addresses).
+        var candidateAddresses = Array(addresses.prefix(Self.maxAddresses))
         while true {
             let candidate = try PairingURL(
                 version: version,

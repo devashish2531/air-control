@@ -42,8 +42,10 @@ public actor PairingService {
     /// already showing.
     @discardableResult
     public func openWindow(now: Date = Date()) throws -> PairingSecret {
+        Log.pairing.debug("PairingService.openWindow: enter")
         let secret = try window.open(now: now)
         status = .waiting
+        Log.pairing.debug("PairingService.openWindow: secret minted, status=.waiting")
         return secret
     }
 

@@ -75,8 +75,15 @@ public actor HostServer: HostServing {
                 // Contract for the `--loopback` cli/integration-test agent: no Bonjour, print the
                 // resolved ports and an immediately-open pairing window's URL to stdout.
                 await printLoopbackBanner()
-            } else {
+            } else if settings.bonjourEnabled {
                 try await registerBonjour(identity: identity)
+            } else {
+                // Non-loopback, Bonjour disabled — a test-only combination (`bonjourEnabled` is
+                // `true` in every real launch path) that exercises the real Keychain identity, real
+                // TCP/UDP binding, and real `getifaddrs` address enumeration without touching
+                // Bonjour/mDNS, so a test process without its own Local Network TCC grant can't
+                // stall here waiting on a permission prompt no one can answer.
+                Log.net.info("HostServer: Bonjour registration skipped (bonjourEnabled = false)")
             }
             networkStatus = .ready
         } catch {
@@ -98,8 +105,12 @@ public actor HostServer: HostServing {
     }
 
     public func openPairingWindow() async throws -> String {
+        Log.net.debug("openPairingWindow: enter")
         _ = try await pairingService.openWindow()
-        return try await buildPairingURLString()
+        Log.net.debug("openPairingWindow: pairingService.openWindow() returned")
+        let result = try await buildPairingURLString()
+        Log.net.debug("openPairingWindow: buildPairingURLString() returned, len=\(result.count, privacy: .public)")
+        return result
     }
 
     public func closePairingWindow() async {
@@ -380,11 +391,28 @@ public actor HostServer: HostServing {
     // MARK: - Pairing URL composition (spec §3.1.3)
 
     private func buildPairingURLString() async throws -> String {
+        Log.net.debug("buildPairingURLString: enter (identity=\(self.identity != nil, privacy: .public), listener=\(self.tcpListener != nil, privacy: .public), port=\(self.tcpListener?.port?.rawValue ?? 0, privacy: .public))")
         guard let identity, let listener = tcpListener, let tcpPort = listener.port?.rawValue else {
+            Log.net.error("buildPairingURLString: listenerNotReady")
             throw HostServerError.listenerNotReady
         }
         let udpPort = udpHub.boundPort ?? tcpPort
-        let addresses = settings.loopback ? ["127.0.0.1"] : Self.currentInterfaceAddresses()
+        Log.net.debug("buildPairingURLString: about to enumerate interface addresses (loopback=\(self.settings.loopback, privacy: .public))")
+        let rawAddresses = settings.loopback ? ["127.0.0.1"] : Self.currentInterfaceAddresses()
+        // `PairingURL`'s own validating initializer rejects more than `PairingURL.maxAddresses`
+        // (spec §3.1.3: 1–6) outright — `PairingURL.truncatingToFit` only trims addresses to fit
+        // the *byte-length* cap, by constructing that same validating initializer first, so it
+        // throws before it ever gets a chance to shrink an over-long *count*. A real, non-loopback
+        // Mac routinely has more than 6 non-loopback addresses once VPN (`utun*`), Personal
+        // Hotspot (`bridge*`), AWDL/link-local IPv6, etc. are counted — that's exactly what made
+        // `openPairingWindow()` throw `invalidPairingURL(field: "a", ...)` immediately on this
+        // Mac (14 addresses), which `PairingContentView.openWindow()`'s `try?` then swallowed,
+        // leaving `qrImage` (and so the QR area's `ProgressView()`) stuck forever — see the report.
+        // `currentInterfaceAddresses()` already sorts best-candidate-first (hotspot/bridge → Wi-Fi
+        // → Ethernet → link-local IPv6 last), so keeping the front of the list is exactly the
+        // truncation the spec asks for ("the host truncates the address list").
+        let addresses = Array(rawAddresses.prefix(PairingURL.maxAddresses))
+        Log.net.debug("buildPairingURLString: addresses=\(addresses.count, privacy: .public) (of \(rawAddresses.count, privacy: .public) enumerated), tcpPort=\(tcpPort, privacy: .public), udpPort=\(udpPort, privacy: .public)")
         let url = try await pairingService.pairingURL(
             hostID: hostID,
             hostName: settings.hostNameProvider(),
@@ -393,7 +421,10 @@ public actor HostServer: HostServing {
             udpPort: Int(udpPort),
             fingerprint: Data(identity.fingerprint.bytes)
         )
-        return try url.formatted()
+        Log.net.debug("buildPairingURLString: pairingService.pairingURL() returned")
+        let formatted = try url.formatted()
+        Log.net.debug("buildPairingURLString: formatted() returned")
+        return formatted
     }
 
     /// Ordered candidate addresses for the QR/manual-fallback payload (spec §3.1.3: "hotspot/bridge
@@ -474,6 +505,12 @@ public struct HostServerSettings: Sendable {
     public var tcpPort: UInt16
     public var udpPort: UInt16
     public var loopback: Bool
+    /// Whether `start()` registers the Bonjour (`_airmouse._tcp`) service in non-loopback mode.
+    /// Always `true` in every real launch path (the app shell never sets this); a test-only escape
+    /// hatch so a non-loopback `HostServer` can be exercised (real Keychain identity, real fixed/
+    /// custom TCP+UDP bind, real `getifaddrs`-sourced addresses) inside a test process that has no
+    /// Local Network TCC grant of its own to answer a permission prompt with — see `start()`.
+    public var bonjourEnabled: Bool
     public var documentStore: DocumentStore
     public var hostNameProvider: @Sendable () -> String
     public var machineModel: @Sendable () -> String
@@ -482,6 +519,7 @@ public struct HostServerSettings: Sendable {
         tcpPort: UInt16 = UInt16(ProtocolConstants.defaultTCPPort),
         udpPort: UInt16 = UInt16(ProtocolConstants.defaultUDPPort),
         loopback: Bool = false,
+        bonjourEnabled: Bool = true,
         documentStore: DocumentStore,
         hostNameProvider: @escaping @Sendable () -> String,
         machineModel: @escaping @Sendable () -> String = { HostServerSettings.currentMachineModel() }
@@ -489,6 +527,7 @@ public struct HostServerSettings: Sendable {
         self.tcpPort = tcpPort
         self.udpPort = udpPort
         self.loopback = loopback
+        self.bonjourEnabled = bonjourEnabled
         self.documentStore = documentStore
         self.hostNameProvider = hostNameProvider
         self.machineModel = machineModel

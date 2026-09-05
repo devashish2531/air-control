@@ -123,4 +123,104 @@ struct HostServerTests {
         #expect(!addresses.contains("127.0.0.1"))
         #expect(!addresses.contains("::1"))
     }
+
+    // MARK: - Non-loopback openPairingWindow() (repro for the reported hang)
+
+    /// Races an operation against a fixed timeout, returning `nil` on timeout rather than hanging
+    /// the test forever — used below so a genuine regression fails fast with a clear message
+    /// instead of wedging the whole suite.
+    private func withTimeout<T: Sendable>(seconds: TimeInterval, _ operation: @escaping @Sendable () async throws -> T) async -> T? {
+        let result: T?? = try? await withThrowingTaskGroup(of: T?.self) { group in
+            group.addTask {
+                try await operation()
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(seconds))
+                return nil
+            }
+            let first = try await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
+        return result.flatMap { $0 }
+    }
+
+    /// Reproduces the field report: a *non-loopback* `HostServer` (real Keychain identity, real
+    /// `getifaddrs`-sourced addresses, real fixed-shape TCP/UDP bind — just an ephemeral port and
+    /// `bonjourEnabled: false` so the test process, which has no Local Network TCC grant of its own,
+    /// can't stall on an unanswerable permission prompt) whose `openPairingWindow()` must resolve
+    /// well within a generous timeout with a `PairingURL`-parsable string.
+    @Test("openPairingWindow() resolves promptly in non-loopback mode")
+    func openPairingWindowNonLoopbackResolves() async throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("HostServerTests-\(UUID().uuidString)")
+        let documentStore = DocumentStore(baseDirectory: tempDir)
+
+        let poster = RecordingEventPoster()
+        let injector = EventInjector(poster: poster, startHeldInputWatchdog: false)
+        let macroStore = MacroStore(documentStore: documentStore)
+        let macroEngine = MacroEngine(store: macroStore, executor: MockMacroActionExecutor())
+        let trustStore = TrustStore(documentStore: documentStore)
+        let pairingService = PairingService()
+        let udpHub = NWUDPHub()
+
+        let sessionManager = SessionManager(
+            eventInjector: injector,
+            macroEngine: macroEngine,
+            macroStore: macroStore,
+            trustStore: trustStore,
+            pairingService: pairingService,
+            udpHub: udpHub,
+            hostStateSnapshotProvider: {
+                HostStateSnapshot(
+                    naturalScrollEnabled: true,
+                    displayTopology: .empty,
+                    isPaused: false,
+                    isAccessibilityTrusted: true,
+                    frontmostAppBundleID: nil,
+                    timestamp: Date()
+                )
+            },
+            globalScriptsEnabledProvider: { false }
+        )
+
+        let settings = HostServerSettings(
+            tcpPort: 0, // ephemeral — avoids colliding with a real, already-running helper on 47800.
+            udpPort: 0,
+            loopback: false, // exercises the real (non-loopback) identity + addressing path.
+            bonjourEnabled: false, // see this test's/the flag's doc comment.
+            documentStore: documentStore,
+            hostNameProvider: { "HostServerTests Mac" }
+        )
+        let hostServer = HostServer(
+            settings: settings,
+            trustStore: trustStore,
+            pairingService: pairingService,
+            sessionManager: sessionManager,
+            udpHub: udpHub
+        )
+
+        let started: Bool? = await withTimeout(seconds: 5) {
+            await hostServer.start()
+            return true
+        }
+        #expect(started != nil, "HostServer.start() did not complete within 5s in non-loopback mode")
+
+        let outcome = await withTimeout(seconds: 5) { () async -> (value: String?, errorDescription: String?) in
+            do {
+                return (try await hostServer.openPairingWindow(), nil)
+            } catch {
+                return (nil, String(describing: error))
+            }
+        }
+        let urlString = outcome?.value
+        if let errorDescription = outcome?.errorDescription {
+            Issue.record("openPairingWindow() threw: \(errorDescription)")
+        }
+        #expect(urlString != nil, "openPairingWindow() did not resolve within 5s in non-loopback mode")
+
+        if let urlString {
+            let parsed = try PairingURL.parse(urlString)
+            #expect(parsed.tcpPort > 0)
+        }
+    }
 }
