@@ -36,3 +36,12 @@ test: kit-test ios-test mac-test
 
 clean:
 	rm -rf Packages/AirMouseKit/.build apps/*/*.xcodeproj
+
+# Build the Mac helper, clear its (now stale) Accessibility grant, and launch it. Every rebuild changes the
+# ad-hoc code signature, so macOS silently ignores the previous grant (decisions A10 / spec §5.2). Re-grant
+# Accessibility when the onboarding window appears. Stable signing via Config/Local.xcconfig avoids this.
+.PHONY: mac-run
+mac-run: mac-build
+	-pkill -f "AirMouse.app/Contents/MacOS/AirMouse"
+	-tccutil reset Accessibility com.airmouse.helper$(BUNDLE_ID_SUFFIX)
+	open "$$(ls -d ~/Library/Developer/Xcode/DerivedData/AirMouseHelper-*/Build/Products/Debug/AirMouse.app | head -1)"
