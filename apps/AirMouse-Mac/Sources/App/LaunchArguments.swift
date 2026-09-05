@@ -17,9 +17,13 @@ public struct LaunchArguments: Sendable, Equatable {
     /// launch-once task), so a rebuilt/re-signed helper whose Accessibility grant already carried over
     /// can still be steered back to onboarding for review/screenshots without `tccutil reset`.
     public var showOnboarding: Bool
+    /// Dev flag: after the server starts, open a pairing window and print `AIRMOUSE_PAIR_URL=<url>` to
+    /// stdout (normal networking, unlike `--loopback`). Lets on-device tests pair without scanning.
+    public var printPairURL: Bool
 
-    public init(loopback: Bool = false, bench: Bool = false, logLevel: LogLevel? = nil, showOnboarding: Bool = false) {
+    public init(loopback: Bool = false, bench: Bool = false, logLevel: LogLevel? = nil, showOnboarding: Bool = false, printPairURL: Bool = false) {
         self.loopback = loopback
+        self.printPairURL = printPairURL
         self.bench = bench
         self.logLevel = logLevel
         self.showOnboarding = showOnboarding
@@ -33,6 +37,7 @@ public struct LaunchArguments: Sendable, Equatable {
         var bench = false
         var logLevel: LogLevel?
         var showOnboarding = false
+        var printPairURL = false
 
         var index = 0
         while index < arguments.count {
@@ -44,6 +49,8 @@ public struct LaunchArguments: Sendable, Equatable {
                 bench = true
             case "--show-onboarding":
                 showOnboarding = true
+            case "--print-pair-url":
+                printPairURL = true
             case "--log-level":
                 if index + 1 < arguments.count, let level = LogLevel(rawValue: arguments[index + 1]) {
                     logLevel = level
@@ -57,6 +64,6 @@ public struct LaunchArguments: Sendable, Equatable {
             index += 1
         }
 
-        return LaunchArguments(loopback: loopback, bench: bench, logLevel: logLevel, showOnboarding: showOnboarding)
+        return LaunchArguments(loopback: loopback, bench: bench, logLevel: logLevel, showOnboarding: showOnboarding, printPairURL: printPairURL)
     }
 }

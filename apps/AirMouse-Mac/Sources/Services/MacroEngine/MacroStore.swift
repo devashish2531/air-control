@@ -71,6 +71,9 @@ public enum MacroStoreError: Error, Sendable, Equatable {
 public actor MacroStore: MacroStoreProviding {
     private static let relativePath = "Macros.json"
     private static let schemaVersion = 1
+    /// `DocumentStore` composes `"<name>/<version>"` itself; `MacroDocument.schemaName` ("macros/1") already
+    /// carries the version, so pass only the name or the file is written as "macros/1/1" and never loads again.
+    private static let documentSchemaName = String(MacroDocument.schemaName.split(separator: "/").first ?? "macros")
 
     private let documentStore: DocumentStore
     private var document: MacroDocument
@@ -269,7 +272,7 @@ public actor MacroStore: MacroStoreProviding {
             if let loaded = try await documentStore.load(
                 MacroDocument.self,
                 relativePath: Self.relativePath,
-                schemaName: MacroDocument.schemaName,
+                schemaName: Self.documentSchemaName,
                 schemaVersion: Self.schemaVersion
             ) {
                 document = loaded
@@ -293,7 +296,7 @@ public actor MacroStore: MacroStoreProviding {
         try await documentStore.save(
             document,
             relativePath: Self.relativePath,
-            schemaName: MacroDocument.schemaName,
+            schemaName: Self.documentSchemaName,
             schemaVersion: Self.schemaVersion
         )
     }

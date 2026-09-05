@@ -43,6 +43,16 @@ private struct RootView: View {
     var body: some View {
         RootTabView()
             .task {
+                #if DEBUG
+                // Test hook: `AIRMOUSE_PAIR_URL` env (or `-pairURL <url>` argument) routes a pairing URL at
+                // launch so XCUITests can pair against a real Mac without the camera. Debug builds only.
+                if let urlString = Self.launchPairingURLString(), let url = URL(string: urlString) {
+                    environment.userSettings.onboardingCompleted = true
+                    isOnboardingPresented = false
+                    environment.pairingRouter.routePairing(url: url)
+                    return
+                }
+                #endif
                 isOnboardingPresented = !environment.userSettings.onboardingCompleted
             }
             .fullScreenCover(isPresented: $isOnboardingPresented) {
@@ -50,3 +60,16 @@ private struct RootView: View {
             }
     }
 }
+
+#if DEBUG
+extension RootView {
+    /// `AIRMOUSE_PAIR_URL=airmouse://…` in the environment, or `-pairURL airmouse://…` in the arguments.
+    static func launchPairingURLString() -> String? {
+        let info = ProcessInfo.processInfo
+        if let env = info.environment["AIRMOUSE_PAIR_URL"], !env.isEmpty { return env }
+        let args = info.arguments
+        if let index = args.firstIndex(of: "-pairURL"), index + 1 < args.count { return args[index + 1] }
+        return nil
+    }
+}
+#endif

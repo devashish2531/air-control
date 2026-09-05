@@ -91,6 +91,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: "$(TARGET_NAME)"
+        GENERATE_INFOPLIST_FILE: YES
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AirMouse.app/AirMouse"
         BUNDLE_LOADER: "$(TEST_HOST)"
   AirMouseUITests:
@@ -98,7 +99,7 @@ targets:
     platform: iOS
     sources: [UITests]
     dependencies: [{ target: AirMouse }]
-    settings: { base: { PRODUCT_NAME: "$(TARGET_NAME)" } }
+    settings: { base: { PRODUCT_NAME: "$(TARGET_NAME)", GENERATE_INFOPLIST_FILE: YES } }
 schemes:
   AirMouse:
     build: { targets: { AirMouse: all, AirMouseTests: [test], AirMouseUITests: [test] } }
@@ -106,5 +107,5 @@ schemes:
     test:
       config: Debug
       gatherCoverageData: true
-      targets: [AirMouseTests]
+      targets: [AirMouseTests, AirMouseUITests]
     archive: { config: Release }

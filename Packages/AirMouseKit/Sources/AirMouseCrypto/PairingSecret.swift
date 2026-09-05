@@ -23,6 +23,18 @@ public struct PairingSecret: Sendable, Equatable {
     // TODO(integration): move to ProtocolConstants.
     public static let validityDuration: TimeInterval = 60
 
+    /// Effective lifetime. DEBUG builds honour `AIRMOUSE_PAIR_SECRET_TTL` (seconds) so on-device test
+    /// cycles, which take minutes to install and launch, can pair with a code minted earlier. Release
+    /// builds always use `validityDuration` (spec §3.1.4).
+    static var effectiveValidityDuration: TimeInterval {
+        #if DEBUG
+        if let raw = ProcessInfo.processInfo.environment["AIRMOUSE_PAIR_SECRET_TTL"], let seconds = TimeInterval(raw), seconds > 0 {
+            return seconds
+        }
+        #endif
+        return validityDuration
+    }
+
     /// Maximum wrong-proof attempts before the secret is invalidated (spec §3.2.6, §7.6, §11.3: "3").
     // TODO(integration): move to ProtocolConstants.
     public static let maxAttempts = 3
@@ -47,7 +59,7 @@ public struct PairingSecret: Sendable, Equatable {
     /// spec §7.3 also notes the window rotates the secret "every 60 s while window open" — that
     /// rotation is the caller generating a *new* `PairingSecret`, not this type mutating).
     public func isValid(at date: Date) -> Bool {
-        date < issuedAt.addingTimeInterval(Self.validityDuration)
+        date < issuedAt.addingTimeInterval(Self.effectiveValidityDuration)
     }
 
     /// Usable directly as an HMAC key by `PairingProof`.

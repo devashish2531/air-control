@@ -36,6 +36,16 @@ struct MenuBarIconLabel: View {
         environment.permissions.startPolling(interval: .seconds(10)) // spec §5.2 runtime cadence
         await environment.wireLiveServices()
         await environment.hostService.start()
+        if environment.launchArguments.printPairURL {
+            // Dev convenience (`--print-pair-url`): expose the pairing URL for on-device automation.
+            if let url = try? await environment.hostService.openPairingWindow() {
+                print("AIRMOUSE_PAIR_URL=\(url)")
+                fflush(stdout)
+            } else {
+                print("AIRMOUSE_PAIR_URL_ERROR=openPairingWindow failed")
+                fflush(stdout)
+            }
+        }
         // spec §5.2: onboarding is a first-launch flow gated on Accessibility, never shown for the
         // `--loopback` integration harness (which has no interactive session to grant it in).
         // `--show-onboarding` (`LaunchArguments.swift`) is a dev convenience that bypasses that gate.
