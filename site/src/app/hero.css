@@ -1,0 +1,513 @@
+/*
+ * Hero — owned by Hero.tsx / HeroDevice.tsx (design spec: "Hero spec").
+ *
+ * Centered stack: badge, h1, lede, actions, requirements/Homebrew, then the
+ * HeroDevice illustration. Reuses tokens/classes from globals.css (.display,
+ * .lede, .badge, .button, .link-arrow, .small) — nothing here redefines them.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Layout                                                                     */
+/* -------------------------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(3rem, 9vw, 6rem);
+}
+
+.hero__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: clamp(1.1rem, 2.4vw, 1.5rem);
+}
+
+.hero__eyebrow-line {
+  margin: 0;
+}
+
+.hero__title {
+  margin: 0;
+  max-width: 18ch;
+}
+
+.hero__lede {
+  margin: 0;
+  max-width: 52ch;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+  margin-top: 0.25rem;
+}
+
+.hero__waitlist {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.hero__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+  color: var(--text-secondary);
+}
+
+.hero__requirements {
+  margin: 0;
+}
+
+.hero__brew {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hero__brew-code {
+  display: inline-block;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--r-sm);
+  background: var(--bg-secondary);
+  color: var(--text);
+}
+
+@media (prefers-color-scheme: dark) {
+  .hero__brew-code {
+    background: var(--surface);
+    border: 1px solid var(--separator);
+  }
+}
+
+.hero__brew-note {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Text load-in ("hero spec" — 0/80/160/240/320ms stagger)                    */
+/* -------------------------------------------------------------------------- */
+
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero__in {
+  animation: hero-in var(--dur-reveal) var(--ease-out) both;
+  animation-delay: var(--in-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes hero-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .hero__in {
+    animation-duration: 200ms;
+    animation-timing-function: linear;
+    animation-delay: 0ms;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* HeroDevice — entrance                                                     */
+/*                                                                             */
+/* Reveal always renders `data-reveal`, which globals.css already gives an   */
+/* opacity/translateY entrance for every other reveal on the page. The hero  */
+/* device instead fades/scales (0.97 -> 1), so these rules pair the class    */
+/* with the attribute to out-specificity the generic [data-reveal] rule      */
+/* (0-2-0 beats 0-1-0) without touching globals.css.                          */
+/* -------------------------------------------------------------------------- */
+
+.hero__device {
+  width: 100%;
+  max-width: 900px;
+  margin-inline: auto;
+  margin-top: clamp(2.75rem, 6vw, 4.5rem);
+  container-type: inline-size;
+}
+
+.hero__device[data-reveal] {
+  opacity: 0;
+  transform: scale(0.97);
+  transition:
+    opacity var(--dur-reveal) var(--ease-out),
+    transform var(--dur-reveal) var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.hero__device[data-reveal].is-inview {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__device[data-reveal] {
+    transform: none;
+    transition: opacity 200ms linear;
+    transition-delay: 0ms;
+  }
+
+  .hero__device[data-reveal].is-inview {
+    transform: none;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Device composition                                                        */
+/* -------------------------------------------------------------------------- */
+
+.device {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 8 / 5;
+}
+
+.mac {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 84%;
+  aspect-ratio: 16 / 10;
+  border-radius: clamp(12px, 2.4cqw, 18px);
+  background: var(--surface);
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+  .mac {
+    border: 1px solid var(--separator-strong);
+  }
+}
+
+.mac__bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.4cqw;
+  height: 13%;
+  padding-inline: 3.2cqw;
+  border-bottom: 1px solid var(--separator);
+}
+
+.mac__dot {
+  width: 1.6cqw;
+  height: 1.6cqw;
+  min-width: 6px;
+  min-height: 6px;
+  max-width: 11px;
+  max-height: 11px;
+  border-radius: 50%;
+}
+
+.mac__dot--red {
+  background: #ff5f57;
+}
+
+.mac__dot--yellow {
+  background: #febc2e;
+}
+
+.mac__dot--green {
+  background: #28c840;
+}
+
+.mac__bar-spacer {
+  flex: 1;
+}
+
+.mac__bar-icon {
+  border-radius: 22%;
+}
+
+.mac__body {
+  position: relative;
+  height: 87%;
+  padding: 6.5cqw 4.8cqw;
+}
+
+.mac__block {
+  display: block;
+  height: 11%;
+  border-radius: var(--r-sm);
+  background: var(--bg-tertiary);
+}
+
+.mac__block--a {
+  width: 62%;
+  margin-bottom: 8%;
+}
+
+.mac__block--b {
+  width: 42%;
+  margin-bottom: 14%;
+}
+
+.mac__button {
+  position: absolute;
+  right: 6%;
+  bottom: 10%;
+  width: 20%;
+  aspect-ratio: 2.4 / 1;
+  border-radius: var(--r-pill);
+  background: var(--accent-tint);
+  overflow: hidden;
+}
+
+.mac__button-accent {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  opacity: 0;
+}
+
+.phone {
+  position: absolute;
+  left: 2%;
+  bottom: 0;
+  width: 27%;
+  aspect-ratio: 9 / 19.5;
+  padding: 3.2cqw;
+  border-radius: clamp(20px, 8cqw, 44px);
+  background: #000;
+  border: 1px solid var(--separator-strong);
+  box-shadow: var(--shadow-3);
+}
+
+.phone__screen {
+  position: relative;
+  height: 100%;
+  border-radius: clamp(14px, 6cqw, 34px);
+  background: var(--bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone__island {
+  position: absolute;
+  top: 2.6%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34%;
+  height: 3.6%;
+  min-height: 6px;
+  border-radius: var(--r-pill);
+  background: #000;
+}
+
+.phone__titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.8cqw;
+  padding: 11% 6% 3%;
+}
+
+.phone__app-icon {
+  border-radius: 22%;
+}
+
+.phone__app-name {
+  font-size: clamp(0.55rem, 2.6cqw, 0.8125rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.phone__tabs {
+  display: flex;
+  gap: 1%;
+  margin: 0 6% 5%;
+  padding: 0.8cqw;
+  border-radius: var(--r-sm);
+  background: var(--bg-secondary);
+}
+
+.phone__tab {
+  flex: 1;
+  text-align: center;
+  padding: 1.4cqw 0;
+  border-radius: calc(var(--r-sm) - 3px);
+  font-size: clamp(0.4rem, 1.9cqw, 0.6rem);
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phone__tab--active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-1);
+}
+
+.phone__touchpad {
+  position: relative;
+  flex: 1;
+  margin: 0 6% 8%;
+  border-radius: var(--r-md);
+  background: var(--bg-secondary);
+}
+
+@media (prefers-color-scheme: dark) {
+  .phone__touchpad {
+    background: var(--surface);
+    border: 1px solid var(--separator);
+  }
+}
+
+.finger {
+  position: absolute;
+  top: 28%;
+  left: 20%;
+  width: 7cqw;
+  height: 7cqw;
+  min-width: 14px;
+  min-height: 14px;
+  max-width: 26px;
+  max-height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+.cursor {
+  position: absolute;
+  top: 30%;
+  left: 16%;
+  width: 24px;
+  height: 24px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Loops: finger + cursor share one 6s timeline, paused until in view.        */
+/* -------------------------------------------------------------------------- */
+
+@keyframes hero-finger-path {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  38% {
+    transform: translate(9cqw, 0) scale(1);
+  }
+  46% {
+    transform: translate(9cqw, 7cqw) scale(1);
+  }
+  48% {
+    transform: translate(9cqw, 7cqw) scale(0.85);
+  }
+  50% {
+    transform: translate(9cqw, 7cqw) scale(1);
+  }
+  88% {
+    transform: translate(9cqw, 7cqw) scale(1);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes hero-cursor-path {
+  0% {
+    transform: translate(0, 0);
+  }
+  38% {
+    transform: translate(14.4cqw, 0);
+  }
+  46% {
+    transform: translate(14.4cqw, 11.2cqw);
+  }
+  88% {
+    transform: translate(14.4cqw, 11.2cqw);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes hero-button-flash {
+  0%,
+  46% {
+    opacity: 0;
+  }
+  48%,
+  54% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.finger,
+.cursor,
+.mac__button-accent {
+  animation-duration: 6s;
+  animation-timing-function: var(--ease-in-out);
+  animation-iteration-count: infinite;
+  animation-play-state: paused;
+}
+
+.finger {
+  animation-name: hero-finger-path;
+}
+
+.cursor {
+  animation-name: hero-cursor-path;
+}
+
+.mac__button-accent {
+  animation-name: hero-button-flash;
+  animation-timing-function: linear;
+}
+
+.hero__device.is-inview .finger,
+.hero__device.is-inview .cursor,
+.hero__device.is-inview .mac__button-accent {
+  animation-play-state: running;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finger,
+  .cursor,
+  .mac__button-accent {
+    animation: none;
+  }
+
+  .finger {
+    transform: translate(9cqw, 7cqw);
+  }
+
+  .cursor {
+    transform: translate(14.4cqw, 11.2cqw);
+  }
+
+  .mac__button-accent {
+    opacity: 1;
+  }
+}

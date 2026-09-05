@@ -1,72 +1,77 @@
-import { asset } from "@/lib/urls";
+import type { CSSProperties } from "react";
+
+import { HeroDevice } from "@/components/HeroDevice";
 import { site } from "@/site.config";
 
+/**
+ * Staggered load-in delay for the `.hero__in` entrance animation defined in
+ * hero.css (spec: hero spec, "Load-in" — 0/80/160/240/320ms across the five
+ * text blocks). CSSProperties has no index signature for custom properties,
+ * hence the cast — same pattern as components/Reveal.tsx.
+ */
+function inDelay(ms: number): CSSProperties {
+  return { "--in-delay": `${ms}ms` } as CSSProperties;
+}
+
 export function Hero() {
+  const requirements = `Requires ${site.minimumOS.macos} and ${site.minimumOS.ios} or later.`;
+
   return (
     <section className="hero" id="top">
       <div className="container hero__inner">
-        <div>
-          <h1 className="hero__title">{site.name}</h1>
+        <p className="hero__in hero__eyebrow-line" style={inDelay(0)}>
+          <span className="badge">Free · Open source · Local Wi‑Fi only</span>
+        </p>
 
-          <p className="hero__promise">{site.tagline}.</p>
+        <h1 className="display hero__title hero__in" style={inDelay(80)}>
+          Your iPhone. Now a trackpad for your Mac.
+        </h1>
 
-          <div className="hero__actions">
+        <p className="lede hero__lede hero__in" style={inDelay(160)}>
+          Air Control turns your iPhone or iPad into a trackpad, air mouse,
+          keyboard and presenter remote — over your own Wi‑Fi, with nothing in
+          between.
+        </p>
+
+        <div className="hero__actions hero__in" style={inDelay(240)}>
+          <a
+            className="button button--primary"
+            href={site.links.latestRelease}
+            rel="noreferrer noopener"
+          >
+            Download for Mac
+          </a>
+
+          <span className="hero__waitlist">
             <a
-              className="button button--primary"
-              href={site.links.latestRelease}
-              rel="noreferrer noopener"
-            >
-              Download for Mac
-            </a>
-
-            <a
-              className="button button--secondary"
+              className="link-arrow"
               href={site.links.iosWaitlist}
               rel="noreferrer noopener"
             >
-              Get for iPhone
-              <span className="badge">Coming soon</span>
+              Get it for iPhone
+              <span className="link-arrow__chevron" aria-hidden="true">
+                ›
+              </span>
             </a>
-          </div>
+            <span className="badge">Coming soon</span>
+          </span>
+        </div>
 
-          <p className="hero__subline">{site.subline}</p>
+        <div className="hero__meta hero__in" style={inDelay(320)}>
+          <p className="small hero__requirements">{requirements}</p>
 
           <div className="hero__brew">
-            <code className="codeblock">{site.homebrew.command}</code>
-            <p className="note">
-              {site.homebrew.available
-                ? "Homebrew cask."
-                : "Homebrew cask — not published yet; use the download button above."}
-            </p>
+            <code className="hero__brew-code">{site.homebrew.command}</code>
+            {!site.homebrew.available && (
+              <p className="small hero__brew-note">
+                Homebrew cask — not published yet; use the download button
+                above.
+              </p>
+            )}
           </div>
         </div>
 
-        {/*
-          Plain <img>: the export is unoptimized, so next/image would only add
-          client JavaScript and, worse, emits a src without the basePath.
-          Explicit width/height keeps cumulative layout shift at zero. Both PNGs
-          come from design/icons via site/scripts/make-assets.sh.
-        */}
-        <div className="hero__icons">
-          <img
-            className="hero__icon hero__icon--ios"
-            src={asset("/icon-ios.png")}
-            alt="The Air Control app icon for iPhone and iPad"
-            width={384}
-            height={384}
-            decoding="async"
-            fetchPriority="high"
-          />
-          <img
-            className="hero__icon hero__icon--mac"
-            src={asset("/icon-mac.png")}
-            alt="The Air Control menu-bar helper icon for macOS"
-            width={384}
-            height={384}
-            decoding="async"
-            fetchPriority="high"
-          />
-        </div>
+        <HeroDevice />
       </div>
     </section>
   );

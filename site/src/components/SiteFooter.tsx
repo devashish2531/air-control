@@ -1,5 +1,14 @@
 import { site } from "@/site.config";
 
+const links = [
+  { href: site.links.github, label: "GitHub" },
+  { href: site.links.releases, label: "Releases" },
+  { href: site.links.license, label: "MIT License" },
+  { href: site.links.security, label: "Security" },
+  { href: site.links.contributing, label: "Contributing" },
+  { href: site.links.protocol, label: "Protocol" },
+];
+
 export function SiteFooter() {
   return (
     <footer className="footer">
@@ -10,31 +19,13 @@ export function SiteFooter() {
           </p>
 
           <ul className="footer__links">
-            <li>
-              <a href={site.links.github} rel="noreferrer noopener">
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href={site.links.license} rel="noreferrer noopener">
-                MIT License
-              </a>
-            </li>
-            <li>
-              <a href={site.links.security} rel="noreferrer noopener">
-                Security
-              </a>
-            </li>
-            <li>
-              <a href={site.links.contributing} rel="noreferrer noopener">
-                Contributing
-              </a>
-            </li>
-            <li>
-              <a href={site.links.releases} rel="noreferrer noopener">
-                Releases
-              </a>
-            </li>
+            {links.map((link) => (
+              <li key={link.href}>
+                <a href={link.href} rel="noreferrer noopener">
+                  {link.label}
+                </a>
+              </li>
+            ))}
           </ul>
         </div>
 

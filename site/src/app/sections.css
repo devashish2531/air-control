@@ -1,0 +1,330 @@
+/*
+ * Sections — owned by Sections.tsx (Features, HowItWorks, Security,
+ * OpenSource, Faq, FinalCta).
+ *
+ * Reuses globals.css tokens/classes (.container, .tile, .grouped,
+ * .grouped__row, .section, .section__head, .band--dark, .link-arrow,
+ * .badge, .button, [data-reveal]) — nothing here redefines them.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Features — bento grid                                                     */
+/* -------------------------------------------------------------------------- */
+
+.bento {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+  grid-auto-flow: dense;
+}
+
+@media (min-width: 40rem) {
+  .bento {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 64rem) {
+  .bento {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.tile__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 1rem;
+  border-radius: var(--r-sm);
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+
+.bento .tile h3 {
+  margin-bottom: 0.5rem;
+}
+
+.bento .tile p {
+  color: var(--text-secondary);
+}
+
+.tile__illustration {
+  margin-top: 1.5rem;
+  color: var(--accent);
+  opacity: 0.9;
+}
+
+.tile__illustration svg {
+  width: 100%;
+  height: auto;
+}
+
+/* -------------------------------------------------------------------------- */
+/* How it works — numbered steps + latency stat tile                         */
+/* -------------------------------------------------------------------------- */
+
+.steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+  margin-bottom: clamp(1.5rem, 3vw, 2rem);
+  list-style: none;
+}
+
+@media (min-width: 48rem) {
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.steps .tile p {
+  color: var(--text-secondary);
+}
+
+.step__num {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 2.5rem;
+  line-height: 1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.stat {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 2rem);
+}
+
+@media (min-width: 48rem) {
+  .stat {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.stat__value {
+  margin: 0;
+  font-size: clamp(3rem, 7vw, 5rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat__caption {
+  margin: 0.5rem 0 0;
+  color: var(--text-secondary);
+}
+
+.stat__note {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Security — dark band, two-column grouped list                             */
+/* -------------------------------------------------------------------------- */
+
+.security__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+  margin-bottom: clamp(2rem, 4vw, 2.5rem);
+}
+
+@media (min-width: 48rem) {
+  .security__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.security__row {
+  align-items: flex-start;
+}
+
+.security__glyph {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+
+.security__row h3 {
+  margin-bottom: 0.25rem;
+}
+
+.security__row p {
+  color: var(--text-secondary);
+}
+
+.security__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Open source — wide tile, copy + facts                                     */
+/* -------------------------------------------------------------------------- */
+
+.opensource {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(2rem, 4vw, 3rem);
+}
+
+@media (min-width: 48rem) {
+  .opensource {
+    grid-template-columns: 1.1fr 1fr;
+    align-items: center;
+  }
+}
+
+.opensource__copy .eyebrow {
+  margin-bottom: 0.75rem;
+}
+
+.opensource__copy h2 {
+  margin-bottom: 1rem;
+}
+
+.opensource__copy .lede {
+  margin-bottom: 1.5rem;
+}
+
+.facts.grouped {
+  align-self: stretch;
+}
+
+.facts .grouped__row {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.facts dt {
+  color: var(--text-secondary);
+}
+
+.facts dd {
+  text-align: right;
+  font-weight: 500;
+}
+
+/* Shared button row: Open source's tile actions and the final CTA. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* FAQ — grouped <details> rows                                              */
+/* -------------------------------------------------------------------------- */
+
+.faq details {
+  position: relative;
+}
+
+.faq details:not(:last-child) {
+  border-bottom: 1px solid var(--separator);
+}
+
+.faq summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 56px;
+  padding: 1rem 1.25rem;
+  list-style: none;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq__chevron {
+  flex: none;
+  color: var(--text-tertiary);
+  transition: transform var(--dur-ui) var(--ease-out);
+}
+
+.faq details[open] .faq__chevron {
+  transform: rotate(90deg);
+}
+
+.faq__answer {
+  padding: 0 1.25rem 1.25rem;
+}
+
+.faq__answer p {
+  color: var(--text-secondary);
+}
+
+/* Animate the collapsible region's height where the browser supports it
+   (interpolate-size + ::details-content, both allow-discrete transitions);
+   everywhere else <details> just opens/closes instantly, which is fine. */
+@supports (interpolate-size: allow-keywords) {
+  .faq details {
+    interpolate-size: allow-keywords;
+  }
+
+  .faq details::details-content {
+    height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition:
+      height var(--dur-ui) var(--ease-out),
+      opacity var(--dur-ui) var(--ease-out),
+      content-visibility var(--dur-ui) allow-discrete;
+    transition-behavior: allow-discrete;
+  }
+
+  .faq details[open]::details-content {
+    height: auto;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq__chevron {
+    transition: none;
+  }
+
+  .faq details::details-content {
+    transition: none;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Final CTA                                                                  */
+/* -------------------------------------------------------------------------- */
+
+.cta {
+  text-align: center;
+}
+
+.cta__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  max-width: var(--measure);
+  margin-inline: auto;
+}
+
+.cta__proof {
+  margin-top: 0.25rem;
+}

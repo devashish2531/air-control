@@ -2,6 +2,7 @@ import { Hero } from "@/components/Hero";
 import {
   Faq,
   Features,
+  FinalCta,
   HowItWorks,
   OpenSource,
   Security,
@@ -13,8 +14,10 @@ import { canonicalUrl } from "@/lib/urls";
 import { site } from "@/site.config";
 
 /**
- * Structured data for the FAQ and the software itself. Inlined as JSON-LD so the
- * page still ships zero executable JavaScript of its own.
+ * Structured data for the FAQ and the software itself. Inlined as JSON-LD.
+ * The page is not JS-free — the header and the scroll reveals are small
+ * client components — but this data is static and author-controlled either
+ * way, so it is safe to inline regardless.
  */
 const structuredData = {
   "@context": "https://schema.org",
@@ -57,6 +60,7 @@ export default function Home() {
         <Security />
         <OpenSource />
         <Faq />
+        <FinalCta />
       </main>
 
       <SiteFooter />

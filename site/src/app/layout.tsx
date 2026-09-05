@@ -57,8 +57,8 @@ export const viewport: Viewport = {
   // The page is designed for both; `prefers-color-scheme` does the rest.
   colorScheme: "light dark",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f7fb" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a1030" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 };
 
@@ -67,6 +67,12 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Reveal-on-scroll content must not stay invisible with JS disabled. */}
+        <noscript>
+          <style>{`[data-reveal]{opacity:1;transform:none}`}</style>
+        </noscript>
+      </head>
       <body>{children}</body>
     </html>
   );
