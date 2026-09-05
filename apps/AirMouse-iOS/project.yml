@@ -50,6 +50,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: $(IOS_BUNDLE_ID)
         PRODUCT_NAME: AirMouse
         PRODUCT_MODULE_NAME: Air_Mouse
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_DEBUG_DYLIB: NO
         TARGETED_DEVICE_FAMILY: "1,2"
         # NOTE: INFOPLIST_KEY_UIApplicationSceneManifest_Generation / INFOPLIST_KEY_UILaunchScreen_Generation

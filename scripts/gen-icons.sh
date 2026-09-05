@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+#
+# gen-icons.sh — regenerate every app-icon asset from the two source images in
+# design/icons. Idempotent: it wipes the generated PNGs and Contents.json in both
+# appiconsets and rewrites them from scratch. The sources are never modified.
+#
+# See design/icons/README.md for the crop/mask rules this implements.
+#
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
+
+IOS_SOURCE="$ROOT/design/icons/ios-icon-source.png"
+MAC_SOURCE="$ROOT/design/icons/mac-icon-source.png"
+IOS_SET="$ROOT/apps/AirMouse-iOS/Resources/Assets.xcassets/AppIcon.appiconset"
+MAC_SET="$ROOT/apps/AirMouse-Mac/Resources/Assets.xcassets/AppIcon.appiconset"
+TOOL_SOURCE="$ROOT/scripts/icon-tools/IconTool.swift"
+
+for f in "$IOS_SOURCE" "$MAC_SOURCE" "$TOOL_SOURCE"; do
+  [[ -f "$f" ]] || { echo "gen-icons: missing $f" >&2; exit 1; }
+done
+mkdir -p "$IOS_SET" "$MAC_SET"
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+echo "==> building IconTool"
+swiftc -O -o "$WORK/icontool" "$TOOL_SOURCE"
+TOOL="$WORK/icontool"
+
+echo "==> iOS icons"
+rm -f "$IOS_SET"/*.png
+# Light: the blue artwork, full-bleed and opaque (App Store rejects alpha).
+"$TOOL" ios "$IOS_SOURCE" "$IOS_SET/AppIcon-1024.png"
+# Dark (iOS 18+): the navy artwork.
+"$TOOL" ios "$MAC_SOURCE" "$IOS_SET/AppIcon-1024-Dark.png"
+# Tinted (iOS 18+): grayscale; the system applies the user's tint to it. Derived
+# from the navy artwork, whose darker background gives the tint more contrast to
+# work with than the bright blue one does.
+"$TOOL" ios "$MAC_SOURCE" "$IOS_SET/AppIcon-1024-Tinted.png" --grayscale
+
+cat > "$IOS_SET/Contents.json" <<'JSON'
+{
+  "images" : [
+    {
+      "filename" : "AppIcon-1024.png",
+      "idiom" : "universal",
+      "platform" : "ios",
+      "size" : "1024x1024"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "filename" : "AppIcon-1024-Dark.png",
+      "idiom" : "universal",
+      "platform" : "ios",
+      "size" : "1024x1024"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "tinted"
+        }
+      ],
+      "filename" : "AppIcon-1024-Tinted.png",
+      "idiom" : "universal",
+      "platform" : "ios",
+      "size" : "1024x1024"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
+JSON
+
+echo "==> macOS icons"
+rm -f "$MAC_SET"/*.png
+"$TOOL" mac "$MAC_SOURCE" "$MAC_SET"
+
+cat > "$MAC_SET/Contents.json" <<'JSON'
+{
+  "images" : [
+    {
+      "filename" : "icon_16x16.png",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "16x16"
+    },
+    {
+      "filename" : "icon_16x16@2x.png",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "16x16"
+    },
+    {
+      "filename" : "icon_32x32.png",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "32x32"
+    },
+    {
+      "filename" : "icon_32x32@2x.png",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "32x32"
+    },
+    {
+      "filename" : "icon_128x128.png",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "128x128"
+    },
+    {
+      "filename" : "icon_128x128@2x.png",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "128x128"
+    },
+    {
+      "filename" : "icon_256x256.png",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "256x256"
+    },
+    {
+      "filename" : "icon_256x256@2x.png",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "256x256"
+    },
+    {
+      "filename" : "icon_512x512.png",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "512x512"
+    },
+    {
+      "filename" : "icon_512x512@2x.png",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "512x512"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
+JSON
+
+echo "==> verifying"
+# The iOS icon must be 1024x1024 with no alpha channel.
+ios_alpha="$(sips -g hasAlpha "$IOS_SET/AppIcon-1024.png" | awk '/hasAlpha/ {print $2}')"
+[[ "$ios_alpha" == "no" ]] || { echo "gen-icons: iOS icon still has an alpha channel" >&2; exit 1; }
+
+# The macOS set must survive an icns round trip — that is what Finder/Dock consume.
+ICONSET="$WORK/AirMouse.iconset"
+mkdir -p "$ICONSET"
+cp "$MAC_SET"/icon_*.png "$ICONSET/"
+iconutil -c icns -o "$WORK/AirMouse.icns" "$ICONSET"
+echo "    icns round trip OK ($(du -h "$WORK/AirMouse.icns" | cut -f1))"
+
+echo "==> done"
