@@ -1,0 +1,49 @@
+name: Feature request
+description: Propose a new capability or behaviour change.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check `docs/05-plan.md` §9 (backlog for v1.x / v2) first — your idea may already be
+        scoped there with a target milestone and size estimate.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: What can't you do today, or what's awkward?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should it work? Include which side(s) — iOS, Mac, protocol, kit — are affected.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: security
+    attributes:
+      label: Does this touch the security model?
+      description: New network surface, new permission, new macro capability, etc. (spec §7)
+      options:
+        - "No"
+        - "Yes — see notes below"
+    validations:
+      required: true
+  - type: textarea
+    id: security-notes
+    attributes:
+      label: Security notes (if applicable)
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked docs/05-plan.md and docs/00-decisions.md to see if this was already decided against.
+          required: true

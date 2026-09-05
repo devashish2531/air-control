@@ -25,8 +25,8 @@ settings:
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
     SWIFT_EMIT_LOC_STRINGS: YES
   configs:
-    Debug: { SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG, ONLY_ACTIVE_ARCH: YES }
-    Release: { SWIFT_COMPILATION_MODE: wholemodule }
+    Debug: { SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG, ONLY_ACTIVE_ARCH: YES, ENABLE_TESTABILITY: YES, DEAD_CODE_STRIPPING: NO, SWIFT_OPTIMIZATION_LEVEL: "-Onone", GCC_OPTIMIZATION_LEVEL: "0" }
+    Release: { SWIFT_COMPILATION_MODE: wholemodule, SWIFT_OPTIMIZATION_LEVEL: "-O", GCC_OPTIMIZATION_LEVEL: "s" }
 targets:
   AirMouse:
     type: application
@@ -47,7 +47,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.airmouse.app$(BUNDLE_ID_SUFFIX)
-        PRODUCT_NAME: Air Mouse
+        PRODUCT_NAME: AirMouse
+        PRODUCT_MODULE_NAME: Air_Mouse
+        ENABLE_DEBUG_DYLIB: NO
         TARGETED_DEVICE_FAMILY: "1,2"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
@@ -78,11 +80,17 @@ targets:
     platform: iOS
     sources: [Tests]
     dependencies: [{ target: AirMouse }]
+    settings:
+      base:
+        PRODUCT_NAME: "$(TARGET_NAME)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AirMouse.app/AirMouse"
+        BUNDLE_LOADER: "$(TEST_HOST)"
   AirMouseUITests:
     type: bundle.ui-testing
     platform: iOS
     sources: [UITests]
     dependencies: [{ target: AirMouse }]
+    settings: { base: { PRODUCT_NAME: "$(TARGET_NAME)" } }
 schemes:
   AirMouse:
     build: { targets: { AirMouse: all, AirMouseTests: [test], AirMouseUITests: [test] } }

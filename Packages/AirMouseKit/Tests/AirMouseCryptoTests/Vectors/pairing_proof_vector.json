@@ -1,0 +1,17 @@
+{
+  "_comment": "Arbitrary-but-fixed pairing proof vector (spec \u00a73.2.3 binding construction). See README.json for generation method and why the byte values are not from the spec itself (the spec does not fix them).",
+  "S_hex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+  "exporter_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "nonce_hex": "404142434445464748494a4b4c4d4e4f",
+  "clientFP_hex": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
+  "hostFP_hex": "909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+  "hostID_hex": "d0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+  "binding_length": 128,
+  "proof_hex": "7f9163b83637a4e4643265140dec9746b705da6bdad7ca0465e5d3f3ce28a156",
+  "hostProof_hex": "9821126c80021028b1c534e0db74f0ba980eadff4dc65329806dc62a48993ba1",
+  "negative_vector": {
+    "_comment": "Same inputs except hostID's first byte is flipped (XOR 0xFF): 0xd0 -> 0x2f. clientProof recomputed with this corrupted binding must differ from proof_hex.",
+    "hostID_hex": "2fd1d2d3d4d5d6d7d8d9dadbdcdddedf",
+    "proof_hex": "09eb8ea9118b042a06ddd531f08274e38a458846b7c09c3adc5bc093d9e2e885"
+  }
+}

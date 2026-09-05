@@ -1,0 +1,207 @@
+# Air Mouse release — arch §9.1 "Rel" lane, §9.3 secrets model, §9.4 artefacts.
+#
+# Fork-PR secrets model (arch §9.3): `pull_request` runs from forks get NO secrets and a
+# read-only GITHUB_TOKEN — this workflow only triggers on tag pushes, which forks cannot do
+# (tag pushes to this repo require write access, and `v*` tags are additionally protected).
+# All signing / notarization / Sparkle / tap secrets live ONLY in the GitHub Environment
+# named `release`, which has a required reviewer and a deployment rule restricting it to `v*`
+# tags. Every job below that touches those secrets declares `environment: release`; nothing
+# else in this repo's workflows references that environment, so a compromised PR workflow
+# cannot read release secrets. Never change this workflow to run on `pull_request_target`
+# with a checkout of the PR head.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  mac-release:
+    name: Mac archive, notarize, DMG, appcast, GitHub Release, cask PR
+    runs-on: macos-26
+    environment: release
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode (.xcode-version)
+        run: |
+          version="$(cat .xcode-version)"
+          candidate="/Applications/Xcode_${version}.app"
+          if [ -d "$candidate" ]; then
+            sudo xcode-select -s "$candidate"
+          elif command -v xcodes >/dev/null; then
+            xcodes select "$version" || true
+          fi
+          xcodebuild -version
+
+      - name: Install release tooling (Brewfile)
+        run: brew bundle --file scripts/Brewfile
+
+      - name: Bootstrap (fetch XcodeGen, generate projects)
+        run: scripts/bootstrap.sh
+
+      - name: Import Developer ID identity into a temporary keychain
+        env:
+          DEVELOPER_ID_P12: ${{ secrets.DEVELOPER_ID_P12 }}
+          DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PATH="$RUNNER_TEMP/release-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          echo "$DEVELOPER_ID_P12" | base64 --decode > "$RUNNER_TEMP/developer-id.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$RUNNER_TEMP/developer-id.p12" -k "$KEYCHAIN_PATH" \
+            -P "$DEVELOPER_ID_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/developer-id.p12"
+
+      - name: xcodegen · xcodebuild archive (universal, Release, Developer ID)
+        run: |
+          make gen
+          xcodebuild -quiet \
+            -project apps/AirMouse-Mac/AirMouseHelper.xcodeproj \
+            -scheme AirMouseHelper \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -archivePath "$RUNNER_TEMP/AirMouseHelper.xcarchive" \
+            AIRMOUSE_WARNINGS_AS_ERRORS=YES \
+            archive
+
+      - name: Export Developer ID app
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>developer-id</string>
+            <key>signingStyle</key><string>automatic</string>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -quiet -exportArchive \
+            -archivePath "$RUNNER_TEMP/AirMouseHelper.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export"
+
+      - name: Notarize + staple
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          scripts/release/notarize.sh "$RUNNER_TEMP/export/AirMouseHelper.app"
+
+      - name: make-dmg.sh
+        run: |
+          scripts/release/make-dmg.sh "$RUNNER_TEMP/export/AirMouseHelper.app" "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg"
+
+      - name: sha256sum
+        run: |
+          shasum -a 256 "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg" | tee "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg.sha256"
+
+      - name: appcast.sh (Sparkle, EdDSA-signed)
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          scripts/release/appcast.sh "$RUNNER_TEMP/dist" "$VERSION"
+
+      - name: gh release create
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="$(awk '/^## \[Unreleased\]/{flag=1;next}/^## \[/{flag=0}flag' CHANGELOG.md || true)"
+          gh release create "$VERSION" \
+            "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg" \
+            "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg.sha256" \
+            "$RUNNER_TEMP/dist/appcast.xml" \
+            --title "Air Mouse $VERSION" \
+            --notes "${notes:-See CHANGELOG.md.}"
+
+      - name: bump-cask.sh → PR to homebrew tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          scripts/release/bump-cask.sh "$VERSION" "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg.sha256"
+
+  ios-testflight:
+    name: iOS archive + TestFlight upload
+    runs-on: macos-26
+    environment: release
+    needs: mac-release
+    env:
+      VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode (.xcode-version)
+        run: |
+          version="$(cat .xcode-version)"
+          candidate="/Applications/Xcode_${version}.app"
+          if [ -d "$candidate" ]; then
+            sudo xcode-select -s "$candidate"
+          elif command -v xcodes >/dev/null; then
+            xcodes select "$version" || true
+          fi
+          xcodebuild -version
+
+      - name: Bootstrap (fetch XcodeGen, generate projects)
+        run: scripts/bootstrap.sh
+
+      - name: ASC API key file
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/private_keys"
+          echo "$ASC_KEY_P8" | base64 --decode > "$RUNNER_TEMP/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8"
+
+      - name: xcodebuild archive (iOS, Release)
+        run: |
+          make gen
+          xcodebuild -quiet \
+            -project apps/AirMouse-iOS/AirMouse.xcodeproj \
+            -scheme AirMouse \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/AirMouse.xcarchive" \
+            AIRMOUSE_WARNINGS_AS_ERRORS=YES \
+            archive
+
+      - name: Export + upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions-ios.plist" <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>destination</key><string>upload</string>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -quiet -exportArchive \
+            -archivePath "$RUNNER_TEMP/AirMouse.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions-ios.plist" \
+            -exportPath "$RUNNER_TEMP/export-ios" \
+            -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          # TestFlight processing → App Store submission remains manual (arch §9.4).

@@ -25,6 +25,11 @@ settings:
   configs:
     Debug:
       ONLY_ACTIVE_ARCH: YES
+      ENABLE_TESTABILITY: YES
+      DEAD_CODE_STRIPPING: NO
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+      GCC_OPTIMIZATION_LEVEL: "0"
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
       CODE_SIGN_IDENTITY: "Apple Development"
     Release:
       CODE_SIGN_IDENTITY: "Developer ID Application"
@@ -50,7 +55,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.airmouse.helper$(BUNDLE_ID_SUFFIX)
-        PRODUCT_NAME: Air Mouse
+        PRODUCT_NAME: AirMouse
+        PRODUCT_MODULE_NAME: Air_Mouse
+        ENABLE_DEBUG_DYLIB: NO
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
     info:
       path: Sources/Info.plist
@@ -77,11 +84,21 @@ targets:
     platform: macOS
     sources: [Tests]
     dependencies: [{ target: AirMouseHelper }]
+    settings:
+      base:
+        PRODUCT_NAME: "$(TARGET_NAME)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AirMouse.app/Contents/MacOS/AirMouse"
+        BUNDLE_LOADER: "$(TEST_HOST)"
   AirMouseHelperIntegrationTests:
     type: bundle.unit-test
     platform: macOS
     sources: [IntegrationTests]
     dependencies: [{ target: AirMouseHelper }]
+    settings:
+      base:
+        PRODUCT_NAME: "$(TARGET_NAME)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AirMouse.app/Contents/MacOS/AirMouse"
+        BUNDLE_LOADER: "$(TEST_HOST)"
 schemes:
   AirMouseHelper:
     build: { targets: { AirMouseHelper: all, AirMouseHelperTests: [test], AirMouseHelperIntegrationTests: [test] } }

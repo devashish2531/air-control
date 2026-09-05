@@ -1,0 +1,126 @@
+{
+  "_format": "Each vector is a hand-computed 16-byte little-endian motion payload per spec \u00a73.5.2: flags(u8) source(u8) samples(u8) reserved(u8) timestamp(u32 LE) dx(i16 LE) dy(i16 LE) scrollX(i16 LE) scrollY(i16 LE). 'hex' is the lowercase hex encoding of those 16 bytes; the remaining fields are the expected decoded values. 'reserved_nonzero_ignored' additionally documents that byte 3 must be ignored on decode (spec \u00a73.7) even though it is nonzero in the input, and that re-encoding the decoded value must emit 0x00 there (not round-trip the original 0xFF).",
+  "vectors": [
+    {
+      "name": "zero",
+      "hex": "00000000000000000000000000000000",
+      "flags": 0,
+      "source": 0,
+      "samples": 0,
+      "timestamp": 0,
+      "dx": 0,
+      "dy": 0,
+      "scrollX": 0,
+      "scrollY": 0
+    },
+    {
+      "name": "touch_move",
+      "hex": "00000100e80300005000d8ff00000000",
+      "flags": 0,
+      "source": 0,
+      "samples": 1,
+      "timestamp": 1000,
+      "dx": 80,
+      "dy": -40,
+      "scrollX": 0,
+      "scrollY": 0
+    },
+    {
+      "name": "scroll_began",
+      "hex": "0100020040e20100000000001000f8ff",
+      "flags": 1,
+      "source": 0,
+      "samples": 2,
+      "timestamp": 123456,
+      "dx": 0,
+      "dy": 0,
+      "scrollX": 16,
+      "scrollY": -8
+    },
+    {
+      "name": "motion_end_gyro",
+      "hex": "04010100ffffffff0000000000000000",
+      "flags": 4,
+      "source": 1,
+      "samples": 1,
+      "timestamp": 4294967295,
+      "dx": 0,
+      "dy": 0,
+      "scrollX": 0,
+      "scrollY": 0
+    },
+    {
+      "name": "probe",
+      "hex": "10ff00002b0200000000000000000000",
+      "flags": 16,
+      "source": 255,
+      "samples": 0,
+      "timestamp": 555,
+      "dx": 0,
+      "dy": 0,
+      "scrollX": 0,
+      "scrollY": 0
+    },
+    {
+      "name": "probe_echo",
+      "hex": "20ff00002b020000d204000000000000",
+      "flags": 32,
+      "source": 255,
+      "samples": 0,
+      "timestamp": 555,
+      "dx": 1234,
+      "dy": 0,
+      "scrollX": 0,
+      "scrollY": 0
+    },
+    {
+      "name": "max_values",
+      "hex": "0002ff0000ca9a3bff7fff7fff7fff7f",
+      "flags": 0,
+      "source": 2,
+      "samples": 255,
+      "timestamp": 1000000000,
+      "dx": 32767,
+      "dy": 32767,
+      "scrollX": 32767,
+      "scrollY": 32767
+    },
+    {
+      "name": "min_values",
+      "hex": "00030a002a0000000080008000800080",
+      "flags": 0,
+      "source": 3,
+      "samples": 10,
+      "timestamp": 42,
+      "dx": -32768,
+      "dy": -32768,
+      "scrollX": -32768,
+      "scrollY": -32768
+    },
+    {
+      "name": "reserved_nonzero_ignored",
+      "hex": "000001ff070000000100020003000400",
+      "flags": 0,
+      "source": 0,
+      "samples": 1,
+      "timestamp": 7,
+      "dx": 1,
+      "dy": 2,
+      "scrollX": 3,
+      "scrollY": 4,
+      "note": "byte 3 (reserved) is 0xFF in the input bytes; decoding must ignore it and still parse dx/dy/scrollX/scrollY correctly, and re-encoding must emit 0x00 there"
+    },
+    {
+      "name": "scroll_ended_predicted",
+      "hex": "0a000100e70300000500fbff64009cff",
+      "flags": 10,
+      "source": 0,
+      "samples": 1,
+      "timestamp": 999,
+      "dx": 5,
+      "dy": -5,
+      "scrollX": 100,
+      "scrollY": -100
+    }
+  ]
+}

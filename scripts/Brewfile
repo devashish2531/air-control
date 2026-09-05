@@ -1,0 +1,6 @@
+brew "xcodegen"
+brew "swiftlint"
+brew "swiftformat"
+brew "gh"
+brew "create-dmg"
+brew "jq"

@@ -1,0 +1,769 @@
+// Services/ConnectionManager/ConnectionManager.swift
+// Drives the client-side connection lifecycle end to end: discovery, pairing, trusted reconnect,
+// backoff, suspend/resume, heartbeat/probe, error mapping. Wraps `AirMouseCore`'s pure
+// `ConnectionStateMachine` (spec §4.5.1) and owns one `ClientSessioning` at a time — the only
+// `Network`-importing, actor-crossing coordination point this agent's assignment covers.
+//
+// Conforms to the shell's `ConnectionManaging` + `PairingRouting` (App/ServiceProtocols.swift) so
+// `AppEnvironment.connection`/`.pairingRouter` can be swapped for a live instance of this type
+// without editing those files; `PairingScreen`/`DevicesScreen` (this agent's own features) recover
+// the richer surface below by downcasting `environment.connection as? ConnectionManager`, since
+// this agent owns both ends of that wiring.
+
+import Foundation
+import Network
+import Observation
+import Security
+import AirMouseCore
+import AirMouseCrypto
+import AirMouseFilters
+import AirMouseProtocol
+import UIKit
+
+/// Progress states `PairingScreen` renders (spec §4.1.2 / §9). Distinct from the shell's
+/// `ConnectionState` because pairing has its own "verifying"/"paired" beats mid-handshake that
+/// the coarser shell enum doesn't carry.
+public enum PairingProgress: Sendable, Equatable {
+    case idle
+    case connecting(hostName: String?)
+    case verifying(hostName: String)
+    case paired(hostName: String)
+    case failed(AppError)
+}
+
+/// One "Mac known to this device" row for `DevicesScreen`: a trusted record plus its live browse
+/// status, if currently visible.
+public struct KnownHostRow: Sendable, Identifiable, Equatable {
+    public enum Status: Sendable, Equatable {
+        case connected
+        case available
+        case notFound
+    }
+
+    public var record: TrustedDeviceRecord
+    public var status: Status
+    /// The TXT/QR host ID, if known — lets `DevicesScreen` cross-reference `discoveredHosts` live
+    /// as browsing continues, without re-running `refreshKnownHostRows()` on every browse tick.
+    public var hostID: Data?
+    public var id: String { record.id }
+}
+
+/// `@unchecked Sendable`: every stored property is only ever touched on `MainActor` (enforced by
+/// the class's own `@MainActor` isolation — this conformance only lets a *reference* to the
+/// instance cross into other isolation domains, e.g. `Task.detached` in `ConnectionMotionSink`,
+/// where every actual member access still requires `await` and hops back to `MainActor`).
+@MainActor
+@Observable
+public final class ConnectionManager: ConnectionManaging, PairingRouting, @unchecked Sendable {
+    // MARK: - Shell-facing state (ConnectionManaging)
+
+    public private(set) var connectionState: ConnectionState = .idle
+    public var currentHostName: String? {
+        switch connectionState {
+        case .connected(let name), .reconnecting(let name): return name
+        default: return nil
+        }
+    }
+
+    // MARK: - Pairing/Devices-facing state
+
+    public private(set) var pairingProgress: PairingProgress = .idle
+    public private(set) var discoveredHosts: [DiscoveredHost] = []
+    public private(set) var browseState: BonjourBrowser.BrowseState = .idle
+    public private(set) var knownHostRows: [KnownHostRow] = []
+    public private(set) var latestHostState: HostState?
+    public private(set) var latestMacroList: MacroList?
+    public private(set) var lastError: AppError?
+
+    public let knownHosts: KnownHostsStore
+
+    /// The live session, for the sink adapters (`ConnectionSinks.swift`) to forward wire calls
+    /// onto. `nil` whenever `connectionState` isn't `.connected`.
+    public var activeSession: (any ClientSessioning)? { session }
+
+    private var pendingMacroInvokes: [UUID: CheckedContinuation<MacroResult, Never>] = [:]
+
+    // MARK: - Internals
+
+    private var coreState: AirMouseCore.ConnectionState = .idle
+    private var session: (any ClientSessioning)?
+    private var currentFingerprint: Fingerprint?
+    private var currentDisplayName: String?
+    private var currentResolvedHost: String?
+
+    private var eventsTask: Task<Void, Never>?
+    private var tickerTask: Task<Void, Never>?
+    private var reconnectTask: Task<Void, Never>?
+    private var browseTask: Task<Void, Never>?
+    private var browseStateTask: Task<Void, Never>?
+    private var settingsObservationStarted = false
+
+    private var backoff = Backoff()
+    private var reconnectBeganAt: TimeInterval?
+
+    private let bonjourBrowser = BonjourBrowser()
+    private let clock: any Clock
+    private let clientIdentity: SecIdentity
+    private let clientFingerprint: Fingerprint
+    private let device: Hello.Device
+    private let userSettings: UserSettings
+    private let diagnostics: DiagnosticsModel
+    private let idleTimer: IdleTimer
+    private let haptics: any HapticsService
+
+    public init(
+        knownHosts: KnownHostsStore,
+        userSettings: UserSettings,
+        diagnostics: DiagnosticsModel,
+        idleTimer: IdleTimer,
+        haptics: any HapticsService,
+        clock: any Clock = SystemClock(),
+        clientIdentity: GeneratedIdentity
+    ) {
+        self.knownHosts = knownHosts
+        self.userSettings = userSettings
+        self.diagnostics = diagnostics
+        self.idleTimer = idleTimer
+        self.haptics = haptics
+        self.clock = clock
+        self.clientIdentity = clientIdentity.secIdentity
+        self.clientFingerprint = clientIdentity.fingerprint
+        self.device = Hello.Device(
+            name: UIDevice.current.name,
+            model: Self.hardwareModelIdentifier(),
+            os: "iOS \(UIDevice.current.systemVersion)",
+            app: (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0"
+        )
+        observeAppLifecycle()
+        observeSettingsChanges()
+        Task { await self.refreshKnownHostRows() }
+    }
+
+    // MARK: - ConnectionManaging
+
+    /// spec §4.5.5: "if a trusted target exists and auto-connect is on → Connecting immediately."
+    /// Also the shell's generic "(re)connect" entry point (e.g. a future manual retry button).
+    public func connect() async {
+        guard session == nil else { return }
+        guard let hex = knownHosts.lastUsedHostFingerprintHex,
+              let fingerprint = Fingerprint(hexString: hex),
+              let record = await knownHosts.lookup(fingerprint: fingerprint), !record.revoked
+        else {
+            return
+        }
+        await connectToKnownHost(record)
+    }
+
+    public func disconnect() async {
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        if let session {
+            try? await session.sendGoodbye(.userQuit)
+            await session.close(reason: .userQuit)
+        }
+        await teardownSession(nextState: .idle)
+    }
+
+    // MARK: - PairingRouting
+
+    public func routePairing(url: URL) {
+        Task { await pair(urlString: url.absoluteString) }
+    }
+
+    // MARK: - Pairing (spec §3.2, §4.1.2)
+
+    /// Parses `urlString` (QR scan or pasted link) and drives the full pairing handshake.
+    public func pair(urlString: String) async {
+        do {
+            let url = try PairingClient.parse(urlString)
+            await pair(url: url)
+        } catch {
+            pairingProgress = .failed(.pairingURLInvalid)
+        }
+    }
+
+    /// Lets `PairingScreen`'s "Try again" clear a `.failed` overlay back to `.idle` without
+    /// re-driving any connection state (the failed attempt already tore itself down).
+    public func resetPairingProgress() {
+        pairingProgress = .idle
+    }
+
+    public func pair(url: PairingURL) async {
+        guard let fingerprint = Fingerprint(bytes: Array(url.fingerprint)) else {
+            pairingProgress = .failed(.pairingFingerprintMismatch)
+            return
+        }
+        await disconnectCurrentSessionQuietly()
+        coreState = .pairing
+        connectionState = .pairing
+        pairingProgress = .connecting(hostName: url.hostName)
+
+        let candidates = url.addresses.map {
+            AddressSelector.Candidate(address: $0, port: url.tcpPort, source: .qr)
+        }
+        do {
+            let channel = try await withOverallTimeout(Double(ProtocolConstants.addressOverallConnectTimeoutMs) / 1000.0) {
+                try await self.connectControlChannel(liveEndpoint: nil, candidates: candidates, fingerprint: fingerprint)
+            }
+            let newSession = makeSession(control: channel, resolvedHost: channel.resolvedHost)
+            eventsTask?.cancel()
+            eventsTask = Task { [weak self] in await self?.consumeEvents(of: newSession) }
+            pairingProgress = .verifying(hostName: url.hostName)
+            let info = try await newSession.pair(url: url, macroRevision: nil)
+            session = newSession
+            currentFingerprint = fingerprint
+            currentDisplayName = info.host.name
+            currentResolvedHost = channel.resolvedHost
+            backoff.reset()
+
+            let record = TrustedDeviceRecord(
+                fingerprint: fingerprint,
+                name: info.host.name,
+                model: info.host.model,
+                osVersion: info.host.os,
+                firstPaired: Date(),
+                lastSeen: Date()
+            )
+            await knownHosts.add(record)
+            await knownHosts.setConnectionInfo(
+                KnownHostConnectionInfo(
+                    tcpPort: url.tcpPort,
+                    udpPort: info.udpPort,
+                    qrAddresses: url.addresses,
+                    hostID: url.hostID
+                ),
+                fingerprint: fingerprint
+            )
+            if let resolved = channel.resolvedHost {
+                await knownHosts.recordSuccessfulConnection(fingerprint: fingerprint, address: resolved)
+            }
+            knownHosts.setLastUsedHost(fingerprint: fingerprint)
+            userSettings.lastHostID = fingerprint.hexString
+
+            coreState = .connected
+            connectionState = .connected(hostName: info.host.name)
+            pairingProgress = .paired(hostName: info.host.name)
+            haptics.fire(.pairingSuccess)
+            idleTimer.acquire("connected")
+            startTickers()
+            await refreshKnownHostRows()
+        } catch {
+            haptics.fire(.pairingFailure)
+            let appError = Self.mapPairingError(error)
+            pairingProgress = .failed(appError)
+            lastError = appError
+            coreState = .failed(.pairingFailed)
+            connectionState = .failed(reason: appError.presentation.message)
+            eventsTask?.cancel()
+        }
+    }
+
+    // MARK: - Devices (spec §4.1.3)
+
+    public func startBrowsing() {
+        guard browseTask == nil else { return }
+        bonjourBrowser.start()
+        // Two independent plain `Task`s (not `async let`/`addTask`, which are `@Sendable` and lose
+        // this @MainActor class's isolation) so each loop can mutate `discoveredHosts`/
+        // `browseState` directly.
+        browseTask = Task { [weak self] in
+            guard let self else { return }
+            for await hosts in self.bonjourBrowser.hosts {
+                guard !Task.isCancelled else { return }
+                self.discoveredHosts = hosts
+                await self.maybeAutoConnect(hosts: hosts)
+            }
+        }
+        browseStateTask = Task { [weak self] in
+            guard let self else { return }
+            for await state in self.bonjourBrowser.state {
+                guard !Task.isCancelled else { return }
+                self.browseState = state
+            }
+        }
+    }
+
+    public func stopBrowsing() {
+        browseTask?.cancel()
+        browseTask = nil
+        browseStateTask?.cancel()
+        browseStateTask = nil
+        bonjourBrowser.stop()
+        discoveredHosts = []
+    }
+
+    public func connectToKnownHost(_ record: TrustedDeviceRecord) async {
+        guard session == nil else { return }
+        await disconnectCurrentSessionQuietly()
+        coreState = .connecting
+        connectionState = .connecting
+
+        let info = await knownHosts.connectionInfo(fingerprint: record.fingerprint)
+
+        func hostIDMatches(_ discovered: DiscoveredHost) -> Bool {
+            guard let hostID = info?.hostID else { return false }
+            return discovered.id == hostID
+        }
+        let live = discoveredHosts.first(where: hostIDMatches)
+
+        let lastKnown = (info?.lastKnownAddresses ?? []).map {
+            AddressSelector.Candidate(address: $0.address, port: info?.tcpPort ?? ProtocolConstants.defaultTCPPort, source: .lastKnown)
+        }
+        let qr = (info?.qrAddresses ?? []).map {
+            AddressSelector.Candidate(address: $0, port: info?.tcpPort ?? ProtocolConstants.defaultTCPPort, source: .qr)
+        }
+
+        do {
+            let channel = try await withOverallTimeout(Double(ProtocolConstants.addressOverallConnectTimeoutMs) / 1000.0) {
+                try await self.connectControlChannel(liveEndpoint: live?.endpoint, candidates: lastKnown + qr, fingerprint: record.fingerprint)
+            }
+            let newSession = makeSession(control: channel, resolvedHost: channel.resolvedHost)
+            eventsTask?.cancel()
+            eventsTask = Task { [weak self] in await self?.consumeEvents(of: newSession) }
+            let ack = try await newSession.connect(macroRevision: latestMacroList?.revision)
+            session = newSession
+            currentFingerprint = record.fingerprint
+            currentDisplayName = ack.host.name
+            currentResolvedHost = channel.resolvedHost
+            backoff.reset()
+
+            if let resolved = channel.resolvedHost {
+                await knownHosts.recordSuccessfulConnection(fingerprint: record.fingerprint, address: resolved)
+            }
+            await knownHosts.updateLastSeen(fingerprint: record.fingerprint, date: Date())
+            knownHosts.setLastUsedHost(fingerprint: record.fingerprint)
+            userSettings.lastHostID = record.fingerprint.hexString
+
+            coreState = .connected
+            connectionState = .connected(hostName: ack.host.name)
+            idleTimer.acquire("connected")
+            startTickers()
+            try? await newSession.sendSettings(Self.wireSettings(from: userSettings.snapshot))
+            await refreshKnownHostRows()
+        } catch {
+            let appError = Self.mapConnectError(error, hostName: record.displayName)
+            lastError = appError
+            coreState = .failed(.allCandidatesFailed)
+            connectionState = .failed(reason: appError.presentation.message)
+            eventsTask?.cancel()
+        }
+    }
+
+    /// spec §4.1.3 "Forget": deletes Keychain cert + record + (macro cache is the Macros
+    /// feature's own responsibility on the same fingerprint).
+    public func forget(_ record: TrustedDeviceRecord) async {
+        if currentFingerprint == record.fingerprint {
+            await disconnect()
+        }
+        await knownHosts.remove(fingerprint: record.fingerprint)
+        if knownHosts.lastUsedHostFingerprintHex == record.fingerprint.hexString {
+            knownHosts.setLastUsedHost(fingerprint: nil)
+        }
+        await refreshKnownHostRows()
+    }
+
+    public func refreshKnownHostRows() async {
+        let records = await knownHosts.list().filter { !$0.revoked }
+        var rows: [KnownHostRow] = []
+        for record in records {
+            let status: KnownHostRow.Status
+            if currentFingerprint == record.fingerprint, case .connected = connectionState {
+                status = .connected
+            } else {
+                status = .notFound // liveness refined by `DevicesScreen` against `discoveredHosts`.
+            }
+            let hostID = await knownHosts.connectionInfo(fingerprint: record.fingerprint)?.hostID
+            rows.append(KnownHostRow(record: record, status: status, hostID: hostID))
+        }
+        knownHostRows = rows
+    }
+
+    // MARK: - Macro invocation (spec §5.5.5) — `RemoteCommandSink.invokeMacro`'s implementation
+
+    /// Sends `macroInvoke` then awaits the matching `macroResult` by macro `id` (not envelope
+    /// `ref`, which `ClientSession.invokeMacro` does not surface to callers). Times out after
+    /// `ProtocolConstants.macroScriptTimeoutSeconds` — the longest of the spec's per-kind macro
+    /// timeouts — so a lost/never-sent result can't hang the caller forever.
+    public func invokeMacroAwaitingResult(id: UUID, confirmed: Bool, session: any ClientSessioning) async throws -> MacroInvokeOutcome {
+        try await session.invokeMacro(id: id, confirmed: confirmed)
+        do {
+            let result = try await withOverallTimeout(Double(ProtocolConstants.macroScriptTimeoutSeconds)) {
+                await self.awaitMacroResult(id: id)
+            }
+            return MacroInvokeOutcome(code: result.code, message: result.message)
+        } catch {
+            pendingMacroInvokes.removeValue(forKey: id)
+            return MacroInvokeOutcome(code: .timeout, message: "")
+        }
+    }
+
+    private func awaitMacroResult(id: UUID) async -> MacroResult {
+        await withCheckedContinuation { continuation in
+            pendingMacroInvokes[id] = continuation
+        }
+    }
+
+    // MARK: - Session plumbing
+
+    private func makeSession(control: NWControlChannel, resolvedHost: String?) -> any ClientSessioning {
+        let provider: DatagramChannelProvider = { udpPort in
+            let host = resolvedHost ?? ""
+            return try await NWDatagramChannel.connect(host: host, udpPort: udpPort)
+        }
+        return ClientSession(
+            control: control,
+            datagramProvider: provider,
+            clock: clock,
+            localFingerprint: clientFingerprint,
+            device: device
+        )
+    }
+
+    private func connectControlChannel(
+        liveEndpoint: NWEndpoint?,
+        candidates: [AddressSelector.Candidate],
+        fingerprint: Fingerprint
+    ) async throws -> NWControlChannel {
+        let ordered = AddressSelector.order(bonjour: nil, lastKnown: candidates.filter { $0.source == .lastKnown }, qr: candidates.filter { $0.source == .qr })
+        var attemptCount = ordered.count + (liveEndpoint != nil ? 1 : 0)
+        guard attemptCount > 0 else { throw TransportError.connectionFailed("no candidate addresses") }
+
+        // `SecIdentity` is a CF type with no `Sendable` conformance; box it (matching
+        // `GeneratedIdentity`'s own `@unchecked Sendable` rationale: Security.framework's CF
+        // handles are safe to hand across isolation domains as opaque, effectively-immutable
+        // values) so it can cross into these `@Sendable` `addTask` closures.
+        let identity = SendableSecIdentity(clientIdentity)
+
+        return try await withThrowingTaskGroup(of: NWControlChannel.self) { group in
+            var index = 0
+            if let liveEndpoint {
+                group.addTask {
+                    try await NWControlChannel.connect(to: liveEndpoint, clientIdentity: identity.value, expectedHostFingerprint: fingerprint)
+                }
+                index += 1
+            }
+            for candidate in ordered {
+                let staggerIndex = index
+                group.addTask {
+                    if staggerIndex > 0 {
+                        try await Task.sleep(nanoseconds: UInt64(staggerIndex) * UInt64(ProtocolConstants.addressConnectStaggerMs) * 1_000_000)
+                    }
+                    try Task.checkCancellation()
+                    return try await NWControlChannel.connect(
+                        host: candidate.address,
+                        port: candidate.port,
+                        clientIdentity: identity.value,
+                        expectedHostFingerprint: fingerprint
+                    )
+                }
+                index += 1
+            }
+            attemptCount = index
+
+            var lastError: Error = TransportError.connectionFailed("no candidate addresses")
+            var remaining = attemptCount
+            while remaining > 0, let result = await group.nextResult() {
+                remaining -= 1
+                switch result {
+                case .success(let channel):
+                    group.cancelAll()
+                    return channel
+                case .failure(let error):
+                    lastError = error
+                }
+            }
+            throw lastError
+        }
+    }
+
+    private func withOverallTimeout<T: Sendable>(_ seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await operation() }
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw TransportError.timedOut
+            }
+            guard let result = try await group.next() else {
+                throw TransportError.timedOut
+            }
+            group.cancelAll()
+            return result
+        }
+    }
+
+    private func consumeEvents(of session: any ClientSessioning) async {
+        for await event in session.events {
+            guard !Task.isCancelled else { return }
+            handle(event: event)
+        }
+    }
+
+    private func handle(event: ClientEvent) {
+        switch event {
+        case .pairingChallengeReceived(let hostName):
+            pairingProgress = .verifying(hostName: hostName)
+        case .paired:
+            break // trust persisted by the caller once `pair(url:)` returns.
+        case .connected:
+            break // handled by the caller's own return value.
+        case .hostState(let hostState):
+            latestHostState = hostState
+        case .macroList(let macroList):
+            latestMacroList = macroList
+        case .macroResult(let result):
+            if let continuation = pendingMacroInvokes.removeValue(forKey: result.id) {
+                continuation.resume(returning: result)
+            }
+        case .error(let payload):
+            let appError = Self.mapErrorPayload(payload)
+            lastError = appError
+            if payload.fatal {
+                Task { await self.handleConnectionLoss(reason: appError.presentation.message) }
+            }
+        case .goodbye(let reason):
+            Task { await self.handleConnectionLoss(reason: "goodbye: \(reason.rawValue)") }
+        case .fallbackEngaged, .fallbackRecovered:
+            break // reflected in `SessionStats.isFallbackEngaged` on the next tick.
+        case .stats(let stats):
+            ingestStats(stats)
+        case .disconnected(let reason):
+            Task { await self.handleConnectionLoss(reason: reason) }
+        }
+    }
+
+    private func ingestStats(_ stats: SessionStats) {
+        diagnostics.ingest(LatencySample(
+            timestamp: Date(),
+            rttMillisP50: stats.rttP50.map { $0 * 1000 },
+            rttMillisP95: stats.rttP95.map { $0 * 1000 },
+            probeRTTMillis: nil,
+            oneWayEstimateMillis: stats.oneWayMotionLatency.map { $0 * 1000 },
+            lossPercent: stats.lossPercent,
+            channel: stats.isFallbackEngaged ? .tcpFallback : .udp,
+            inFlightDatagrams: 0
+        ))
+    }
+
+    /// Connected → Reconnecting (spec §4.5.1: "no pong 2 s / connection failed / path changed").
+    private func handleConnectionLoss(reason: String) async {
+        guard session != nil else { return }
+        await teardownSession(nextState: nil)
+        guard case .connected = coreState else {
+            coreState = .failed(.allCandidatesFailed)
+            connectionState = .failed(reason: reason)
+            return
+        }
+        coreState = .reconnecting
+        if let name = currentDisplayName {
+            connectionState = .reconnecting(hostName: name)
+        }
+        beginReconnectLoop()
+    }
+
+    private func beginReconnectLoop() {
+        reconnectTask?.cancel()
+        reconnectBeganAt = clock.now()
+        backoff.reset()
+        reconnectTask = Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled {
+                guard let fingerprint = self.currentFingerprint,
+                      let record = await self.knownHosts.lookup(fingerprint: fingerprint), !record.revoked
+                else { return }
+                if let began = self.reconnectBeganAt, Backoff.hasGivenUp(elapsedSinceReconnectingBegan: self.clock.now() - began) {
+                    self.coreState = .failed(.reconnectGiveUpElapsed)
+                    self.connectionState = .failed(reason: String(localized: "Couldn't reconnect"))
+                    return
+                }
+                let delay = self.backoff.nextDelay(unitJitter: Double.random(in: -1...1))
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                guard !Task.isCancelled, self.session == nil else { return }
+                await self.connectToKnownHost(record)
+                if self.session != nil { return } // success — `connectToKnownHost` updated state.
+            }
+        }
+    }
+
+    private func startTickers() {
+        tickerTask?.cancel()
+        tickerTask = Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled {
+                guard let session = self.session else { return }
+                try? await session.sendHeartbeat()
+                try? await session.sendProbe()
+                _ = await session.expireOutstandingProbeIfNeeded()
+                let stats = await session.currentStats()
+                self.ingestStats(stats)
+                let mode = await session.expireOutstandingProbeIfNeeded()
+                let intervalMs = mode == .fallback ? 1000 : ProtocolConstants.probeIntervalMs
+                try? await Task.sleep(nanoseconds: UInt64(intervalMs) * 1_000_000)
+            }
+        }
+    }
+
+    private func teardownSession(nextState: ConnectionState?) async {
+        tickerTask?.cancel()
+        tickerTask = nil
+        eventsTask?.cancel()
+        eventsTask = nil
+        session = nil
+        idleTimer.release("connected")
+        if let nextState {
+            coreState = .idle
+            connectionState = nextState
+            currentFingerprint = nil
+            currentDisplayName = nil
+            currentResolvedHost = nil
+        }
+        await refreshKnownHostRows()
+    }
+
+    private func disconnectCurrentSessionQuietly() async {
+        guard let session else { return }
+        await session.close(reason: .replaced)
+        await teardownSession(nextState: nil)
+    }
+
+    private func maybeAutoConnect(hosts: [DiscoveredHost]) async {
+        guard session == nil, reconnectTask == nil, userSettings.autoConnectLastHost,
+              let hex = knownHosts.lastUsedHostFingerprintHex,
+              let fingerprint = Fingerprint(hexString: hex),
+              let record = await knownHosts.lookup(fingerprint: fingerprint), !record.revoked,
+              let info = await knownHosts.connectionInfo(fingerprint: fingerprint),
+              let hostID = info.hostID,
+              hosts.contains(where: { $0.id == hostID })
+        else { return }
+        await connectToKnownHost(record)
+    }
+
+    // MARK: - App lifecycle (spec §4.5.5)
+
+    private func observeAppLifecycle() {
+        NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.handleScenePhaseInactive() }
+        }
+        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in await self?.handleScenePhaseActive() }
+        }
+    }
+
+    private func handleScenePhaseInactive() {
+        guard case .connected = coreState else { return }
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        let sessionToClose = session
+        Task {
+            try? await sessionToClose?.sendGoodbye(.background)
+            await sessionToClose?.close(reason: .background)
+        }
+        Task { await self.teardownSession(nextState: .suspended) }
+        coreState = .suspended
+    }
+
+    private func handleScenePhaseActive() async {
+        guard case .suspended = coreState else { return }
+        await connect()
+    }
+
+    // MARK: - Settings (spec §3.4.5 `settings`, on any change)
+
+    private func observeSettingsChanges() {
+        withObservationTracking {
+            _ = userSettings.snapshot
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                if let session = self.session {
+                    try? await session.sendSettings(Self.wireSettings(from: self.userSettings.snapshot))
+                }
+                self.observeSettingsChanges()
+            }
+        }
+    }
+
+    private static func wireSettings(from snapshot: SettingsSnapshot) -> Settings {
+        Settings(
+            sensitivity: snapshot.pointer.sensitivity,
+            acceleration: .default,
+            scrollSpeed: snapshot.gestures.scrollSpeed,
+            scrollDirection: snapshot.gestures.naturalScroll == .natural ? .natural : (snapshot.gestures.naturalScroll == .inverted ? .inverted : .host),
+            momentum: snapshot.gestures.momentum,
+            doubleClickIntervalMs: Settings.defaults.doubleClickIntervalMs,
+            pinchMode: Settings.defaults.pinchMode,
+            textRateCharsPerSec: Settings.defaults.textRateCharsPerSec
+        )
+    }
+
+    // MARK: - Error mapping (spec §9)
+
+    private static func mapPairingError(_ error: Error) -> AppError {
+        if let transportError = error as? TransportError {
+            switch transportError {
+            case .localNetworkDenied: return .localNetworkDenied
+            case .timedOut: return .pairingExpired // spec §3.2.6: client infers rate-limit/timeout from a `pairChallenge` timeout.
+            default: return .connectionFailed(hostName: "")
+            }
+        }
+        if let core = error as? CoreError {
+            switch core {
+            case .pairingExpired, .pairingInvalidProof: return .pairingExpired
+            case .pairingTooManyDevices: return .pairingDeviceLimit
+            case .pairingHostProofInvalid: return .pairingHostProofInvalid
+            case .authUntrusted: return .authUntrusted
+            case .authRevoked: return .authRevoked
+            case .versionMismatch: return .versionAppOutdated
+            case .rateLimited: return .pairingRateLimited
+            default: return .generic(code: core.wireCode?.rawValue ?? "internal")
+            }
+        }
+        return .pairingHostProofInvalid
+    }
+
+    private static func mapConnectError(_ error: Error, hostName: String) -> AppError {
+        if let transportError = error as? TransportError, transportError == .localNetworkDenied {
+            return .localNetworkDenied
+        }
+        return .connectionFailed(hostName: hostName)
+    }
+
+    private static func mapErrorPayload(_ payload: ErrorPayload) -> AppError {
+        switch payload.knownCode {
+        case .authUntrusted: return .authUntrusted
+        case .authRevoked: return .authRevoked
+        case .pairingExpired: return .pairingExpired
+        case .pairingInvalidProof: return .pairingExpired
+        case .pairingTooManyDevices: return .pairingDeviceLimit
+        case .rateLimited: return .rateLimited
+        case .versionMismatch: return .versionAppOutdated
+        case .macroBlockedByPolicy: return .macroBlocked
+        default: return .generic(code: payload.code)
+        }
+    }
+
+    private static func hardwareModelIdentifier() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machineMirror = Mirror(reflecting: systemInfo.machine)
+        let identifier = machineMirror.children.reduce(into: "") { partial, element in
+            guard let value = element.value as? Int8, value != 0 else { return }
+            partial += String(UnicodeScalar(UInt8(value)))
+        }
+        return identifier.isEmpty ? UIDevice.current.model : identifier
+    }
+}
+
+/// `TrustedDeviceRecord.localAlias`, falling back to `name` — used wherever the Devices UI/error
+/// copy wants "the" display name for a host.
+private extension TrustedDeviceRecord {
+    var displayName: String { localAlias ?? name }
+}
+
+/// A `SecIdentity` boxed as `@unchecked Sendable` so it can cross into `@Sendable`
+/// `TaskGroup.addTask` closures — mirrors `AirMouseCrypto.GeneratedIdentity`'s own rationale:
+/// Security.framework's CF handles are safe to hand across isolation domains as opaque,
+/// effectively-immutable values.
+private struct SendableSecIdentity: @unchecked Sendable {
+    let value: SecIdentity
+    init(_ value: SecIdentity) { self.value = value }
+}

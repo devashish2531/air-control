@@ -1,0 +1,18 @@
+{
+  "_comment": "RFC-6479-style replay window matrix for spec §3.5.4's algorithm, run over spec §6.4's sequence. See README.json 'deviation' for why this pattern differs from §6.4's printed table.",
+  "window_size": 64,
+  "sequence": [0, 1, 2, 1, 70, 5, 6, 70, 200, 136, 135],
+  "decisions": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejectedReplay",
+    "accepted",
+    "rejectedTooOld",
+    "rejectedTooOld",
+    "rejectedReplay",
+    "accepted",
+    "rejectedTooOld",
+    "rejectedTooOld"
+  ]
+}

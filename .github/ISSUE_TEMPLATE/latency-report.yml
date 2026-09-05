@@ -1,0 +1,90 @@
+name: Latency report
+description: Report the Latency HUD numbers you're seeing, to help track the M2 motion-latency success metric (plan §10).
+title: "[Latency]: "
+labels: ["performance", "latency-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Air Mouse has no telemetry — this is how the project sees real-world latency numbers.
+        Open the in-app Latency HUD (Diagnostics) and copy the p50/p95 it shows.
+  - type: input
+    id: phone-model
+    attributes:
+      label: iPhone/iPad model
+      placeholder: iPhone 15 Pro
+    validations:
+      required: true
+  - type: input
+    id: mac-model
+    attributes:
+      label: Mac model
+      placeholder: Mac mini (M2), Apple silicon
+    validations:
+      required: true
+  - type: input
+    id: ios-version
+    attributes:
+      label: iOS/iPadOS version
+      placeholder: "18.6"
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      placeholder: "15.6"
+    validations:
+      required: true
+  - type: dropdown
+    id: wifi-band
+    attributes:
+      label: Wi-Fi band
+      options:
+        - 2.4 GHz
+        - 5 GHz
+        - 6 GHz (Wi-Fi 6E/7)
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: ap-model
+    attributes:
+      label: Access point / router model (if known)
+  - type: input
+    id: hud-p50
+    attributes:
+      label: HUD p50 (ms)
+    validations:
+      required: true
+  - type: input
+    id: hud-p95
+    attributes:
+      label: HUD p95 (ms)
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options:
+        - Touchpad
+        - Gyro air-mouse
+        - Both
+    validations:
+      required: true
+  - type: dropdown
+    id: channel
+    attributes:
+      label: Motion channel state (Diagnostics)
+      options:
+        - UDP (normal)
+        - TCP fallback ("Elevated latency" badge)
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else notable
+      description: Same room as the Mac vs. through walls, other devices on the network, background transfers, etc.

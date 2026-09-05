@@ -69,3 +69,26 @@ Raised by the specification author in `03-specifications.md`; defaults stand unl
 | C1 | Shared package naming | `AirMouseKit` with targets `AirMouseProtocol`, `AirMouseCrypto`, `AirMouseFilters`, `AirMouseCore`, plus `airmouse-cli`. Supersedes spec §2.1/§2.4 names (`AirMouseWire`/`InputCore`/`MacroModel`). See `04-architecture.md` ADR-001. |
 | C2 | Project generation | XcodeGen `project.yml` per app; generated `.xcodeproj` files are git-ignored. |
 | C3 | Dev machine fact | Xcode 26.6 (17F113) **is installed** but its license is unaccepted and `xcode-select` points at Command Line Tools. M0 begins with `sudo xcode-select -s /Applications/Xcode.app` and `sudo xcodebuild -license accept`, not an Xcode install. |
+
+## Addendum D — Bootstrap deviations found during implementation (2026-09-04)
+
+| # | Topic | Decision |
+|---|-------|----------|
+| D1 | Root `Package.swift` | Not created. A root `Makefile` (`make kit-test`, `make build`, `make gen`) replaces the "thin root manifest" from arch §2.2, avoiding a second SwiftPM package that confuses Xcode when the folder is opened. |
+| D2 | XcodeGen | Fetched as a release binary into git-ignored `tools/bin/` by `scripts/bootstrap.sh`; Homebrew is not required on the dev machine. |
+| D3 | Xcode selection | `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` is exported by the Makefile, so no `sudo xcode-select` is needed. |
+| D4 | Code signing | No signing identities exist on the dev machine. All local and CI verification builds use `CODE_SIGNING_ALLOWED=NO`. Device deployment and TCC-stable Debug signing wait until an Apple Development identity is installed (Addendum A10). |
+| D5 | Sparkle | Deferred from `project.yml` until M8. A `GitHubReleasesUpdateChecker` stub stands in. |
+| D6 | Swift settings | `ExistentialAny` and `InternalImportsByDefault` upcoming features are not enabled in the kit manifest (arch §2.2 listed them) to reduce friction for parallel agent work. Swift 6 language mode and strict concurrency remain on. |
+| D7 | Implementation model | Code is written by parallel Sonnet subagents with disjoint directory ownership; see `docs/06-implementation-log.md`. |
+
+## Addendum E — Spec errata found during implementation (2026-09-05)
+
+| # | Location | Finding | Resolution |
+|---|----------|---------|------------|
+| E1 | Spec §6.4 replay-window example | Printed pattern `[A,A,A,R,A,R,A,R,A,A,R]` contradicts §3.5.4's algorithm and §6.4's own prose (positions 5, 6 and "exactly 64 behind" must reject). | Implemented §3.5.4 verbatim; frozen vector is `[A,A,A,R,A,R,R,R,A,R,R]` (`Tests/AirMouseCryptoTests/Vectors/replay_window_vector.json`). Spec text should be corrected. |
+| E2 | Spec §3.2 / §3.4 host reply order | Host must send `helloAck` **before** `sessionKey`; the reverse order deadlocked the client, which registers its session-key waiter only after `helloAck`. | `HostSession` reorders the burst; `ClientSession` buffers early replies (`PendingReply<T>`). Spec sequence diagram already implies this order; make it explicit. |
+| E3 | Spec §5.3 scroll fields | `scrollWheelEventDeltaAxis1/2` do not round-trip pixel deltas set via `wheel1/wheel2` (CoreGraphics scales by ~10 for legacy line units). | Read `scrollWheelEventPointDeltaAxis1/2` when inspecting synthesized scroll events. |
+| E4 | Spec §4.3.4 / §3.6.1 slider tables | Single-point illustrations (slider 5 → 1.9 Hz; 5 → 1.22) do not match the endpoint-anchored geometric formulas. | Implemented the formulas (they fix both endpoints exactly); tables should be regenerated from them. |
+| E5 | Arch §7.1 SecIdentity | `SecIdentityCreateWithCertificate` is macOS-only. | `SecIdentityCreate(allocator:certificate:privateKey:)` used on both platforms; ephemeral identities are keychain-free, closing most of spike R-1. |
+| E6 | Spec §11.2 / KeycodeMapper | `KBGetLayoutType` returns a four-char code (`'ANSI'`), not a small enum. | Compare in `Int`, never narrow to `Int16`. |

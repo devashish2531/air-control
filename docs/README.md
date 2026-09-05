@@ -11,6 +11,7 @@ Precedence when they disagree: `00-decisions.md` (addenda included) > `04-archit
 | 03 | `03-specifications.md` | Functional & technical spec: wire protocol, state machines, iOS/Mac module specs, security, tests | Complete |
 | 04 | `04-architecture.md` | System architecture: package layout, XcodeGen projects, module diagrams, runtime views, concurrency, CI/CD, ADR-001…015 | Complete |
 | 05 | `05-plan.md` | Delivery plan: M0–M9 roadmap, 158-task WBS, critical path, quality gates, M0 runbook, backlog | Complete |
+| 06 | `06-implementation-log.md` | Running record of the build: environment, bootstrap, parallel agent waves, integration, end-to-end results | Complete (v0.1 code) |
 
 ## Owner decisions still open
 See the addenda in `00-decisions.md`. Defaults stand unless overridden:

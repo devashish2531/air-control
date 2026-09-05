@@ -1,0 +1,63 @@
+# Air Mouse nightly — arch §9.1 "Nightly" lane, plan §6 quality gates.
+# Runs the kit fuzzers at high iteration count (spec §10.5: "Fuzzers run ≥ 10^6 iterations on
+# frame and datagram decoders without crash (nightly)"). No secrets are required or used.
+name: Nightly
+
+on:
+  schedule:
+    # 09:00 UTC daily.
+    - cron: "0 9 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: kit fuzz (AIRMOUSE_FUZZ_ITERATIONS=1000000)
+    runs-on: macos-26
+    env:
+      # Docs disagree on the exact name in prose (arch §9.1 / plan §6 say
+      # AIRMOUSE_FUZZ_ITERATIONS; this job's own description says FUZZ_ITERATIONS) —
+      # both are set so whichever the kit's fuzz tests read, they pick up 10^6.
+      AIRMOUSE_FUZZ_ITERATIONS: "1000000"
+      FUZZ_ITERATIONS: "1000000"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode (.xcode-version)
+        run: |
+          version="$(cat .xcode-version)"
+          candidate="/Applications/Xcode_${version}.app"
+          if [ -d "$candidate" ]; then
+            sudo xcode-select -s "$candidate"
+          elif command -v xcodes >/dev/null; then
+            xcodes select "$version" || true
+          fi
+          xcodebuild -version
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            Packages/AirMouseKit/.build
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-nightly-${{ hashFiles('Packages/AirMouseKit/Package.resolved', 'Packages/AirMouseKit/Package.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-nightly-
+
+      - name: swift test (fuzz + full suite)
+        id: test
+        run: |
+          set -o pipefail
+          mkdir -p logs
+          cd Packages/AirMouseKit && swift test --parallel 2>&1 | tee ../../logs/nightly-kit-test.log
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-kit-test-logs-${{ github.run_id }}
+          path: logs/
+          retention-days: 30

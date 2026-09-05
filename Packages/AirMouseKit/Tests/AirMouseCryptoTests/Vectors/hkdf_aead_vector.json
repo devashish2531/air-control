@@ -1,0 +1,18 @@
+{
+  "_comment": "spec \u00a76.4 'AEAD framing' vector. See README.json for generation method.",
+  "secret_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "session_id": 168496141,
+  "session_id_hex": "0a0b0c0d",
+  "session_id_le_bytes_hex": "0d0c0b0a",
+  "counter": 7,
+  "direction": "c2h",
+  "kC2H_hex": "b2707226b281d5746171c14cf3b6ec1caedd7a7862216cb3a3bb875cacbedd4d",
+  "kH2C_hex": "cbb63ed3f45a66747dfe9f93af1125b2829d49c34fe83faad2708d943050cc3e",
+  "nonce_hex": "000000000700000000000000",
+  "aad_header_hex": "0d0c0b0a0700000000000000",
+  "payload_hex": "00000100452301005000f8ff00000000",
+  "ciphertext_hex": "91fba865ae6b2cbd9418dc5b642549cc",
+  "tag_hex": "81230dfb3abb6cc85ad9e0aed0d9c889",
+  "datagram_hex": "0d0c0b0a070000000000000091fba865ae6b2cbd9418dc5b642549cc81230dfb3abb6cc85ad9e0aed0d9c889",
+  "datagram_length": 44
+}

@@ -1,0 +1,2606 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "+10s": {
+      "comment": "Media seek forward 10 seconds button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+10s"
+          }
+        }
+      }
+    },
+    "-10s": {
+      "comment": "Media seek backward 10 seconds button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "-10s"
+          }
+        }
+      }
+    },
+    "About": {
+      "comment": "Settings section header",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
+          }
+        }
+      }
+    },
+    "Acceleration": {
+      "comment": "Settings › Pointer: acceleration picker label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acceleration"
+          }
+        }
+      }
+    },
+    "Add": {
+      "comment": "Shortcut editor: available-to-add shortcuts section header",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add"
+          }
+        }
+      }
+    },
+    "Add macros in the Air Mouse menu on your Mac.": {
+      "comment": "Macros empty state description, spec §4.1.8",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add macros in the Air Mouse menu on your Mac."
+          }
+        }
+      }
+    },
+    "Air Mouse": {
+      "comment": "iPad sidebar navigation title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Air Mouse"
+          }
+        }
+      }
+    },
+    "Air Mouse can't see your Mac until you allow Local Network access in Settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Air Mouse can't see your Mac until you allow Local Network access in Settings."
+          }
+        }
+      }
+    },
+    "Air Mouse needs to see devices on your Wi-Fi to find your Mac. iOS will ask you next. Nothing leaves your network.": {
+      "comment": "Onboarding page 3 (spec §4.1.1)",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Air Mouse needs to see devices on your Wi-Fi to find your Mac. iOS will ask you next. Nothing leaves your network."
+          }
+        }
+      }
+    },
+    "Air Mouse uses the camera only to scan the QR code your Mac shows during pairing. Nothing is recorded or stored.": {
+      "comment": "Onboarding camera page body",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Air Mouse uses the camera only to scan the QR code your Mac shows during pairing. Nothing is recorded or stored."
+          }
+        }
+      }
+    },
+    "AirMouse — placeholder": {
+      "comment": "Placeholder screen body; replaced by the AirMouse (gyro) agent",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AirMouse — placeholder"
+          }
+        }
+      }
+    },
+    "Allow camera access to scan the pairing code, or paste the pairing link instead.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow camera access to scan the pairing code, or paste the pairing link instead."
+          }
+        }
+      }
+    },
+    "AppleScript": {
+      "comment": "Macro kind label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AppleScript"
+          }
+        }
+      }
+    },
+    "Blank": {
+      "comment": "Presenter blank/black screen button (B key)",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blank"
+          }
+        }
+      }
+    },
+    "Blocked by Mac policy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked by Mac policy"
+          }
+        }
+      }
+    },
+    "Brightness down": {
+      "comment": "Media brightness down button, hold to repeat",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brightness down"
+          }
+        }
+      }
+    },
+    "Brightness up": {
+      "comment": "Media brightness up button, hold to repeat",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brightness up"
+          }
+        }
+      }
+    },
+    "Calibrating… keep the phone steady for a second.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calibrating… keep the phone steady for a second."
+          }
+        }
+      }
+    },
+    "Camera access needed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera access needed"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "comment": "Error recovery action: cancels reconnect and returns to Devices",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        }
+      }
+    },
+    "Caps Lock": {
+      "comment": "Keyboard modifier row: Caps Lock button accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caps Lock"
+          }
+        }
+      }
+    },
+    "Channel": {
+      "comment": "Diagnostics HUD metric label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Channel"
+          }
+        }
+      }
+    },
+    "Check permission": {
+      "comment": "Error recovery action: re-checks Local Network permission",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check permission"
+          }
+        }
+      }
+    },
+    "Codes work for 60 seconds. Click 'Pair new device' on your Mac to show a fresh one.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codes work for 60 seconds. Click 'Pair new device' on your Mac to show a fresh one."
+          }
+        }
+      }
+    },
+    "Command": {
+      "comment": "Keyboard modifier row: Command key accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command"
+          }
+        }
+      }
+    },
+    "Command C, Copy": {
+      "comment": "Shortcut palette: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command C, Copy"
+          }
+        }
+      }
+    },
+    "Command Option Escape, Force Quit": {
+      "comment": "Shortcut palette: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command Option Escape, Force Quit"
+          }
+        }
+      }
+    },
+    "Command Q, Quit": {
+      "comment": "Shortcut palette: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command Q, Quit"
+          }
+        }
+      }
+    },
+    "Command Shift 4, Screenshot": {
+      "comment": "Shortcut palette: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command Shift 4, Screenshot"
+          }
+        }
+      }
+    },
+    "Command Shift Z, Redo": {
+      "comment": "Shortcut palette: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command Shift Z, Redo"
+          }
+        }
+      }
+    },
+    "Command Space": {
+      "comment": "Shortcut palette: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command Space"
+          }
+        }
+      }
+    },
+    "Command Tab": {
+      "comment": "Shortcut palette: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command Tab"
+          }
+        }
+      }
+    },
+    "Command V, Paste": {
+      "comment": "Shortcut palette: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command V, Paste"
+          }
+        }
+      }
+    },
+    "Command W, Close Window": {
+      "comment": "Shortcut palette: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command W, Close Window"
+          }
+        }
+      }
+    },
+    "Command Z, Undo": {
+      "comment": "Shortcut palette: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command Z, Undo"
+          }
+        }
+      }
+    },
+    "Commit": {
+      "comment": "Keyboard entry mode",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commit"
+          }
+        }
+      }
+    },
+    "Commit mode text": {
+      "comment": "Accessibility label for the commit-mode text editor",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commit mode text"
+          }
+        }
+      }
+    },
+    "Connecting…": {
+      "comment": "Connection pill state",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecting…"
+          }
+        }
+      }
+    },
+    "Connection problem": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection problem"
+          }
+        }
+      }
+    },
+    "Connection: \\(label)": {
+      "comment": "Accessibility label for the connection pill",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection: \\(label)"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "comment": "Onboarding primary action",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue"
+          }
+        }
+      }
+    },
+    "Control": {
+      "comment": "Keyboard modifier row: Control key accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control"
+          }
+        }
+      }
+    },
+    "Control Command Q, Lock Screen": {
+      "comment": "Shortcut palette: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control Command Q, Lock Screen"
+          }
+        }
+      }
+    },
+    "Copy": {
+      "comment": "Onboarding: copies the brew install command",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        }
+      }
+    },
+    "Couldn't reach \\(hostName)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't reach \\(hostName)"
+          }
+        }
+      }
+    },
+    "Dark": {
+      "comment": "Appearance option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dark"
+          }
+        }
+      }
+    },
+    "Default": {
+      "comment": "Pointer acceleration option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "comment": "Keyboard extended key bar: Delete/backspace key accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        }
+      }
+    },
+    "Devices on this Wi-Fi can't see each other (AP isolation). Turn on Personal Hotspot on this iPhone and join it from your Mac.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devices on this Wi-Fi can't see each other (AP isolation). Turn on Personal Hotspot on this iPhone and join it from your Mac."
+          }
+        }
+      }
+    },
+    "Devices — placeholder": {
+      "comment": "Placeholder screen body; replaced by the Devices agent",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devices — placeholder"
+          }
+        }
+      }
+    },
+    "Diagnostics": {
+      "comment": "Settings: navigates to the Diagnostics screen",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostics"
+          }
+        }
+      }
+    },
+    "Diagnostics Log": {
+      "comment": "Diagnostics log viewer navigation title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostics Log"
+          }
+        }
+      }
+    },
+    "Disconnected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disconnected"
+          }
+        }
+      }
+    },
+    "Done": {
+      "comment": "Settings: dismisses the screen",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        }
+      }
+    },
+    "Down arrow": {
+      "comment": "Keyboard extended key bar: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Down arrow"
+          }
+        }
+      }
+    },
+    "Drag lock": {
+      "comment": "Settings › Gestures toggle",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag lock"
+          }
+        }
+      }
+    },
+    "Edit": {
+      "comment": "Keyboard screen: edit shortcuts button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        }
+      }
+    },
+    "Elevated latency": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elevated latency"
+          }
+        }
+      }
+    },
+    "End": {
+      "comment": "Keyboard extended key bar: End key button label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End"
+          }
+        }
+      }
+    },
+    "Esc": {
+      "comment": "Keyboard extended key bar: Escape key button label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esc"
+          }
+        }
+      }
+    },
+    "Exit": {
+      "comment": "Presenter exit presentation button (Esc key)",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exit"
+          }
+        }
+      }
+    },
+    "Experimental features. Off by default.": {
+      "comment": "Settings › Labs footer",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Experimental features. Off by default."
+          }
+        }
+      }
+    },
+    "Fast": {
+      "comment": "Pointer acceleration option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fast"
+          }
+        }
+      }
+    },
+    "Fast forward": {
+      "comment": "Keyboard extended key bar: fn-toggled media glyph label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fast forward"
+          }
+        }
+      }
+    },
+    "Fast motion packets are being blocked on this network; motion is using the reliable channel.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fast motion packets are being blocked on this network; motion is using the reliable channel."
+          }
+        }
+      }
+    },
+    "Feedback": {
+      "comment": "Settings section header",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedback"
+          }
+        }
+      }
+    },
+    "Find your Mac on Wi-Fi": {
+      "comment": "Onboarding local network page title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find your Mac on Wi-Fi"
+          }
+        }
+      }
+    },
+    "Forget Mac": {
+      "comment": "Error recovery action: forgets the trusted host",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forget Mac"
+          }
+        }
+      }
+    },
+    "Forward Delete": {
+      "comment": "Keyboard extended key bar: Forward Delete key accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forward Delete"
+          }
+        }
+      }
+    },
+    "Function": {
+      "comment": "Keyboard modifier row: fn key accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Function"
+          }
+        }
+      }
+    },
+    "Generic": {
+      "comment": "Presenter profile name",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generic"
+          }
+        }
+      }
+    },
+    "Gestures": {
+      "comment": "Settings section header",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestures"
+          }
+        }
+      }
+    },
+    "GitHub": {
+      "comment": "Settings › About: link to the project's GitHub repository",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub"
+          }
+        }
+      }
+    },
+    "Gyro": {
+      "comment": "Settings section header",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gyro"
+          }
+        }
+      }
+    },
+    "Haptics": {
+      "comment": "Settings › Feedback toggle",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haptics"
+          }
+        }
+      }
+    },
+    "Haptics and sounds fall back to a brief visual pulse on devices without a Taptic Engine.": {
+      "comment": "Settings › Feedback footer, spec §4.8.1.9",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haptics and sounds fall back to a brief visual pulse on devices without a Taptic Engine."
+          }
+        }
+      }
+    },
+    "Hardware keyboard passthrough": {
+      "comment": "Keyboard screen toolbar: hardware passthrough toggle accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hardware keyboard passthrough"
+          }
+        }
+      }
+    },
+    "Hides typed text and disables autocorrect": {
+      "comment": "Keyboard screen toolbar: Secure entry toggle accessibility hint",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hides typed text and disables autocorrect"
+          }
+        }
+      }
+    },
+    "Hold to repeat": {
+      "comment": "Accessibility hint for a hold-to-repeat button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold to repeat"
+          }
+        }
+      }
+    },
+    "Home": {
+      "comment": "Keyboard extended key bar: Home key button label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
+          }
+        }
+      }
+    },
+    "Host": {
+      "comment": "Scroll direction option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Host"
+          }
+        }
+      }
+    },
+    "How to use a hotspot": {
+      "comment": "Error recovery action: opens hotspot help",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How to use a hotspot"
+          }
+        }
+      }
+    },
+    "I've installed it": {
+      "comment": "Onboarding page 2 primary action (spec §4.1.1)",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I've installed it"
+          }
+        }
+      }
+    },
+    "In flight": {
+      "comment": "Diagnostics HUD metric label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In flight"
+          }
+        }
+      }
+    },
+    "Input mode": {
+      "comment": "Keyboard input mode segmented control accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Input mode"
+          }
+        }
+      }
+    },
+    "Install the Mac helper": {
+      "comment": "Onboarding page 2 title (spec §4.1.1)",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install the Mac helper"
+          }
+        }
+      }
+    },
+    "Inverted": {
+      "comment": "Scroll direction option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inverted"
+          }
+        }
+      }
+    },
+    "Is the Air Mouse helper running on your Mac? Are both devices on the same Wi-Fi? Is Local Network access allowed?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Is the Air Mouse helper running on your Mac? Are both devices on the same Wi-Fi? Is Local Network access allowed?"
+          }
+        }
+      }
+    },
+    "Keep screen awake": {
+      "comment": "Settings › Feedback toggle",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep screen awake"
+          }
+        }
+      }
+    },
+    "Key combo": {
+      "comment": "Macro kind label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key combo"
+          }
+        }
+      }
+    },
+    "Key sequence": {
+      "comment": "Macro kind label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key sequence"
+          }
+        }
+      }
+    },
+    "Keyboard": {
+      "comment": "Root tab title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyboard"
+          }
+        }
+      }
+    },
+    "Keynote": {
+      "comment": "Presenter profile name",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keynote"
+          }
+        }
+      }
+    },
+    "Labs": {
+      "comment": "Settings section header",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Labs"
+          }
+        }
+      }
+    },
+    "Large buttons": {
+      "comment": "Macros large-buttons toggle",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Large buttons"
+          }
+        }
+      }
+    },
+    "Latched": {
+      "comment": "Keyboard modifier key accessibility value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latched"
+          }
+        }
+      }
+    },
+    "Latency": {
+      "comment": "Diagnostics HUD title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latency"
+          }
+        }
+      }
+    },
+    "Latency diagnostics": {
+      "comment": "Accessibility label for the diagnostics HUD",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latency diagnostics"
+          }
+        }
+      }
+    },
+    "Launch app": {
+      "comment": "Macro kind label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Launch app"
+          }
+        }
+      }
+    },
+    "Left arrow": {
+      "comment": "Keyboard extended key bar: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Left arrow"
+          }
+        }
+      }
+    },
+    "Left-handed": {
+      "comment": "Handedness option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Left-handed"
+          }
+        }
+      }
+    },
+    "License": {
+      "comment": "Settings › About row label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "License"
+          }
+        }
+      }
+    },
+    "Light": {
+      "comment": "Appearance option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Light"
+          }
+        }
+      }
+    },
+    "Live": {
+      "comment": "Keyboard entry mode",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live"
+          }
+        }
+      }
+    },
+    "Local network access is off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local network access is off"
+          }
+        }
+      }
+    },
+    "Locked": {
+      "comment": "Keyboard modifier key accessibility value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Locked"
+          }
+        }
+      }
+    },
+    "Log viewer": {
+      "comment": "Diagnostics screen: navigates to the log viewer stub",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log viewer"
+          }
+        }
+      }
+    },
+    "Log viewer coming soon": {
+      "comment": "Diagnostics log viewer stub title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log viewer coming soon"
+          }
+        }
+      }
+    },
+    "Loss": {
+      "comment": "Diagnostics HUD metric label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loss"
+          }
+        }
+      }
+    },
+    "MIT": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MIT"
+          }
+        }
+      }
+    },
+    "Mac device limit reached": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac device limit reached"
+          }
+        }
+      }
+    },
+    "Mac needs Accessibility permission": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac needs Accessibility permission"
+          }
+        }
+      }
+    },
+    "Macros": {
+      "comment": "Root tab title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Macros"
+          }
+        }
+      }
+    },
+    "Macros — placeholder": {
+      "comment": "Placeholder screen body; replaced by the Macros agent",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Macros — placeholder"
+          }
+        }
+      }
+    },
+    "Make sure the helper is running and both devices are on the same network.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make sure the helper is running and both devices are on the same network."
+          }
+        }
+      }
+    },
+    "Media": {
+      "comment": "Remote segment title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Media"
+          }
+        }
+      }
+    },
+    "Momentum": {
+      "comment": "Settings › Gestures toggle",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Momentum"
+          }
+        }
+      }
+    },
+    "Mute": {
+      "comment": "Media mute button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mute"
+          }
+        }
+      }
+    },
+    "Natural": {
+      "comment": "Scroll direction option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Natural"
+          }
+        }
+      }
+    },
+    "Next": {
+      "comment": "Presenter/Media next button title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next"
+          }
+        }
+      }
+    },
+    "No Mac connected": {
+      "comment": "Presenter header when no frontmost app is known",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Mac connected"
+          }
+        }
+      }
+    },
+    "No Macs found yet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Macs found yet"
+          }
+        }
+      }
+    },
+    "No data yet": {
+      "comment": "Diagnostics HUD placeholder before first sample",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No data yet"
+          }
+        }
+      }
+    },
+    "No macros yet": {
+      "comment": "Macros empty state title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No macros yet"
+          }
+        }
+      }
+    },
+    "Not connected": {
+      "comment": "Connection pill state",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not connected"
+          }
+        }
+      }
+    },
+    "Not paired with this Mac": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not paired with this Mac"
+          }
+        }
+      }
+    },
+    "OK": {
+      "comment": "Error recovery action: dismisses the alert",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Off": {
+      "comment": "Pointer acceleration option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        }
+      }
+    },
+    "On the row": {
+      "comment": "Shortcut editor: currently shown shortcuts section header",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On the row"
+          }
+        }
+      }
+    },
+    "On-device log viewing and export isn't implemented yet.": {
+      "comment": "Diagnostics log viewer stub description",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On-device log viewing and export isn't implemented yet."
+          }
+        }
+      }
+    },
+    "One-way est.": {
+      "comment": "Diagnostics HUD metric label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-way est."
+          }
+        }
+      }
+    },
+    "Open Air Mouse on the Mac and follow the setup to allow it to control the cursor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Air Mouse on the Mac and follow the setup to allow it to control the cursor."
+          }
+        }
+      }
+    },
+    "Open Air Mouse on your Mac and choose Check for Updates, or run brew upgrade --cask air-mouse.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Air Mouse on your Mac and choose Check for Updates, or run brew upgrade --cask air-mouse."
+          }
+        }
+      }
+    },
+    "Open App Store": {
+      "comment": "Error recovery action: opens the App Store listing",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open App Store"
+          }
+        }
+      }
+    },
+    "Open GitHub Releases": {
+      "comment": "Onboarding: link to the GitHub Releases page",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open GitHub Releases"
+          }
+        }
+      }
+    },
+    "Open Settings": {
+      "comment": "Error recovery action: deep-links to iOS Settings for this app",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings"
+          }
+        }
+      }
+    },
+    "Open URL": {
+      "comment": "Macro kind label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open URL"
+          }
+        }
+      }
+    },
+    "Opens Devices": {
+      "comment": "Accessibility hint for the connection pill",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens Devices"
+          }
+        }
+      }
+    },
+    "Option": {
+      "comment": "Keyboard modifier row: Option key accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Option"
+          }
+        }
+      }
+    },
+    "Page Down": {
+      "comment": "Keyboard extended key bar: Page Down key accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page Down"
+          }
+        }
+      }
+    },
+    "Page Up": {
+      "comment": "Keyboard extended key bar: Page Up key accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page Up"
+          }
+        }
+      }
+    },
+    "Pair again to reconnect, or forget this Mac.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pair again to reconnect, or forget this Mac."
+          }
+        }
+      }
+    },
+    "Pairing code expired": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pairing code expired"
+          }
+        }
+      }
+    },
+    "Pairing — placeholder": {
+      "comment": "Placeholder screen body; replaced by the Pairing agent",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pairing — placeholder"
+          }
+        }
+      }
+    },
+    "Pairing…": {
+      "comment": "Connection pill state",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pairing…"
+          }
+        }
+      }
+    },
+    "Paste link": {
+      "comment": "Error recovery action: opens the paste-pairing-link field",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste link"
+          }
+        }
+      }
+    },
+    "Pause": {
+      "comment": "Presenter timer pause button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        }
+      }
+    },
+    "Paused on Mac — input is ignored until you resume it from the Air Mouse menu.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused on Mac — input is ignored until you resume it from the Air Mouse menu."
+          }
+        }
+      }
+    },
+    "Play / Pause": {
+      "comment": "Media play/pause button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play / Pause"
+          }
+        }
+      }
+    },
+    "Play or Pause": {
+      "comment": "Keyboard media bar: Play/Pause button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play or Pause"
+          }
+        }
+      }
+    },
+    "Play/Pause": {
+      "comment": "Keyboard extended key bar: fn-toggled media glyph label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play/Pause"
+          }
+        }
+      }
+    },
+    "Pointer": {
+      "comment": "Settings section header",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pointer"
+          }
+        }
+      }
+    },
+    "Pointer prediction": {
+      "comment": "Settings › Labs toggle",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pointer prediction"
+          }
+        }
+      }
+    },
+    "PowerPoint": {
+      "comment": "Presenter profile name",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PowerPoint"
+          }
+        }
+      }
+    },
+    "Precise": {
+      "comment": "Pointer acceleration option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Precise"
+          }
+        }
+      }
+    },
+    "Presenter": {
+      "comment": "Remote segment title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presenter"
+          }
+        }
+      }
+    },
+    "Presenter timer": {
+      "comment": "Accessibility label for the presenter timer display",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presenter timer"
+          }
+        }
+      }
+    },
+    "Previous": {
+      "comment": "Presenter/Media previous button title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous"
+          }
+        }
+      }
+    },
+    "Probe RTT": {
+      "comment": "Diagnostics HUD metric label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probe RTT"
+          }
+        }
+      }
+    },
+    "RTT p50": {
+      "comment": "Diagnostics HUD metric label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RTT p50"
+          }
+        }
+      }
+    },
+    "RTT p95": {
+      "comment": "Diagnostics HUD metric label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RTT p95"
+          }
+        }
+      }
+    },
+    "Reconnect": {
+      "comment": "Error recovery action: reconnects after a rate-limit disconnect",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reconnect"
+          }
+        }
+      }
+    },
+    "Reconnecting to \\(hostName)…": {
+      "comment": "Connection pill state",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reconnecting to \\(hostName)…"
+          }
+        }
+      }
+    },
+    "Remote": {
+      "comment": "Root tab title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote"
+          }
+        }
+      }
+    },
+    "Remote mode": {
+      "comment": "Accessibility label for the Presenter/Media segmented control",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote mode"
+          }
+        }
+      }
+    },
+    "Remote — placeholder": {
+      "comment": "Placeholder screen body; replaced by the Remote agent",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote — placeholder"
+          }
+        }
+      }
+    },
+    "Reset": {
+      "comment": "Presenter timer reset button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset"
+          }
+        }
+      }
+    },
+    "Retry": {
+      "comment": "Error recovery action: retries the failed connection attempt",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry"
+          }
+        }
+      }
+    },
+    "Return": {
+      "comment": "Keyboard extended key bar: Return key button label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return"
+          }
+        }
+      }
+    },
+    "Return sends": {
+      "comment": "Keyboard screen toolbar: Return-sends toggle accessibility label (spec §4.1.9)",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return sends"
+          }
+        }
+      }
+    },
+    "Rewind": {
+      "comment": "Keyboard extended key bar: fn-toggled media glyph label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rewind"
+          }
+        }
+      }
+    },
+    "Right arrow": {
+      "comment": "Keyboard extended key bar: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right arrow"
+          }
+        }
+      }
+    },
+    "Right-handed": {
+      "comment": "Handedness option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right-handed"
+          }
+        }
+      }
+    },
+    "Run": {
+      "comment": "Macro confirmation sheet confirm button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run"
+          }
+        }
+      }
+    },
+    "Run Shortcut": {
+      "comment": "Macro kind label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run Shortcut"
+          }
+        }
+      }
+    },
+    "Run \\(request.macro.name)?": {
+      "comment": "Macro confirmation sheet title, spec §4.1.8",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run \\(request.macro.name)?"
+          }
+        }
+      }
+    },
+    "Scan QR": {
+      "comment": "Error recovery action: navigates to the QR scanner",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan QR"
+          }
+        }
+      }
+    },
+    "Scan the QR shown by 'Pair new device' in the Air Mouse menu on your Mac.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan the QR shown by 'Pair new device' in the Air Mouse menu on your Mac."
+          }
+        }
+      }
+    },
+    "Scan the pairing code on the Mac to connect.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan the pairing code on the Mac to connect."
+          }
+        }
+      }
+    },
+    "Scan your Mac's pairing code": {
+      "comment": "Onboarding camera page title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan your Mac's pairing code"
+          }
+        }
+      }
+    },
+    "Script macros are turned off on this Mac": {
+      "comment": "Accessibility hint for a disabled script macro button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Script macros are turned off on this Mac"
+          }
+        }
+      }
+    },
+    "Scroll direction": {
+      "comment": "Settings › Gestures picker label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scroll direction"
+          }
+        }
+      }
+    },
+    "Searching…": {
+      "comment": "Connection pill state",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching…"
+          }
+        }
+      }
+    },
+    "Secure entry": {
+      "comment": "Keyboard screen toolbar: Secure entry toggle accessibility label (spec §4.1.6)",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secure entry"
+          }
+        }
+      }
+    },
+    "Security check failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Security check failed"
+          }
+        }
+      }
+    },
+    "Send": {
+      "comment": "Commit mode: send button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send"
+          }
+        }
+      }
+    },
+    "Send up to 16,000 characters at a time.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send up to 16,000 characters at a time."
+          }
+        }
+      }
+    },
+    "Sends key presses from an attached hardware keyboard directly to the Mac": {
+      "comment": "Keyboard screen toolbar: hardware passthrough toggle accessibility hint",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sends key presses from an attached hardware keyboard directly to the Mac"
+          }
+        }
+      }
+    },
+    "Sends the typed text to the Mac": {
+      "comment": "Accessibility hint for the commit-mode Send button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sends the typed text to the Mac"
+          }
+        }
+      }
+    },
+    "Sensitivity": {
+      "comment": "Settings › Pointer: sensitivity control label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sensitivity"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "comment": "Accessibility label for the settings gear button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        }
+      }
+    },
+    "Shell command": {
+      "comment": "Macro kind label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shell command"
+          }
+        }
+      }
+    },
+    "Shift": {
+      "comment": "Keyboard modifier row: Shift key accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shift"
+          }
+        }
+      }
+    },
+    "Shortcuts": {
+      "comment": "Keyboard screen: shortcut row section header; also used as the shortcut editor's navigation title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcuts"
+          }
+        }
+      }
+    },
+    "Skip": {
+      "comment": "Onboarding: skips the remaining first-run pages",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip"
+          }
+        }
+      }
+    },
+    "Skip onboarding": {
+      "comment": "Accessibility label for the onboarding Skip button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip onboarding"
+          }
+        }
+      }
+    },
+    "Smoothing": {
+      "comment": "Settings › Gyro: smoothing control label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smoothing"
+          }
+        }
+      }
+    },
+    "Sounds": {
+      "comment": "Settings › Feedback toggle",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sounds"
+          }
+        }
+      }
+    },
+    "Start": {
+      "comment": "Presenter start-from-current / timer start button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start"
+          }
+        }
+      }
+    },
+    "Suspended": {
+      "comment": "Connection pill state",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suspended"
+          }
+        }
+      }
+    },
+    "Switches to the Touchpad tab": {
+      "comment": "Accessibility hint for the presenter Pointer button",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switches to the Touchpad tab"
+          }
+        }
+      }
+    },
+    "System": {
+      "comment": "Appearance option",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System"
+          }
+        }
+      }
+    },
+    "TCP fallback": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TCP fallback"
+          }
+        }
+      }
+    },
+    "Tab": {
+      "comment": "Keyboard extended key bar: Tab key button label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tab"
+          }
+        }
+      }
+    },
+    "Tap to click": {
+      "comment": "Settings › Gestures toggle",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap to click"
+          }
+        }
+      }
+    },
+    "Terminal command: \\(brewCommand)": {
+      "comment": "Accessibility label for the brew install command",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal command: \\(brewCommand)"
+          }
+        }
+      }
+    },
+    "Text too long": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text too long"
+          }
+        }
+      }
+    },
+    "That macro was removed on the Mac": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That macro was removed on the Mac"
+          }
+        }
+      }
+    },
+    "That's not an Air Mouse code": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That's not an Air Mouse code"
+          }
+        }
+      }
+    },
+    "The Mac received too many commands at once and closed the connection.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Mac received too many commands at once and closed the connection."
+          }
+        }
+      }
+    },
+    "The Mac that answered isn't the one that showed this code. Pairing was cancelled.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Mac that answered isn't the one that showed this code. Pairing was cancelled."
+          }
+        }
+      }
+    },
+    "This Mac already trusts 20 devices. Remove one in Trusted Devices on the Mac.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Mac already trusts 20 devices. Remove one in Trusted Devices on the Mac."
+          }
+        }
+      }
+    },
+    "This Mac no longer trusts this device": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Mac no longer trusts this device"
+          }
+        }
+      }
+    },
+    "This device has no gyroscope, so Air Mouse mode isn't available.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device has no gyroscope, so Air Mouse mode isn't available."
+          }
+        }
+      }
+    },
+    "This network keeps devices apart": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This network keeps devices apart"
+          }
+        }
+      }
+    },
+    "This pairing code comes from a newer Mac helper. Update the iPhone app to pair.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This pairing code comes from a newer Mac helper. Update the iPhone app to pair."
+          }
+        }
+      }
+    },
+    "This runs \\(kindDescription.lowercased()) on your Mac. Only continue if you trust it.": {
+      "comment": "Macro confirmation warning for script kinds",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This runs \\(kindDescription.lowercased()) on your Mac. Only continue if you trust it."
+          }
+        }
+      }
+    },
+    "This will run on your Mac.": {
+      "comment": "Macro confirmation warning for non-script kinds",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This will run on your Mac."
+          }
+        }
+      }
+    },
+    "Too many attempts": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many attempts"
+          }
+        }
+      }
+    },
+    "Touchpad": {
+      "comment": "Root tab title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchpad"
+          }
+        }
+      }
+    },
+    "Touchpad — placeholder": {
+      "comment": "Placeholder screen body; replaced by the Touchpad agent",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchpad — placeholder"
+          }
+        }
+      }
+    },
+    "Trim": {
+      "comment": "Error recovery action: trims text to the maximum length",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trim"
+          }
+        }
+      }
+    },
+    "Try again": {
+      "comment": "Error recovery action: dismisses and lets the user rescan",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        }
+      }
+    },
+    "UDP": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "UDP"
+          }
+        }
+      }
+    },
+    "Up arrow": {
+      "comment": "Keyboard extended key bar: accessibility label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up arrow"
+          }
+        }
+      }
+    },
+    "Update Air Mouse": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update Air Mouse"
+          }
+        }
+      }
+    },
+    "Update the Air Mouse app": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update the Air Mouse app"
+          }
+        }
+      }
+    },
+    "Update the Mac helper": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update the Mac helper"
+          }
+        }
+      }
+    },
+    "Version": {
+      "comment": "Settings › About row label",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        }
+      }
+    },
+    "Volume down": {
+      "comment": "Media volume down button, hold to repeat",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume down"
+          }
+        }
+      }
+    },
+    "Volume up": {
+      "comment": "Media volume up button, hold to repeat",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume up"
+          }
+        }
+      }
+    },
+    "Wait a minute, then show a new code on your Mac.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait a minute, then show a new code on your Mac."
+          }
+        }
+      }
+    },
+    "Your Mac couldn't prove it showed this code. Pairing was cancelled.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Mac couldn't prove it showed this code. Pairing was cancelled."
+          }
+        }
+      }
+    },
+    "Your Mac's helper speaks a newer protocol.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Mac's helper speaks a newer protocol."
+          }
+        }
+      }
+    },
+    "Your iPhone is now a trackpad, air mouse and keyboard for your Mac.": {
+      "comment": "Onboarding page 1 (spec §4.1.1)",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your iPhone is now a trackpad, air mouse and keyboard for your Mac."
+          }
+        }
+      }
+    },
+    "\\(macro.name) ran": {
+      "comment": "Macro invoke success toast",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(macro.name) ran"
+          }
+        }
+      }
+    },
+    "\\(name) failed: \\(message)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(name) failed: \\(message)"
+          }
+        }
+      }
+    },
+    "\\(name) timed out": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(name) timed out"
+          }
+        }
+      }
+    },
+    "\\(userSettings.snapshot.pointer.sensitivity) of 10": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(userSettings.snapshot.pointer.sensitivity) of 10"
+          }
+        }
+      }
+    },
+    "running": {
+      "comment": "Accessibility label suffix while a macro is invoking",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "running"
+          }
+        }
+      }
+    },
+    "script": {
+      "comment": "Accessibility label suffix marking a macro as a script kind",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "script"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

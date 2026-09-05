@@ -1,0 +1,161 @@
+# Air Mouse CI — arch §9.1, plan §6 quality gates.
+#
+# Fork PRs run `pull_request` with a read-only GITHUB_TOKEN and NO secrets (spec §10.6, arch §9.3).
+# This workflow must not need any: iOS/Mac build unsigned (CODE_SIGNING_ALLOWED=NO / CODE_SIGN_IDENTITY=-),
+# and no test here posts a real CGEvent or talks to a real network beyond loopback.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # arch §2.6: xcconfig gates warnings-as-errors behind this build setting; CI turns it on.
+  AIRMOUSE_WARNINGS_AS_ERRORS: "YES"
+
+jobs:
+  kit:
+    name: kit (swift build/test)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode (.xcode-version)
+        run: |
+          version="$(cat .xcode-version)"
+          candidate="/Applications/Xcode_${version}.app"
+          if [ -d "$candidate" ]; then
+            sudo xcode-select -s "$candidate"
+          elif command -v xcodes >/dev/null; then
+            xcodes select "$version" || true
+          fi
+          xcodebuild -version
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            Packages/AirMouseKit/.build
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-kit-${{ hashFiles('Packages/AirMouseKit/Package.resolved', 'Packages/AirMouseKit/Package.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-kit-
+
+      - name: swift build
+        run: cd Packages/AirMouseKit && swift build
+
+      - name: swift test
+        run: cd Packages/AirMouseKit && swift test --parallel
+
+  ios:
+    name: ios (xcodegen + xcodebuild test)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode (.xcode-version)
+        run: |
+          version="$(cat .xcode-version)"
+          candidate="/Applications/Xcode_${version}.app"
+          if [ -d "$candidate" ]; then
+            sudo xcode-select -s "$candidate"
+          elif command -v xcodes >/dev/null; then
+            xcodes select "$version" || true
+          fi
+          xcodebuild -version
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            Packages/AirMouseKit/.build
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-ios-${{ hashFiles('Packages/AirMouseKit/Package.resolved', 'Packages/AirMouseKit/Package.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-ios-
+
+      - name: Bootstrap (fetch XcodeGen, generate projects)
+        run: scripts/bootstrap.sh
+
+      - name: make ios-build
+        run: |
+          make ios-build \
+            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= AIRMOUSE_WARNINGS_AS_ERRORS=YES"
+
+      - name: make ios-test
+        run: |
+          make ios-test \
+            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= AIRMOUSE_WARNINGS_AS_ERRORS=YES"
+
+  mac:
+    name: mac (xcodegen + xcodebuild test incl. loopback integration)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode (.xcode-version)
+        run: |
+          version="$(cat .xcode-version)"
+          candidate="/Applications/Xcode_${version}.app"
+          if [ -d "$candidate" ]; then
+            sudo xcode-select -s "$candidate"
+          elif command -v xcodes >/dev/null; then
+            xcodes select "$version" || true
+          fi
+          xcodebuild -version
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            Packages/AirMouseKit/.build
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-mac-${{ hashFiles('Packages/AirMouseKit/Package.resolved', 'Packages/AirMouseKit/Package.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-mac-
+
+      - name: Bootstrap (fetch XcodeGen, generate projects)
+        run: scripts/bootstrap.sh
+
+      - name: make mac-build
+        run: |
+          make mac-build \
+            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=- AIRMOUSE_WARNINGS_AS_ERRORS=YES"
+
+      - name: make mac-test
+        run: |
+          make mac-test \
+            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=- AIRMOUSE_WARNINGS_AS_ERRORS=YES"
+
+  lint:
+    name: lint (non-blocking for now — plan §6 will promote this to required)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SwiftLint + SwiftFormat
+        run: brew install swiftlint swiftformat
+        continue-on-error: true
+
+      - name: swiftlint --strict
+        run: swiftlint lint --strict
+        continue-on-error: true
+
+      - name: swiftformat --lint
+        run: swiftformat --lint .
+        continue-on-error: true
+
+      - name: check-xcstrings.sh
+        run: scripts/check-xcstrings.sh
+        continue-on-error: true
