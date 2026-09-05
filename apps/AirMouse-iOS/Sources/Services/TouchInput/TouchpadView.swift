@@ -22,6 +22,8 @@ public struct TouchpadView: UIViewRepresentable {
         view.config = config
         view.predictionEnabled = predictionEnabled
         view.intentSink = intentSink
+        // On-device UI test hook only: stable identifier for the touch surface. No behaviour change.
+        view.accessibilityIdentifier = "touchpad.surface"
         return view
     }
 

@@ -101,8 +101,12 @@ public enum HostFeature {
         )
 
         let serverSettings = HostServerSettings(
-            tcpPort: loopback ? 0 : UInt16(ProtocolConstants.defaultTCPPort),
-            udpPort: loopback ? 0 : UInt16(ProtocolConstants.defaultUDPPort),
+            // Dev convenience (`--tcp-port`/`--udp-port`, `LaunchArguments.swift`): lets a second,
+            // throwaway copy of the helper bind to alternate fixed ports instead of the real one's
+            // default, so it can be launched and torn down without disturbing an already-running
+            // helper other tests may depend on.
+            tcpPort: loopback ? 0 : (environment.launchArguments.tcpPort ?? UInt16(ProtocolConstants.defaultTCPPort)),
+            udpPort: loopback ? 0 : (environment.launchArguments.udpPort ?? UInt16(ProtocolConstants.defaultUDPPort)),
             loopback: loopback,
             documentStore: environment.documentStore,
             hostNameProvider: environment.hostNameProvider

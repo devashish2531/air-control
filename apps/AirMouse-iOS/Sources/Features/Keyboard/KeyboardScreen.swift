@@ -66,6 +66,11 @@ public struct KeyboardScreen: View {
             KeyInputHostRepresentable(bridge: viewModel.bridge)
                 .frame(width: 1, height: 1)
                 .opacity(0.01)
+                // On-device UI test hook only: stable identifier for the live-typing capture
+                // host. No behaviour change; this view already becomes first responder
+                // automatically whenever the Keyboard tab is visible (see
+                // `KeyboardViewModel.onAppear()`), so tests don't rely on tapping it.
+                .accessibilityIdentifier("keyboard.liveInput")
                 .accessibilityHidden(true)
         }
         .onAppear { viewModel.onAppear() }

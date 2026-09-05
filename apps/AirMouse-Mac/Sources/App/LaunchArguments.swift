@@ -20,13 +20,30 @@ public struct LaunchArguments: Sendable, Equatable {
     /// Dev flag: after the server starts, open a pairing window and print `AIRMOUSE_PAIR_URL=<url>` to
     /// stdout (normal networking, unlike `--loopback`). Lets on-device tests pair without scanning.
     public var printPairURL: Bool
+    /// Dev convenience: overrides the non-loopback TCP/UDP bind ports (`HostFeature.make`'s
+    /// `ProtocolConstants.defaultTCPPort`/`defaultUDPPort` otherwise). Lets a second, throwaway copy of
+    /// the helper (e.g. for verifying a Keychain-identity fix) run alongside the real one on the
+    /// default port without a bind conflict — `--loopback` isn't a substitute for that since it uses
+    /// an ephemeral, never-persisted identity.
+    public var tcpPort: UInt16?
+    public var udpPort: UInt16?
 
-    public init(loopback: Bool = false, bench: Bool = false, logLevel: LogLevel? = nil, showOnboarding: Bool = false, printPairURL: Bool = false) {
+    public init(
+        loopback: Bool = false,
+        bench: Bool = false,
+        logLevel: LogLevel? = nil,
+        showOnboarding: Bool = false,
+        printPairURL: Bool = false,
+        tcpPort: UInt16? = nil,
+        udpPort: UInt16? = nil
+    ) {
         self.loopback = loopback
         self.printPairURL = printPairURL
         self.bench = bench
         self.logLevel = logLevel
         self.showOnboarding = showOnboarding
+        self.tcpPort = tcpPort
+        self.udpPort = udpPort
     }
 
     /// Parses `arguments` (default: the process's own, minus the executable path). Recognizes `--loopback`,
@@ -38,6 +55,8 @@ public struct LaunchArguments: Sendable, Equatable {
         var logLevel: LogLevel?
         var showOnboarding = false
         var printPairURL = false
+        var tcpPort: UInt16?
+        var udpPort: UInt16?
 
         var index = 0
         while index < arguments.count {
@@ -56,6 +75,16 @@ public struct LaunchArguments: Sendable, Equatable {
                     logLevel = level
                     index += 1
                 }
+            case "--tcp-port":
+                if index + 1 < arguments.count, let port = UInt16(arguments[index + 1]) {
+                    tcpPort = port
+                    index += 1
+                }
+            case "--udp-port":
+                if index + 1 < arguments.count, let port = UInt16(arguments[index + 1]) {
+                    udpPort = port
+                    index += 1
+                }
             default:
                 if argument.hasPrefix("--log-level="), let level = LogLevel(rawValue: String(argument.dropFirst("--log-level=".count))) {
                     logLevel = level
@@ -64,6 +93,14 @@ public struct LaunchArguments: Sendable, Equatable {
             index += 1
         }
 
-        return LaunchArguments(loopback: loopback, bench: bench, logLevel: logLevel, showOnboarding: showOnboarding, printPairURL: printPairURL)
+        return LaunchArguments(
+            loopback: loopback,
+            bench: bench,
+            logLevel: logLevel,
+            showOnboarding: showOnboarding,
+            printPairURL: printPairURL,
+            tcpPort: tcpPort,
+            udpPort: udpPort
+        )
     }
 }

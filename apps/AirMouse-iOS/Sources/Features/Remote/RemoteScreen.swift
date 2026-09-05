@@ -212,12 +212,15 @@ private struct MediaSegmentView: View {
             RemoteButton(title: String(localized: "Previous", comment: "Media previous track button"), systemImage: "backward.fill", haptics: environment.haptics) {
                 model.mediaPrevious()
             }
+            .accessibilityIdentifier("remote.previous")
             RemoteButton(title: String(localized: "Play / Pause", comment: "Media play/pause button"), systemImage: "playpause.fill", haptics: environment.haptics) {
                 model.mediaPlayPause()
             }
+            .accessibilityIdentifier("remote.playPause")
             RemoteButton(title: String(localized: "Next", comment: "Media next track button"), systemImage: "forward.fill", haptics: environment.haptics) {
                 model.mediaNext()
             }
+            .accessibilityIdentifier("remote.next")
         }
     }
 
@@ -235,10 +238,12 @@ private struct MediaSegmentView: View {
     private var volumeRow: some View {
         HStack(spacing: 12) {
             RepeatingRemoteButton(title: String(localized: "Volume down", comment: "Media volume down button, hold to repeat"), systemImage: "speaker.minus.fill", haptics: environment.haptics, onPress: model.startVolumeDown, onRelease: model.stopVolumeRepeat)
+                .accessibilityIdentifier("remote.volumeDown")
             RemoteButton(title: String(localized: "Mute", comment: "Media mute button"), systemImage: "speaker.slash.fill", haptics: environment.haptics) {
                 model.mute()
             }
             RepeatingRemoteButton(title: String(localized: "Volume up", comment: "Media volume up button, hold to repeat"), systemImage: "speaker.plus.fill", haptics: environment.haptics, onPress: model.startVolumeUp, onRelease: model.stopVolumeRepeat)
+                .accessibilityIdentifier("remote.volumeUp")
         }
     }
 

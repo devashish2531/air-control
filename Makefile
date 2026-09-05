@@ -45,8 +45,11 @@ mac-run: mac-build
 	-pkill -f "AirMouse.app/Contents/MacOS/AirMouse"
 	@APP="$$(ls -d ~/Library/Developer/Xcode/DerivedData/AirMouseHelper-*/Build/Products/Debug/AirMouse.app | head -1)"; \
 	ID="$$(security find-identity -v -p codesigning | grep -m1 -o '"Apple Development: [^"]*"' | tr -d '"')"; \
-	if [ -n "$$ID" ]; then echo "Signing with $$ID"; codesign --force --options runtime --timestamp=none \
-	  --entitlements apps/AirMouse-Mac/Sources/AirMouseHelper.entitlements --sign "$$ID" "$$APP" && codesign -dv "$$APP" 2>&1 | grep TeamIdentifier; \
+	if [ -n "$$ID" ]; then \
+	  echo "Signing with $$ID"; \
+	  codesign --force --options runtime --timestamp=none \
+	    --entitlements apps/AirMouse-Mac/Sources/AirMouseHelper.entitlements --sign "$$ID" "$$APP"; \
+	  codesign -dv "$$APP" 2>&1 | grep TeamIdentifier; \
 	else echo "No Apple Development identity found; app stays ad-hoc signed (re-grant Accessibility after every rebuild)"; tccutil reset Accessibility com.airmouse.helper$(BUNDLE_ID_SUFFIX); fi; \
 	open "$$APP"
 
@@ -54,7 +57,7 @@ mac-run: mac-build
 # and DEVELOPMENT_TEAM / IOS_BUNDLE_ID in Config/Local.xcconfig (the bundle id must be free on your team).
 .PHONY: ios-run
 ios-run: gen
-	@UDID="$$(xcrun devicectl list devices 2>/dev/null | awk '/connected/ {print $$(NF-3)}' | grep -E '^[0-9A-F-]{36}$$' | head -1)"; \
+	@UDID="$$(xcrun devicectl list devices 2>/dev/null | grep -E '\bconnected\b' | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' | head -1)"; \
 	[ -n "$$UDID" ] || { echo "No connected iOS device found (xcrun devicectl list devices)"; exit 1; }; \
 	xcodebuild -quiet -project apps/AirMouse-iOS/AirMouse.xcodeproj -scheme AirMouse -destination "id=$$UDID" \
 	  -allowProvisioningUpdates -allowProvisioningDeviceRegistration CODE_SIGN_STYLE=Automatic build && \

@@ -21,13 +21,26 @@ public struct GeneratedIdentity: @unchecked Sendable {
     /// The Keychain label this identity's key and certificate were stored under (empty for a factory
     /// path that did not persist, if one is ever added).
     public let label: String
+    /// Which Keychain (or lack of one) actually persisted this identity — see `IdentityStoreTier`.
+    /// Defaults to `.dataProtection` so existing call sites (this module's own `makeEphemeralIdentity`
+    /// override below, and app-side call sites outside this package's edit scope) don't have to name
+    /// it; those that care pass it explicitly.
+    public let tier: IdentityStoreTier
 
-    public init(secIdentity: SecIdentity, certificateDER: Data, fingerprint: Fingerprint, backing: IdentityBackingKind, label: String) {
+    public init(
+        secIdentity: SecIdentity,
+        certificateDER: Data,
+        fingerprint: Fingerprint,
+        backing: IdentityBackingKind,
+        label: String,
+        tier: IdentityStoreTier = .dataProtection
+    ) {
         self.secIdentity = secIdentity
         self.certificateDER = certificateDER
         self.fingerprint = fingerprint
         self.backing = backing
         self.label = label
+        self.tier = tier
     }
 
     /// Builds the ARC-managed `sec_identity_t` Network.framework's

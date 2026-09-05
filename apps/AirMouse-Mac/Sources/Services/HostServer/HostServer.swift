@@ -30,7 +30,15 @@ public enum HostServerNetworkStatus: Sendable, Equatable {
 }
 
 public actor HostServer: HostServing {
-    private let identityLabel = "AirMouse Host Identity"
+    /// Overridable via `AIRMOUSE_IDENTITY_LABEL` purely so a throwaway, alternate-port copy of the
+    /// helper (used to verify a Keychain-identity fix without touching the real running helper's
+    /// state — a legacy-tier item's ACL trusts a code signature, not a bundle id, so two differently
+    /// signed processes sharing this label really could clobber each other's key) can target its own,
+    /// isolated Keychain item. Every real launch path leaves this unset and gets the same fixed label
+    /// as before.
+    private var identityLabel: String {
+        ProcessInfo.processInfo.environment["AIRMOUSE_IDENTITY_LABEL"] ?? "AirMouse Host Identity"
+    }
     private let trustStore: TrustStore
     private let pairingService: PairingService
     private let sessionManager: SessionManager
@@ -162,27 +170,60 @@ public actor HostServer: HostServing {
             )
         }
         let store = KeychainIdentityStore()
-        if let existing = try? store.loadIdentity(label: identityLabel) {
-            // A rebuilt (differently signed) helper cannot use a key whose ACL trusts the old signature:
-            // `SecKeyCreateSignature` would block on a SecurityAgent prompt mid-TLS-handshake (see the
-            // `--loopback` note above). Probe once; if the key is unusable, mint a fresh identity. The host
-            // fingerprint changes, so previously paired devices must pair again.
-            if store.canSign(existing), let wrapped = Self.wrap(secIdentity: existing, label: identityLabel) {
-                return wrapped
+        if let found = try? store.loadIdentityWithTier(label: identityLabel) {
+            // A legacy-tier key's default ACL trusts only the signature that created it: a rebuilt
+            // (differently signed) helper can't use it — `SecKeyCreateSignature` would block on a
+            // SecurityAgent prompt mid-TLS-handshake (see the `--loopback` note above). Probe once with
+            // `canSign` (never blocks past `timeout`); only if that fails do we give up and replace it.
+            // The `.legacyNoPrompt` ACL (`IdentityFactory`'s `SecACLSetContents(acl, nil, ...)`)
+            // measurably avoids the *prompt*, but empirically still costs ~4s of one-time signature
+            // re-validation the very first time a *newly re-signed* process touches the key (every
+            // call after that first one is sub-20ms) — comfortably under `canSign`'s general-purpose
+            // 2s default, so use a longer one here specifically to avoid misreading that one-time cost
+            // as "unusable" and replacing a perfectly good identity (which is the whole defect this fix
+            // exists to close).
+            if store.canSign(found.identity, timeout: 8.0) {
+                // REQUIRED FIX 3: a legacy-tier identity this process can already use gets migrated to
+                // the Data Protection keychain in place — same key/certificate (fingerprint, and every
+                // paired phone's pinned copy of it, unchanged) — so the defect actually gets fixed for
+                // existing installs, not just new ones.
+                if found.tier == .legacyNoPrompt, let migrated = store.migrateLegacyIdentityIfPossible(label: identityLabel) {
+                    Log.net.notice("HostServer: migrated host identity from the legacy keychain to the Data Protection keychain (fingerprint unchanged)")
+                    return migrated
+                }
+                if let wrapped = Self.wrap(secIdentity: found.identity, label: identityLabel, tier: found.tier) {
+                    Log.net.notice("HostServer: host identity loaded (tier=\(found.tier.rawValue, privacy: .public))")
+                    return wrapped
+                }
             }
             Log.net.error("Host identity in the Keychain is not usable by this build (ACL/signature mismatch); replacing it. Paired devices must pair again.")
             try? store.deleteIdentity(label: identityLabel)
         }
         let hostID = await loadOrCreateHostID()
-        return try IdentityFactory.makeIdentity(
-            commonName: "AirMouse Host \(hostID.b64u)",
-            label: identityLabel,
-            preferSecureEnclave: false, // spec §3.2.1: host key uses `kSecAttrTokenID` none.
-            accessibility: kSecAttrAccessibleAfterFirstUnlock
-        )
+        do {
+            let created = try IdentityFactory.makeIdentity(
+                commonName: "AirMouse Host \(hostID.b64u)",
+                label: identityLabel,
+                preferSecureEnclave: false, // spec §3.2.1: host key uses `kSecAttrTokenID` none.
+                accessibility: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            )
+            Log.net.notice("HostServer: new host identity created (tier=\(created.tier.rawValue, privacy: .public))")
+            return created
+        } catch {
+            // REQUIRED FIX 2, tier 3: neither the Data Protection keychain nor the legacy no-prompt
+            // ACL worked (e.g. this process can't touch the Keychain at all). Fall back to an
+            // in-memory identity so the helper still starts — paired devices will need to re-pair
+            // every relaunch until a persistent tier becomes available, but that's strictly better
+            // than not starting, or stalling on a prompt nobody can answer.
+            Log.net.error("HostServer: no persistent Keychain tier is usable (\(String(describing: error), privacy: .public)); using an ephemeral host identity")
+            return try IdentityFactory.makeEphemeralIdentity(
+                commonName: "AirMouse Host \(hostID.b64u)",
+                label: identityLabel
+            )
+        }
     }
 
-    private static func wrap(secIdentity: SecIdentity, label: String) -> GeneratedIdentity? {
+    private static func wrap(secIdentity: SecIdentity, label: String, tier: IdentityStoreTier) -> GeneratedIdentity? {
         var certificate: SecCertificate?
         let status = SecIdentityCopyCertificate(secIdentity, &certificate)
         guard status == errSecSuccess, let certificate else { return nil }
@@ -192,7 +233,8 @@ public actor HostServer: HostServing {
             certificateDER: der,
             fingerprint: Fingerprint(certificateDER: der),
             backing: .keychainSecKey,
-            label: label
+            label: label,
+            tier: tier
         )
     }
 

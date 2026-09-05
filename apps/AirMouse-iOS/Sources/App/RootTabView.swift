@@ -66,6 +66,7 @@ public struct RootTabView: View {
                 }
                 .tabItem { Label(tab.title, systemImage: tab.systemImage) }
                 .tag(tab)
+                .accessibilityIdentifier("tab.\(tab.rawValue)")
             }
         }
     }
