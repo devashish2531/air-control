@@ -417,7 +417,7 @@ public actor HostServer: HostServing {
             let socklen = family == UInt8(AF_INET) ? socklen_t(MemoryLayout<sockaddr_in>.size) : socklen_t(MemoryLayout<sockaddr_in6>.size)
             let getNameInfoResult = getnameinfo(addr, socklen, &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST)
             guard getNameInfoResult == 0 else { continue }
-            var address = String(cString: host)
+            var address = host.cStringValue
             // Strip the zone id (e.g. "%en0") IPv6 link-local addresses carry — the QR grammar
             // (spec §3.1.3) forbids it ("no brackets, no zone").
             if let percentIndex = address.firstIndex(of: "%") {
@@ -500,10 +500,19 @@ public struct HostServerSettings: Sendable {
         guard size > 0 else { return "Mac" }
         var buffer = [CChar](repeating: 0, count: size)
         sysctlbyname("hw.model", &buffer, &size, nil, 0)
-        return String(cString: buffer)
+        return buffer.cStringValue
     }
 }
 
 private extension ArraySlice<UInt8> {
     var b64uData: Data { Data(self) }
+}
+
+private extension Array where Element == CChar {
+    /// Decodes a null-terminated C string buffer as UTF-8, truncating at the first NUL byte.
+    /// Replaces the deprecated `String(cString: [CChar])` array-based initializer.
+    var cStringValue: String {
+        let nullIndex = firstIndex(of: 0) ?? count
+        return String(decoding: self[..<nullIndex].map { UInt8(bitPattern: $0) }, as: UTF8.self)
+    }
 }

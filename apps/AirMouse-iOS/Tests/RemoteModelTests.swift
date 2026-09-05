@@ -136,15 +136,15 @@ private func makeMacro(
     @Test func pointerSpotlightPostsSwitchToTouchpadNotification() async {
         let sink = FakeRemoteCommandSink()
         let model = RemoteModel(sink: sink)
-        var received = false
-        let observer = NotificationCenter.default.addObserver(forName: RemoteModel.switchToTouchpadNotification, object: nil, queue: nil) { _ in
-            received = true
+
+        await confirmation { received in
+            let observer = NotificationCenter.default.addObserver(forName: RemoteModel.switchToTouchpadNotification, object: nil, queue: nil) { _ in
+                received()
+            }
+            defer { NotificationCenter.default.removeObserver(observer) }
+
+            model.togglePointerSpotlight()
         }
-        defer { NotificationCenter.default.removeObserver(observer) }
-
-        model.togglePointerSpotlight()
-
-        #expect(received)
     }
 
     // MARK: - Media button → sink mapping

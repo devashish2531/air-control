@@ -39,7 +39,9 @@ public final class AppEnvironment {
     public let installSource: InstallSource
 
     // `nonisolated(unsafe)`: only touched from start/stopBackgroundRefresh and deinit (nonisolated per
-    // Swift's default class-deinit rules).
+    // Swift's default class-deinit rules). `@ObservationIgnored` keeps the `@Observable` macro from
+    // re-wrapping storage access in a way that would otherwise make `nonisolated(unsafe)` a no-op.
+    @ObservationIgnored
     nonisolated(unsafe) private var refreshTask: Task<Void, Never>?
 
     // MARK: - Live-wiring internals (`wireLiveServices()` below)

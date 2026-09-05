@@ -12,7 +12,9 @@ public final class PermissionsService {
     public private(set) var isAccessibilityTrusted: Bool
     // Only ever touched on the main actor (init/startPolling/stopPolling/deinit); `nonisolated(unsafe)`
     // lets `deinit` (which runs nonisolated per Swift's default class-deinit rules) cancel it without
-    // requiring an `isolated deinit`.
+    // requiring an `isolated deinit`. `@ObservationIgnored` keeps the `@Observable` macro from
+    // re-wrapping storage access in a way that would otherwise make `nonisolated(unsafe)` a no-op.
+    @ObservationIgnored
     nonisolated(unsafe) private var pollTask: Task<Void, Never>?
 
     public init() {

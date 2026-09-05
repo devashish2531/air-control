@@ -81,8 +81,11 @@ public final class GyroEngine: GyroEngineProviding {
     // `nonisolated(unsafe)`: only ever mutated from MainActor-isolated code (`init`/
     // `registerAppLifecycleObservers()`), but also read from `deinit`, which is always
     // `nonisolated` in Swift — safe here since `deinit` only runs once there are no other
-    // references left to race with.
+    // references left to race with. `@ObservationIgnored` keeps the `@Observable` macro from
+    // re-wrapping storage access in a way that would otherwise make `nonisolated(unsafe)` a no-op.
+    @ObservationIgnored
     nonisolated(unsafe) private var backgroundToken: NSObjectProtocol?
+    @ObservationIgnored
     nonisolated(unsafe) private var foregroundToken: NSObjectProtocol?
 
     /// spec §4.3.6: "Double-tap on the clutch (two touches within 300 ms) → recenter."

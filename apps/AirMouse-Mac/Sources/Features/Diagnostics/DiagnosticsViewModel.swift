@@ -8,8 +8,11 @@ import Observation
 public final class DiagnosticsViewModel {
     private let sink: any DiagnosticsSink
     public private(set) var snapshot: DiagnosticsSnapshot = .empty
+    // `@ObservationIgnored` keeps the `@Observable` macro from re-wrapping storage access in a way
+    // that would otherwise make `nonisolated(unsafe)` a no-op.
     // `nonisolated(unsafe)`: only touched from start/stopPolling and deinit (nonisolated per Swift's
     // default class-deinit rules).
+    @ObservationIgnored
     nonisolated(unsafe) private var pollTask: Task<Void, Never>?
 
     public init(sink: any DiagnosticsSink) {

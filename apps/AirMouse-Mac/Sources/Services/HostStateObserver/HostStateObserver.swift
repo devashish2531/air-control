@@ -15,8 +15,12 @@ public final class HostStateObserver {
     private let permissions: PermissionsService
     private var isPausedProvider: @MainActor () -> Bool
     // `nonisolated(unsafe)`: only touched from init/deinit; needed so `deinit` (nonisolated per Swift's
-    // default class-deinit rules) can remove the observers.
+    // default class-deinit rules) can remove the observers. `@ObservationIgnored` keeps the
+    // `@Observable` macro from re-wrapping storage access in a way that would otherwise make
+    // `nonisolated(unsafe)` a no-op on these properties.
+    @ObservationIgnored
     nonisolated(unsafe) private var activationObserver: NSObjectProtocol?
+    @ObservationIgnored
     nonisolated(unsafe) private var scrollDirectionObserver: NSObjectProtocol?
 
     public init(
@@ -42,7 +46,10 @@ public final class HostStateObserver {
             queue: .main
         ) { [weak self] notification in
             let bundleID = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier
-            self?.refresh(frontmostAppBundleID: bundleID)
+            // `queue: .main` guarantees this runs on the main thread/actor already.
+            MainActor.assumeIsolated {
+                self?.refresh(frontmostAppBundleID: bundleID)
+            }
         }
 
         // Undocumented but widely relied-upon distributed notification for scroll-direction changes
@@ -52,7 +59,10 @@ public final class HostStateObserver {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.refresh()
+            // `queue: .main` guarantees this runs on the main thread/actor already.
+            MainActor.assumeIsolated {
+                self?.refresh()
+            }
         }
     }
 

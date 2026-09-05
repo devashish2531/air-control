@@ -294,8 +294,8 @@ private final class MetadataScannerViewController: UIViewController, AVCaptureMe
         view.layer.addSublayer(layer)
         previewLayer = layer
 
-        DispatchQueue.global(qos: .userInitiated).async { [session] in
-            session.startRunning()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.session.startRunning()
         }
     }
 

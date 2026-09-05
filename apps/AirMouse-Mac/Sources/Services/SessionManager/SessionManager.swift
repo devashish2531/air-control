@@ -254,7 +254,7 @@ public actor SessionManager {
         // ticker is the only thing keeping the window alive in `--loopback` mode (no UI at all) —
         // harmless, idempotent redundancy the rest of the time (`regenerateIfExpired` is a no-op
         // unless the current secret has actually expired).
-        try? await pairingService.regenerateIfExpired()
+        _ = try? await pairingService.regenerateIfExpired()
         for key in Array(sessions.keys) {
             guard var managed = sessions[key] else { continue }
 

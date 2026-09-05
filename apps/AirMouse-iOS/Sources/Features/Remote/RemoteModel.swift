@@ -59,6 +59,10 @@ public enum PresenterProfile: Sendable, Equatable {
 @MainActor
 final class RepeatingMediaKeyController {
     private var timer: Timer?
+    // Stored (rather than captured directly by the `Timer` blocks below) so those blocks — which
+    // `Timer`'s API types as `@Sendable` — only need to capture `self` weakly, not a non-Sendable
+    // `() -> Void` value.
+    private var action: (() -> Void)?
     private let initialDelay: TimeInterval
     private let repeatInterval: TimeInterval
 
@@ -71,12 +75,19 @@ final class RepeatingMediaKeyController {
     /// `repeatInterval` until `stop()`.
     func start(action: @escaping () -> Void) {
         stop()
+        self.action = action
         action()
         timer = Timer.scheduledTimer(withTimeInterval: initialDelay, repeats: false) { [weak self] _ in
-            guard let self else { return }
-            action()
-            self.timer = Timer.scheduledTimer(withTimeInterval: self.repeatInterval, repeats: true) { _ in
-                action()
+            // `Timer.scheduledTimer` fires on the run loop it was scheduled from, which is the
+            // main run loop here since `start()` only ever runs on the main actor.
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.action?()
+                self.timer = Timer.scheduledTimer(withTimeInterval: self.repeatInterval, repeats: true) { [weak self] _ in
+                    MainActor.assumeIsolated {
+                        self?.action?()
+                    }
+                }
             }
         }
     }
@@ -84,6 +95,7 @@ final class RepeatingMediaKeyController {
     func stop() {
         timer?.invalidate()
         timer = nil
+        action = nil
     }
 }
 
@@ -120,7 +132,11 @@ public final class PresenterTimerModel {
         guard !isRunning else { return }
         isRunning = true
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.tick()
+            // `Timer.scheduledTimer` fires on the run loop it was scheduled from, which is the
+            // main run loop here since `start()` only ever runs on the main actor.
+            MainActor.assumeIsolated {
+                self?.tick()
+            }
         }
     }
 

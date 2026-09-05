@@ -10,8 +10,11 @@ import Observation
 public final class DisplayTopology {
     public private(set) var snapshot: DisplayTopologySnapshot
     private let listProvider: @MainActor () -> [DisplayInfo]
-    // `nonisolated(unsafe)`: only touched from init/deinit, both on the main actor in practice; needed so
-    // `deinit` (nonisolated per Swift's default class-deinit rules) can remove the observer.
+    // Only touched from init/deinit, both on the main actor in practice; needed so `deinit`
+    // (nonisolated per Swift's default class-deinit rules) can remove the observer.
+    // `@ObservationIgnored` keeps the `@Observable` macro from re-wrapping storage access in a
+    // way that would otherwise make `nonisolated(unsafe)` a no-op on this property.
+    @ObservationIgnored
     nonisolated(unsafe) private var observer: NSObjectProtocol?
 
     public init(listProvider: @escaping @MainActor () -> [DisplayInfo] = DisplayTopology.currentDisplays) {
@@ -22,7 +25,10 @@ public final class DisplayTopology {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.refresh()
+            // `queue: .main` guarantees this runs on the main thread/actor already.
+            MainActor.assumeIsolated {
+                self?.refresh()
+            }
         }
     }
 
