@@ -31,6 +31,19 @@ public enum PairingProgress: Sendable, Equatable {
     case failed(AppError)
 }
 
+/// One candidate address's outcome from the most recent connect attempt (spec §9 diagnostics
+/// deliverable) — `PairingScreen`'s "Details" disclosure lists these, and `ConnectionManager` logs
+/// them at `.error` on failure. Never carries secrets/proofs, only the address, a short
+/// human-readable outcome, and elapsed time.
+public struct AddressAttemptResult: Sendable, Equatable, Identifiable {
+    public var id: String { "\(address)#\(outcome)" }
+    public let address: String
+    public let outcome: String
+    public let elapsedMs: Int
+    public let succeeded: Bool
+    public let isTLSFailure: Bool
+}
+
 /// One "Mac known to this device" row for `DevicesScreen`: a trusted record plus its live browse
 /// status, if currently visible.
 public struct KnownHostRow: Sendable, Identifiable, Equatable {
@@ -74,6 +87,9 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
     public private(set) var latestHostState: HostState?
     public private(set) var latestMacroList: MacroList?
     public private(set) var lastError: AppError?
+    /// Per-candidate outcome of the most recent connect/pair attempt, newest attempt overwriting
+    /// the last — `PairingScreen`'s "Details" disclosure (spec §9 diagnostics deliverable).
+    public private(set) var lastConnectionAttempts: [AddressAttemptResult] = []
 
     public let knownHosts: KnownHostsStore
 
@@ -198,7 +214,7 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
         connectionState = .pairing
         pairingProgress = .connecting(hostName: url.hostName)
 
-        let candidates = url.addresses.map {
+        let candidates = url.addresses.filter(Self.isUsableCandidateAddress).map {
             AddressSelector.Candidate(address: $0, port: url.tcpPort, source: .qr)
         }
         do {
@@ -249,12 +265,13 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
             await refreshKnownHostRows()
         } catch {
             haptics.fire(.pairingFailure)
-            let appError = Self.mapPairingError(error)
+            let appError = Self.mapPairingError(error, attempts: lastConnectionAttempts, hostName: Self.displayHostName(url.hostName))
             pairingProgress = .failed(appError)
             lastError = appError
             coreState = .failed(.pairingFailed)
             connectionState = .failed(reason: appError.presentation.message)
             eventsTask?.cancel()
+            Self.logConnectFailure(context: "pair", appError: appError, attempts: lastConnectionAttempts)
         }
     }
 
@@ -306,10 +323,10 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
         }
         let live = discoveredHosts.first(where: hostIDMatches)
 
-        let lastKnown = (info?.lastKnownAddresses ?? []).map {
-            AddressSelector.Candidate(address: $0.address, port: info?.tcpPort ?? ProtocolConstants.defaultTCPPort, source: .lastKnown)
+        let lastKnown = (info?.lastKnownAddresses ?? []).map(\.address).filter(Self.isUsableCandidateAddress).map {
+            AddressSelector.Candidate(address: $0, port: info?.tcpPort ?? ProtocolConstants.defaultTCPPort, source: .lastKnown)
         }
-        let qr = (info?.qrAddresses ?? []).map {
+        let qr = (info?.qrAddresses ?? []).filter(Self.isUsableCandidateAddress).map {
             AddressSelector.Candidate(address: $0, port: info?.tcpPort ?? ProtocolConstants.defaultTCPPort, source: .qr)
         }
 
@@ -341,11 +358,12 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
             try? await newSession.sendSettings(Self.wireSettings(from: userSettings.snapshot))
             await refreshKnownHostRows()
         } catch {
-            let appError = Self.mapConnectError(error, hostName: record.displayName)
+            let appError = Self.mapConnectError(error, hostName: record.displayName, attempts: lastConnectionAttempts)
             lastError = appError
             coreState = .failed(.allCandidatesFailed)
             connectionState = .failed(reason: appError.presentation.message)
             eventsTask?.cancel()
+            Self.logConnectFailure(context: "connectToKnownHost", appError: appError, attempts: lastConnectionAttempts)
         }
     }
 
@@ -419,6 +437,15 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
         )
     }
 
+    /// One candidate's raw outcome from the task group below, before it's folded into the
+    /// published `AddressAttemptResult` (kept internal/untyped here since `NWControlChannel` isn't
+    /// `Equatable` and doesn't need to be — only the public summary type does).
+    private struct CandidateAttempt: Sendable {
+        let address: String
+        let elapsedMs: Int
+        let result: Result<NWControlChannel, Error>
+    }
+
     private func connectControlChannel(
         liveEndpoint: NWEndpoint?,
         candidates: [AddressSelector.Candidate],
@@ -433,28 +460,41 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
         // handles are safe to hand across isolation domains as opaque, effectively-immutable
         // values) so it can cross into these `@Sendable` `addTask` closures.
         let identity = SendableSecIdentity(clientIdentity)
+        lastConnectionAttempts = [] // fresh per attempt — see `PairingScreen`'s "Details" disclosure.
 
-        return try await withThrowingTaskGroup(of: NWControlChannel.self) { group in
+        return try await withThrowingTaskGroup(of: CandidateAttempt.self) { group in
             var index = 0
             if let liveEndpoint {
                 group.addTask {
-                    try await NWControlChannel.connect(to: liveEndpoint, clientIdentity: identity.value, expectedHostFingerprint: fingerprint)
+                    let start = Date()
+                    do {
+                        let channel = try await NWControlChannel.connect(to: liveEndpoint, clientIdentity: identity.value, expectedHostFingerprint: fingerprint)
+                        return CandidateAttempt(address: "bonjour", elapsedMs: Self.elapsedMs(since: start), result: .success(channel))
+                    } catch {
+                        return CandidateAttempt(address: "bonjour", elapsedMs: Self.elapsedMs(since: start), result: .failure(error))
+                    }
                 }
                 index += 1
             }
             for candidate in ordered {
                 let staggerIndex = index
                 group.addTask {
-                    if staggerIndex > 0 {
-                        try await Task.sleep(nanoseconds: UInt64(staggerIndex) * UInt64(ProtocolConstants.addressConnectStaggerMs) * 1_000_000)
+                    let start = Date()
+                    do {
+                        if staggerIndex > 0 {
+                            try await Task.sleep(nanoseconds: UInt64(staggerIndex) * UInt64(ProtocolConstants.addressConnectStaggerMs) * 1_000_000)
+                        }
+                        try Task.checkCancellation()
+                        let channel = try await NWControlChannel.connect(
+                            host: candidate.address,
+                            port: candidate.port,
+                            clientIdentity: identity.value,
+                            expectedHostFingerprint: fingerprint
+                        )
+                        return CandidateAttempt(address: candidate.address, elapsedMs: Self.elapsedMs(since: start), result: .success(channel))
+                    } catch {
+                        return CandidateAttempt(address: candidate.address, elapsedMs: Self.elapsedMs(since: start), result: .failure(error))
                     }
-                    try Task.checkCancellation()
-                    return try await NWControlChannel.connect(
-                        host: candidate.address,
-                        port: candidate.port,
-                        clientIdentity: identity.value,
-                        expectedHostFingerprint: fingerprint
-                    )
                 }
                 index += 1
             }
@@ -462,18 +502,71 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
 
             var lastError: Error = TransportError.connectionFailed("no candidate addresses")
             var remaining = attemptCount
-            while remaining > 0, let result = await group.nextResult() {
+            var winner: NWControlChannel?
+            // Collected progressively (not just at the end) so a candidate that finishes before
+            // the outer `withOverallTimeout` cancels the rest still shows up in diagnostics.
+            while remaining > 0, let attempt = try await group.next() {
                 remaining -= 1
-                switch result {
+                let outcome: String
+                let succeeded: Bool
+                let isTLS: Bool
+                switch attempt.result {
                 case .success(let channel):
-                    group.cancelAll()
-                    return channel
+                    outcome = "connected"
+                    succeeded = true
+                    isTLS = false
+                    winner = channel
                 case .failure(let error):
+                    outcome = Self.describeOutcome(error)
+                    succeeded = false
+                    isTLS = Self.isTLSFailure(error)
                     lastError = error
                 }
+                lastConnectionAttempts.append(AddressAttemptResult(
+                    address: attempt.address, outcome: outcome, elapsedMs: attempt.elapsedMs,
+                    succeeded: succeeded, isTLSFailure: isTLS
+                ))
+                if winner != nil { break }
             }
+            group.cancelAll()
+            if let winner { return winner }
             throw lastError
         }
+    }
+
+    nonisolated private static func elapsedMs(since start: Date) -> Int {
+        Int(Date().timeIntervalSince(start) * 1000)
+    }
+
+    nonisolated private static func isTLSFailure(_ error: Error) -> Bool {
+        if case .tlsHandshakeFailed = error as? TransportError { return true }
+        return false
+    }
+
+    /// Human-readable outcome for one candidate — no secrets/proofs, just what happened (spec §9
+    /// diagnostics deliverable: "per-address outcome (refused/timeout/TLS error text/`NWError`
+    /// description)").
+    nonisolated private static func describeOutcome(_ error: Error) -> String {
+        switch error as? TransportError {
+        case .localNetworkDenied: return "local network access denied"
+        case .tlsHandshakeFailed(let detail): return "TLS handshake failed: \(detail)"
+        case .connectionFailed(let detail): return detail
+        case .timedOut: return "timed out"
+        case .cancelled: return "cancelled"
+        case .invalidPort(let port): return "invalid port \(port)"
+        case nil: return String(describing: error)
+        }
+    }
+
+    /// spec §9 diagnostics deliverable: drop zone-stripped IPv6 link-local literals (`fe80::…`
+    /// with no `%zone`) before they ever reach `AddressSelector` — `AirMouseProtocol.IPLiteral`'s
+    /// own grammar forbids a zone id ("no brackets, no zone"), so every QR/`lastKnownAddresses`
+    /// literal in that range is one `Network.framework` cannot route to from this device; wasting
+    /// a stagger/timeout slot on it only delays reaching an address that would actually work.
+    nonisolated static func isUsableCandidateAddress(_ address: String) -> Bool {
+        let lowered = address.lowercased()
+        let isLinkLocalIPv6 = lowered.hasPrefix("fe8") || lowered.hasPrefix("fe9") || lowered.hasPrefix("fea") || lowered.hasPrefix("feb")
+        return !isLinkLocalIPv6 || lowered.contains("%")
     }
 
     private func withOverallTimeout<T: Sendable>(_ seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
@@ -697,17 +790,35 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
 
     // MARK: - Error mapping (spec §9)
 
-    private static func mapPairingError(_ error: Error) -> AppError {
+    /// - Parameters:
+    ///   - attempts: this attempt's per-candidate outcomes (`lastConnectionAttempts`, read at the
+    ///     catch site before anything else resets it) — used to tell "never reached a TLS peer at
+    ///     all" (every candidate refused/timed out) apart from "reached one, but its fingerprint
+    ///     didn't match" (spec §9 diagnostics deliverable, (a) vs (b)).
+    nonisolated static func mapPairingError(_ error: Error, attempts: [AddressAttemptResult], hostName: String) -> AppError {
         if let transportError = error as? TransportError {
+            let anySucceeded = attempts.contains { $0.succeeded }
+            let anyTLSFailure = attempts.contains { $0.isTLSFailure }
             switch transportError {
             case .localNetworkDenied: return .localNetworkDenied
-            case .timedOut: return .pairingExpired // spec §3.2.6: client infers rate-limit/timeout from a `pairChallenge` timeout.
-            default: return .connectionFailed(hostName: "")
+            case .tlsHandshakeFailed:
+                // A TLS failure *during pairing* only ever means the peer that answered isn't the
+                // one that showed this QR (spec §9 E-PAIR-FP has the exact copy for that already).
+                return .pairingFingerprintMismatch
+            case .timedOut:
+                if anySucceeded { return .pairingExpired } // TCP/TLS fine; the pairChallenge itself never arrived (spec §3.2.6).
+                if attempts.isEmpty { return .pairingExpired } // no candidate ever reported in — same inference as before.
+                if anyTLSFailure { return .pairingFingerprintMismatch }
+                return .hostUnreachable(hostName: hostName)
+            default:
+                if anyTLSFailure { return .pairingFingerprintMismatch }
+                return attempts.isEmpty ? .connectionFailed(hostName: hostName) : .hostUnreachable(hostName: hostName)
             }
         }
         if let core = error as? CoreError {
             switch core {
-            case .pairingExpired, .pairingInvalidProof: return .pairingExpired
+            case .pairingExpired: return .pairingExpired
+            case .pairingInvalidProof: return .pairingWrongCode // spec §9 diagnostics deliverable (d): distinct from an expired secret.
             case .pairingTooManyDevices: return .pairingDeviceLimit
             case .pairingHostProofInvalid: return .pairingHostProofInvalid
             case .authUntrusted: return .authUntrusted
@@ -720,19 +831,43 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
         return .pairingHostProofInvalid
     }
 
-    private static func mapConnectError(_ error: Error, hostName: String) -> AppError {
-        if let transportError = error as? TransportError, transportError == .localNetworkDenied {
-            return .localNetworkDenied
+    /// See `mapPairingError`'s doc comment — same (a)/(b) distinction, but for a reconnect to an
+    /// already-trusted host: a TLS failure here means the Mac's certificate no longer matches what
+    /// this device has on file (identity reset/reinstalled), not a mismatched QR.
+    nonisolated static func mapConnectError(_ error: Error, hostName: String, attempts: [AddressAttemptResult]) -> AppError {
+        guard let transportError = error as? TransportError else { return .connectionFailed(hostName: hostName) }
+        switch transportError {
+        case .localNetworkDenied: return .localNetworkDenied
+        case .tlsHandshakeFailed: return .tlsVerificationFailed(hostName: hostName)
+        default:
+            if attempts.contains(where: { $0.isTLSFailure }) { return .tlsVerificationFailed(hostName: hostName) }
+            return attempts.isEmpty ? .connectionFailed(hostName: hostName) : .hostUnreachable(hostName: hostName)
         }
-        return .connectionFailed(hostName: hostName)
     }
 
-    private static func mapErrorPayload(_ payload: ErrorPayload) -> AppError {
+    /// Non-empty, human-friendly host name for interpolation into `.hostUnreachable`'s copy — the
+    /// QR's `hostName` field is optional (spec §3.1.3), and an empty "Couldn't reach ." reads badly.
+    nonisolated static func displayHostName(_ hostName: String?) -> String {
+        guard let hostName, !hostName.isEmpty else { return String(localized: "your Mac") }
+        return hostName
+    }
+
+    /// spec §9 diagnostics deliverable: logs the same per-candidate detail `PairingScreen`'s
+    /// "Details" disclosure shows, at `.error` (persisted without `sudo log config`) via the app's
+    /// own `Log.net` — never secrets/proofs, just address/outcome/timing.
+    nonisolated static func logConnectFailure(context: String, appError: AppError, attempts: [AddressAttemptResult]) {
+        Log.net.error("\(context, privacy: .public) failed: \(appError.presentation.id, privacy: .public), \(attempts.count, privacy: .public) candidate(s) tried")
+        for attempt in attempts {
+            Log.net.error("\(context, privacy: .public) candidate \(attempt.address, privacy: .public): \(attempt.outcome, privacy: .public) (\(attempt.elapsedMs, privacy: .public) ms)")
+        }
+    }
+
+    nonisolated static func mapErrorPayload(_ payload: ErrorPayload) -> AppError {
         switch payload.knownCode {
         case .authUntrusted: return .authUntrusted
         case .authRevoked: return .authRevoked
         case .pairingExpired: return .pairingExpired
-        case .pairingInvalidProof: return .pairingExpired
+        case .pairingInvalidProof: return .pairingWrongCode
         case .pairingTooManyDevices: return .pairingDeviceLimit
         case .rateLimited: return .rateLimited
         case .versionMismatch: return .versionAppOutdated

@@ -54,6 +54,22 @@ private struct DiagnosticsContent: View {
                     .foregroundStyle(.secondary)
             }
 
+            // spec §9 diagnostics deliverable: recent accept/TLS/pairing/disconnect activity,
+            // visible without opening Console.app.
+            if !viewModel.snapshot.recentEvents.isEmpty {
+                Text("Recent connection events").font(.headline)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(Array(viewModel.snapshot.recentEvents.enumerated()), id: \.offset) { _, event in
+                            Text(event)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .font(.caption.monospaced())
+                .frame(maxHeight: 120)
+            }
+
             HStack {
                 Picker("Log level", selection: $settings.logLevel) {
                     ForEach(LogLevel.allCases, id: \.self) { level in

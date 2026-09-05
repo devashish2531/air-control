@@ -42,10 +42,11 @@ public actor PairingService {
     /// already showing.
     @discardableResult
     public func openWindow(now: Date = Date()) throws -> PairingSecret {
-        Log.pairing.debug("PairingService.openWindow: enter")
         let secret = try window.open(now: now)
         status = .waiting
-        Log.pairing.debug("PairingService.openWindow: secret minted, status=.waiting")
+        // `.notice` (persisted without `sudo log config`) — spec §9 diagnostics deliverable: never
+        // the secret itself, just that a window opened.
+        Log.pairing.notice("PairingService: pairing window opened")
         return secret
     }
 
@@ -99,6 +100,7 @@ public actor PairingService {
     /// so the window can show the lockout state briefly before closing (spec §3.1.4).
     public func noteLockedOut() {
         status = .lockedOut
+        Log.pairing.error("PairingService: locked out after repeated failed pairing attempts")
     }
 
     /// Builds the QR/manual-fallback pairing URL for the currently open window (spec §3.1.3). The

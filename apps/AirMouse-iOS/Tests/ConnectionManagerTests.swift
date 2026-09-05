@@ -10,6 +10,7 @@ import UIKit
 import AirMouseCore
 import AirMouseCrypto
 import AirMouseFilters
+import AirMouseProtocol
 @testable import Air_Mouse
 
 @MainActor
@@ -110,5 +111,98 @@ private func waitUntil(timeout: TimeInterval = 2.0, _ predicate: () -> Bool) asy
         NotificationCenter.default.post(name: UIApplication.didBecomeActiveNotification, object: nil)
         _ = await waitUntil(timeout: 0.3) { false }
         #expect(manager.connectionState == .idle)
+    }
+}
+
+// MARK: - Diagnostics-and-UX deliverable: link-local filtering + error mapping
+
+@Suite struct AddressFilteringTests {
+    @Test func zoneStrippedLinkLocalIPv6IsDropped() {
+        #expect(!ConnectionManager.isUsableCandidateAddress("fe80::1"))
+        #expect(!ConnectionManager.isUsableCandidateAddress("FE80::AAAA:BBBB:CCCC:DDDD"))
+        #expect(!ConnectionManager.isUsableCandidateAddress("fe80::abcd:1234"))
+    }
+
+    @Test func linkLocalIPv6WithAZoneIsKept() {
+        // Defensive: today's QR/lastKnown grammar never carries one, but if it ever did, a zoned
+        // literal is actually connectable and shouldn't be thrown away.
+        #expect(ConnectionManager.isUsableCandidateAddress("fe80::1%en0"))
+    }
+
+    @Test func ordinaryAddressesAreKept() {
+        #expect(ConnectionManager.isUsableCandidateAddress("192.168.0.218"))
+        #expect(ConnectionManager.isUsableCandidateAddress("fd01::1"))
+        #expect(ConnectionManager.isUsableCandidateAddress("10.0.0.5"))
+    }
+}
+
+@Suite struct ConnectionManagerErrorMappingTests {
+    private func attempt(_ address: String, succeeded: Bool = false, isTLSFailure: Bool = false, outcome: String = "timed out") -> AddressAttemptResult {
+        AddressAttemptResult(address: address, outcome: outcome, elapsedMs: 4000, succeeded: succeeded, isTLSFailure: isTLSFailure)
+    }
+
+    // MARK: (a) never reached the Mac at all
+
+    @Test func everyCandidateTimingOutMapsToHostUnreachable() {
+        let attempts = [attempt("192.168.0.218"), attempt("fd01::1")]
+        let error = ConnectionManager.mapPairingError(TransportError.timedOut, attempts: attempts, hostName: "Marcus's Mac")
+        #expect(error == .hostUnreachable(hostName: "Marcus's Mac"))
+    }
+
+    @Test func everyCandidateRefusedMapsToHostUnreachableOnReconnect() {
+        let attempts = [attempt("192.168.0.218", outcome: "Connection refused")]
+        let error = ConnectionManager.mapConnectError(TransportError.connectionFailed("Connection refused"), hostName: "Marcus's Mac", attempts: attempts)
+        #expect(error == .hostUnreachable(hostName: "Marcus's Mac"))
+    }
+
+    @Test func noAttemptsAtAllFallsBackToConnectionFailed() {
+        // The 12 s overall watchdog fired before any candidate reported in at all.
+        let error = ConnectionManager.mapConnectError(TransportError.connectionFailed("no candidates"), hostName: "Marcus's Mac", attempts: [])
+        #expect(error == .connectionFailed(hostName: "Marcus's Mac"))
+    }
+
+    // MARK: (b) TLS handshake failed / fingerprint mismatch
+
+    @Test func tlsFailureDuringPairingMapsToFingerprintMismatch() {
+        let attempts = [attempt("192.168.0.218", isTLSFailure: true, outcome: "TLS handshake failed: badCert")]
+        let error = ConnectionManager.mapPairingError(TransportError.tlsHandshakeFailed("badCert"), attempts: attempts, hostName: "Marcus's Mac")
+        #expect(error == .pairingFingerprintMismatch)
+    }
+
+    @Test func tlsFailureDuringReconnectMapsToTLSVerificationFailed() {
+        let attempts = [attempt("192.168.0.218", isTLSFailure: true, outcome: "TLS handshake failed: badCert")]
+        let error = ConnectionManager.mapConnectError(TransportError.tlsHandshakeFailed("badCert"), hostName: "Marcus's Mac", attempts: attempts)
+        #expect(error == .tlsVerificationFailed(hostName: "Marcus's Mac"))
+        #expect(error != .pairingFingerprintMismatch) // distinct from the pairing-time copy.
+    }
+
+    // MARK: (c) local network permission denied
+
+    @Test func localNetworkDeniedMapsTheSameWayInBothFlows() {
+        #expect(ConnectionManager.mapPairingError(TransportError.localNetworkDenied, attempts: [], hostName: "Mac") == .localNetworkDenied)
+        #expect(ConnectionManager.mapConnectError(TransportError.localNetworkDenied, hostName: "Mac", attempts: []) == .localNetworkDenied)
+    }
+
+    // MARK: (d)/(e) host said proof invalid vs. secret expired — distinct AppErrors
+
+    @Test func wireInvalidProofMapsToWrongCodeNotExpired() {
+        let payload = ErrorPayload(code: ErrorCode.pairingInvalidProof.rawValue, message: "invalid proof", fatal: true)
+        #expect(ConnectionManager.mapErrorPayload(payload) == .pairingWrongCode)
+    }
+
+    @Test func wireExpiredMapsToPairingExpired() {
+        let payload = ErrorPayload(code: ErrorCode.pairingExpired.rawValue, message: "expired", fatal: true)
+        #expect(ConnectionManager.mapErrorPayload(payload) == .pairingExpired)
+    }
+
+    @Test func coreInvalidProofDuringPairingMapsToWrongCodeNotExpired() {
+        let error = ConnectionManager.mapPairingError(CoreError.pairingInvalidProof, attempts: [], hostName: "Mac")
+        #expect(error == .pairingWrongCode)
+        #expect(error != .pairingExpired)
+    }
+
+    @Test func coreExpiredDuringPairingMapsToPairingExpired() {
+        let error = ConnectionManager.mapPairingError(CoreError.pairingExpired, attempts: [], hostName: "Mac")
+        #expect(error == .pairingExpired)
     }
 }

@@ -72,7 +72,10 @@ public enum ConnectionFeature {
         if let generated = try? IdentityFactory.makeIdentity(
             commonName: "AirMouse Client \(UUID().uuidString)",
             label: label,
-            preferSecureEnclave: true
+            // Software key on purpose: on a real iPhone (iOS 26) a Secure Enclave-backed client identity made
+            // every mutual-TLS handshake fail before `.ready` (host saw the connect, never a client cert), while
+            // the same code path with a software key pairs fine. Revisit if Network.framework gains SE support.
+            preferSecureEnclave: false
         ) {
             return generated
         }

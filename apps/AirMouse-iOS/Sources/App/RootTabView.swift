@@ -28,6 +28,7 @@ public struct RootTabView: View {
                 phoneTabView
             }
         }
+        .overlay(alignment: .top) { debugPairingLabel }
         .task {
             guard !hasAppliedDefaultTab else { return }
             hasAppliedDefaultTab = true
@@ -198,7 +199,15 @@ private struct ConnectionPillButton: View {
                     Text(compactLabel)
                         .font(.subheadline.weight(.medium))
                         .lineLimit(1)
+                    Text(compactLabel)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                 }
+                // Bound the proposal so `ViewThatFits` can actually fall back; without a cap the toolbar
+                // proposes unlimited width, the full host name always "fits", and a long name pushes the
+                // capsule off the leading edge of the screen.
+                .frame(maxWidth: 190)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
@@ -299,3 +308,35 @@ private extension View {
     RootTabView()
         .environment(\.appEnvironment, .preview())
 }
+
+// MARK: - DEBUG diagnostics (read by XCUITests; invisible to users)
+
+extension RootTabView {
+    /// DEBUG-only near-invisible label exposing pairing progress so on-device UI tests can report
+    /// *why* pairing failed without root access to the phone's logs. Compiled out of Release.
+    @ViewBuilder var debugPairingLabel: some View {
+        #if DEBUG
+        PairingDebugLabel(environment: environment)
+        #else
+        EmptyView()
+        #endif
+    }
+}
+
+#if DEBUG
+private struct PairingDebugLabel: View {
+    let environment: AppEnvironment
+    var body: some View {
+        let manager = environment.connection as? ConnectionManager
+        let progress = manager.map { String(describing: $0.pairingProgress) } ?? "no ConnectionManager"
+        let state = String(describing: environment.connection.connectionState)
+        Text("debug.pairing=\(progress) state=\(state)")
+            .font(.system(size: 6))
+            .foregroundStyle(.secondary)
+            .opacity(0.02)
+            .accessibilityIdentifier("debug.pairingProgress")
+            .accessibilityLabel("debug.pairing=\(progress) state=\(state)")
+            .allowsHitTesting(false)
+    }
+}
+#endif

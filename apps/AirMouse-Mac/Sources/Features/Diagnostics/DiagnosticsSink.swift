@@ -53,22 +53,28 @@ public struct DiagnosticsSnapshot: Sendable, Equatable, Codable {
     public var injectP50Millis: Double
     public var injectP95Millis: Double
     public var generatedAt: Date
+    /// Last ≤20 notice-level connection events (accept/TLS/pairing/auth/disconnect), oldest first —
+    /// spec §9 diagnostics deliverable: "Recent connection events" list, so a failed pair is
+    /// visible without Console.app. Already-redacted text, same as what's logged via `Log`.
+    public var recentEvents: [String]
 
     public init(
         sessions: [SessionStat],
         injectedEventsPerSecond: Double,
         injectP50Millis: Double,
         injectP95Millis: Double,
-        generatedAt: Date
+        generatedAt: Date,
+        recentEvents: [String] = []
     ) {
         self.sessions = sessions
         self.injectedEventsPerSecond = injectedEventsPerSecond
         self.injectP50Millis = injectP50Millis
         self.injectP95Millis = injectP95Millis
         self.generatedAt = generatedAt
+        self.recentEvents = recentEvents
     }
 
-    public static let empty = DiagnosticsSnapshot(sessions: [], injectedEventsPerSecond: 0, injectP50Millis: 0, injectP95Millis: 0, generatedAt: .distantPast)
+    public static let empty = DiagnosticsSnapshot(sessions: [], injectedEventsPerSecond: 0, injectP50Millis: 0, injectP95Millis: 0, generatedAt: .distantPast, recentEvents: [])
 }
 
 /// Read-only feed for the Diagnostics window. Counters and timing only — never text, keys, or full IPs

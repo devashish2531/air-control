@@ -124,6 +124,14 @@ struct HostServerTests {
         #expect(!addresses.contains("::1"))
     }
 
+    @Test("currentInterfaceAddresses never returns a zone-stripped link-local IPv6 address")
+    func interfaceAddressesExcludeLinkLocalIPv6() {
+        // spec §9 diagnostics deliverable: `fe80::…` with no `%zone` (the QR grammar forbids one)
+        // can't be connected to from another device, so it must never reach the QR/pairing URL.
+        let addresses = HostServer.currentInterfaceAddresses()
+        #expect(!addresses.contains { $0.lowercased().hasPrefix("fe80") })
+    }
+
     // MARK: - Non-loopback openPairingWindow() (repro for the reported hang)
 
     /// Races an operation against a fixed timeout, returning `nil` on timeout rather than hanging
@@ -188,6 +196,7 @@ struct HostServerTests {
             udpPort: 0,
             loopback: false, // exercises the real (non-loopback) identity + addressing path.
             bonjourEnabled: false, // see this test's/the flag's doc comment.
+            persistIdentity: false, // ephemeral identity: never touch the developer's real Keychain identity from a test.
             documentStore: documentStore,
             hostNameProvider: { "HostServerTests Mac" }
         )

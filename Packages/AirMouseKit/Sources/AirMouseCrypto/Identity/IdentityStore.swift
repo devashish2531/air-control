@@ -46,3 +46,40 @@ public struct KeychainIdentityStore: IdentityStore {
         try IdentityFactory.deleteIdentity(label: label)
     }
 }
+
+import Foundation
+
+extension KeychainIdentityStore {
+    /// Proves the identity's private key can sign *without blocking on a Keychain ACL prompt*.
+    ///
+    /// A legacy-keychain key's ACL trusts the code signature of the process that created it. When the
+    /// app is rebuilt with a different signature (ad-hoc → team-signed, or any ad-hoc rebuild), macOS
+    /// routes `SecKeyCreateSignature` through a `SecurityAgent` prompt that a menu-bar helper or a
+    /// headless run never gets to answer — the TLS handshake then stalls forever while signing the
+    /// server's CertificateVerify. This runs one throwaway signature on a background thread and gives up
+    /// after `timeout`; callers treat `false` as "stale identity: delete and mint a fresh one".
+    public func canSign(_ identity: SecIdentity, timeout: TimeInterval = 2.0) -> Bool {
+        var privateKey: SecKey?
+        guard SecIdentityCopyPrivateKey(identity, &privateKey) == errSecSuccess, let privateKey else { return false }
+        let semaphore = DispatchSemaphore(value: 0)
+        let box = SignatureProbeResult()
+        let thread = Thread {
+            var error: Unmanaged<CFError>?
+            let payload = Data("airmouse-identity-probe".utf8) as CFData
+            let signature = SecKeyCreateSignature(privateKey, .ecdsaSignatureMessageX962SHA256, payload, &error)
+            box.set(signature != nil)
+            semaphore.signal()
+        }
+        thread.qualityOfService = .userInitiated
+        thread.start()
+        guard semaphore.wait(timeout: .now() + timeout) == .success else { return false }
+        return box.value
+    }
+}
+
+private final class SignatureProbeResult: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored = false
+    var value: Bool { lock.lock(); defer { lock.unlock() }; return stored }
+    func set(_ newValue: Bool) { lock.lock(); stored = newValue; lock.unlock() }
+}

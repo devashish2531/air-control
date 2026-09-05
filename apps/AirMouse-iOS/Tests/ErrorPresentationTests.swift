@@ -50,6 +50,33 @@ import Testing
         #expect(AppError.pairingHostProofInvalid.presentation.id == "E-PAIR-HOSTPROOF")
     }
 
+    // MARK: - Diagnostics-and-UX deliverable: new distinct cases (a)/(b)/(d)
+
+    @Test func hostUnreachableOffersSettingsDeepLinkAndInterpolatesHostName() {
+        let p = AppError.hostUnreachable(hostName: "Marcus's Mac").presentation
+        #expect(p.id == "E-CONN-UNREACHABLE")
+        #expect(p.style == .alert)
+        #expect(p.title.contains("Marcus's Mac"))
+        #expect(p.message.contains("same Wi-Fi"))
+        #expect(p.message.contains("Local Network"))
+        #expect(p.actions == [.openSettings, .retry])
+    }
+
+    @Test func tlsVerificationFailedIsDistinctFromPairingFingerprintMismatch() {
+        let p = AppError.tlsVerificationFailed(hostName: "Marcus's Mac").presentation
+        #expect(p.id == "E-TLS-MISMATCH")
+        #expect(p.id != AppError.pairingFingerprintMismatch.presentation.id)
+        #expect(p.title.contains("Marcus's Mac"))
+        #expect(p.actions == [.forgetMac, .scanQR])
+    }
+
+    @Test func pairingWrongCodeIsDistinctFromPairingExpired() {
+        let p = AppError.pairingWrongCode.presentation
+        #expect(p.id == "E-PAIR-WRONGCODE")
+        #expect(p.id != AppError.pairingExpired.presentation.id)
+        #expect(p.actions == [.scanQR])
+    }
+
     @Test func authErrors() {
         let untrusted = AppError.authUntrusted.presentation
         #expect(untrusted.id == "E-AUTH-UNTRUSTED")

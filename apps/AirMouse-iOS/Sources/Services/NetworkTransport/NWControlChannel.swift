@@ -26,6 +26,11 @@ public enum TransportError: Error, Sendable, Equatable {
     /// (`NWError.dns(kDNSServiceErr_PolicyDenied)` or `currentPath?.unsatisfiedReason == .localNetworkDenied`).
     case localNetworkDenied
     case connectionFailed(String)
+    /// The TLS handshake itself failed — either the peer's verify block rejected our identity, or
+    /// (client side) our own verify block rejected the peer's fingerprint (spec §9 "TLS handshake
+    /// failed / fingerprint mismatch"). Distinct from `.connectionFailed` so callers can tell "we
+    /// never reached a TLS peer" apart from "we reached one, but couldn't trust it".
+    case tlsHandshakeFailed(String)
     case timedOut
     case cancelled
     case invalidPort(Int)
@@ -284,6 +289,7 @@ public final class NWControlChannel: ControlChannel, @unchecked Sendable {
 
     private static func mapConnectError(_ error: NWError, connection: NWConnection) -> Error {
         if isLocalNetworkDenied(error, connection: connection) { return TransportError.localNetworkDenied }
+        if case .tls = error { return TransportError.tlsHandshakeFailed(String(describing: error)) }
         return TransportError.connectionFailed(String(describing: error))
     }
 }

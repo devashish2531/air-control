@@ -86,6 +86,9 @@ public actor HostServer: HostServing {
                 Log.net.info("HostServer: Bonjour registration skipped (bonjourEnabled = false)")
             }
             networkStatus = .ready
+            // `.notice` (persisted to disk by default, unlike `.debug`/`.info`) so "is the helper
+            // even listening" is answerable from `log show` without `sudo log config` first.
+            Log.net.notice("HostServer: listening, tcp=\(self.tcpListener?.port?.rawValue ?? 0, privacy: .public) udp=\(self.udpHub.boundPort ?? 0, privacy: .public)")
         } catch {
             networkStatus = .failed(description: String(describing: error))
             Log.net.error("HostServer.start() failed: \(String(describing: error), privacy: .public)")
@@ -128,10 +131,17 @@ public actor HostServer: HostServing {
         await pairingService.status
     }
 
+    /// Extra surface beyond `HostServing` (same rationale as `pairingServiceStatusForUI()` above):
+    /// the Diagnostics window's "Recent connection events" list (spec §9 diagnostics deliverable),
+    /// reached via a best-effort downcast since the shell's DI slot is typed `any HostServing`.
+    public func recentConnectionEvents() async -> [ConnectionEvent] {
+        await sessionManager.recentConnectionEvents
+    }
+
     // MARK: - Identity
 
     private func loadOrCreateIdentity() async throws -> GeneratedIdentity {
-        if settings.loopback {
+        if settings.loopback || !settings.persistIdentity {
             // `--loopback` (the CLI/integration-test path) launches this process headless, with no
             // GUI session to service a Keychain ACL prompt. A Keychain-persisted identity's ACL is
             // scoped to the *creating* process's code signature; any ad-hoc/debug rebuild changes
@@ -152,9 +162,16 @@ public actor HostServer: HostServing {
             )
         }
         let store = KeychainIdentityStore()
-        if let existing = try? store.loadIdentity(label: identityLabel),
-           let wrapped = Self.wrap(secIdentity: existing, label: identityLabel) {
-            return wrapped
+        if let existing = try? store.loadIdentity(label: identityLabel) {
+            // A rebuilt (differently signed) helper cannot use a key whose ACL trusts the old signature:
+            // `SecKeyCreateSignature` would block on a SecurityAgent prompt mid-TLS-handshake (see the
+            // `--loopback` note above). Probe once; if the key is unusable, mint a fresh identity. The host
+            // fingerprint changes, so previously paired devices must pair again.
+            if store.canSign(existing), let wrapped = Self.wrap(secIdentity: existing, label: identityLabel) {
+                return wrapped
+            }
+            Log.net.error("Host identity in the Keychain is not usable by this build (ACL/signature mismatch); replacing it. Paired devices must pair again.")
+            try? store.deleteIdentity(label: identityLabel)
         }
         let hostID = await loadOrCreateHostID()
         return try IdentityFactory.makeIdentity(
@@ -332,6 +349,13 @@ public actor HostServer: HostServing {
             connection.cancel()
             return
         }
+        // `.notice` (persisted without `sudo log config`) — spec §9 diagnostics deliverable: this
+        // is the first thing that should show up in `log show` when a phone can't pair, before any
+        // TLS/pairing detail exists yet. Endpoint is redacted (§7.4: never a full IP at .info+).
+        let peerDescription = Self.redactedEndpointDescription(connection.endpoint)
+        Log.net.notice("HostServer: accepted TCP connection from \(peerDescription, privacy: .public)")
+        await sessionManager.recordConnectionEvent("accepted: \(peerDescription)")
+
         let channel = NWControlChannel(connection: connection)
         await channel.start(on: netQueue)
         // `start(on:)` only *begins* the TLS handshake — `channel.peerFingerprint` (read by
@@ -342,10 +366,19 @@ public actor HostServer: HostServing {
         // reconnecting, as `.unknown` (see report). Bounded so a stalled handshake can't leak this
         // `accept()` task forever.
         guard await waitForChannelReady(channel) else {
+            Log.tls.error("HostServer: TLS handshake failed or connection closed before ready, peer=\(peerDescription, privacy: .public)")
+            await sessionManager.recordConnectionEvent("TLS handshake failed: \(peerDescription)")
             connection.cancel()
             return
         }
         let trusted = await trustStore.trustedFingerprints()
+        let peerFingerprint = await channel.peerFingerprint
+        let fingerprintPrefix = peerFingerprint.map { Redact.fingerprintPrefix($0.hexString) } ?? "none"
+        let known = peerFingerprint.map { trusted.contains($0) } ?? false
+        // Never the full fingerprint (spec §7.4/§5.7.3) — only the 8-hex prefix, which is `.public`.
+        Log.tls.notice("HostServer: TLS handshake complete, peer=\(fingerprintPrefix, privacy: .public) known=\(known, privacy: .public)")
+        await sessionManager.recordConnectionEvent("TLS ok: peer=\(fingerprintPrefix) (\(known ? "known" : "unknown"))")
+
         let windowSnapshot = await pairingService.currentSnapshot()
         await sessionManager.acceptConnection(
             channel: channel,
@@ -356,6 +389,19 @@ public actor HostServer: HostServing {
             hostName: settings.hostNameProvider(),
             udpPort: Int(udpHub.boundPort ?? UInt16(settings.udpPort))
         )
+    }
+
+    /// Redacted peer description for logging (spec §7.4: never a full IP address at `.info`+) —
+    /// masks an IPv4 literal to its /24 network via `Redact.maskedIPv4`; IPv6 has no such helper
+    /// today, so it's reported only by family, never the literal.
+    private static func redactedEndpointDescription(_ endpoint: NWEndpoint) -> String {
+        guard case .hostPort(let host, let port) = endpoint else { return "unknown" }
+        switch host {
+        case .ipv4(let address): return "\(Redact.maskedIPv4("\(address)")):\(port)"
+        case .ipv6: return "ipv6:\(port)"
+        case .name(let name, _): return "\(name):\(port)"
+        @unknown default: return "unknown:\(port)"
+        }
     }
 
     // MARK: - Bonjour (spec §3.1.1, §3.1.2, §5.1.5)
@@ -383,7 +429,7 @@ public actor HostServer: HostServing {
         listener.service = service
         listener.serviceRegistrationUpdateHandler = { change in
             if case .add(let endpoint) = change, case .service(let name, _, _, _) = endpoint {
-                Log.net.info("HostServer: Bonjour registered as \(name, privacy: .public)")
+                Log.net.notice("HostServer: Bonjour registered as \(name, privacy: .public)")
             }
         }
     }
@@ -454,17 +500,25 @@ public actor HostServer: HostServing {
             if let percentIndex = address.firstIndex(of: "%") {
                 address = String(address[address.startIndex..<percentIndex])
             }
+            // spec §9 diagnostics deliverable: a zone-stripped IPv6 link-local address (`fe80::…`,
+            // no `%zone` — the QR grammar forbids one) is useless to another device: nothing on
+            // the client side can route to it without knowing which interface it's scoped to, so
+            // it only wastes a connect-candidate slot there. Drop it here rather than merely
+            // ranking it last, since a real Mac can have several of these (one per active
+            // interface) and each one previously ate a stagger/timeout slot on the client for
+            // nothing.
+            guard !(family == UInt8(AF_INET6) && address.lowercased().hasPrefix("fe80")) else { continue }
             let ifName = String(cString: current.pointee.ifa_name)
-            let rank = Self.addressRank(interfaceName: ifName, address: address, isIPv6: family == UInt8(AF_INET6))
+            let rank = Self.addressRank(interfaceName: ifName, address: address)
             result.append((address, rank))
         }
         return result.sorted { $0.rank < $1.rank }.map(\.address)
     }
 
     /// Lower rank sorts first: hotspot/bridge, then Wi-Fi (`en0`), then other Ethernet, then
-    /// link-local IPv6 last (spec §3.1.3).
-    private static func addressRank(interfaceName: String, address: String, isIPv6: Bool) -> Int {
-        if isIPv6, address.lowercased().hasPrefix("fe80") { return 90 }
+    /// everything else (spec §3.1.3) — link-local IPv6 no longer appears here at all (see the
+    /// `fe80` filter above), so this only orders the remaining, genuinely-usable addresses.
+    private static func addressRank(interfaceName: String, address: String) -> Int {
         if interfaceName.hasPrefix("bridge") || address.hasPrefix("172.20.10.") { return 0 }
         if interfaceName == "en0" { return 10 }
         if interfaceName.hasPrefix("en") { return 20 }
@@ -511,6 +565,10 @@ public struct HostServerSettings: Sendable {
     /// custom TCP+UDP bind, real `getifaddrs`-sourced addresses) inside a test process that has no
     /// Local Network TCC grant of its own to answer a permission prompt with — see `start()`.
     public var bonjourEnabled: Bool
+    /// Whether the host identity is loaded from / stored in the Keychain. Tests set `false` to get an
+    /// ephemeral identity: the Keychain path from an unsigned test host would trigger ACL prompts and
+    /// could replace the developer's real host identity (invalidating paired devices).
+    public var persistIdentity: Bool
     public var documentStore: DocumentStore
     public var hostNameProvider: @Sendable () -> String
     public var machineModel: @Sendable () -> String
@@ -520,6 +578,7 @@ public struct HostServerSettings: Sendable {
         udpPort: UInt16 = UInt16(ProtocolConstants.defaultUDPPort),
         loopback: Bool = false,
         bonjourEnabled: Bool = true,
+        persistIdentity: Bool = true,
         documentStore: DocumentStore,
         hostNameProvider: @escaping @Sendable () -> String,
         machineModel: @escaping @Sendable () -> String = { HostServerSettings.currentMachineModel() }
@@ -528,6 +587,7 @@ public struct HostServerSettings: Sendable {
         self.udpPort = udpPort
         self.loopback = loopback
         self.bonjourEnabled = bonjourEnabled
+        self.persistIdentity = persistIdentity
         self.documentStore = documentStore
         self.hostNameProvider = hostNameProvider
         self.machineModel = machineModel

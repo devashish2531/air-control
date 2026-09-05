@@ -171,4 +171,125 @@ struct SessionManagerTests {
         await waitUntil { poster.events.contains(where: { $0.kind == .leftMouseUp }) }
         #expect(poster.events.contains { $0.kind == .leftMouseUp })
     }
+
+    // MARK: - Diagnostics-and-UX deliverable: recent connection events ring buffer (spec §9)
+
+    @Test("recentConnectionEvents records authentication, then disconnect, with a reason")
+    func recentConnectionEventsRecordsLifecycle() async throws {
+        let (manager, _, _, tempDir) = try await makeConnectedSession()
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        await waitUntil { await manager.recentConnectionEvents.contains { $0.message.hasPrefix("authenticated") } }
+        let afterAuth = await manager.recentConnectionEvents
+        #expect(afterAuth.contains { $0.message.hasPrefix("authenticated") })
+
+        let sessions = await manager.connectedSessions
+        #expect(sessions.count == 1)
+        if let id = sessions.first?.id {
+            await manager.disconnect(sessionID: id)
+        }
+        await waitUntil { await manager.recentConnectionEvents.contains { $0.message.hasPrefix("disconnected") } }
+        let afterDisconnect = await manager.recentConnectionEvents
+        #expect(afterDisconnect.contains { $0.message.hasPrefix("disconnected") })
+    }
+
+    @Test("a fresh pairing acceptance is recorded in the event ring buffer, distinct from a trusted-reconnect auth")
+    func recentConnectionEventsRecordsPairingAcceptance() async throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("SessionManagerTests-\(UUID().uuidString)")
+        let documentStore = DocumentStore(baseDirectory: tempDir)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let poster = RecordingEventPoster()
+        let injector = EventInjector(poster: poster, startHeldInputWatchdog: false)
+        let macroStore = MacroStore(documentStore: documentStore)
+        let macroEngine = MacroEngine(store: macroStore, executor: MockMacroActionExecutor())
+        let trustStore = TrustStore(documentStore: documentStore)
+        let pairingService = PairingService()
+        let udpHub = NWUDPHub()
+        let manager = SessionManager(
+            eventInjector: injector,
+            macroEngine: macroEngine,
+            macroStore: macroStore,
+            trustStore: trustStore,
+            pairingService: pairingService,
+            udpHub: udpHub,
+            hostStateSnapshotProvider: {
+                HostStateSnapshot(naturalScrollEnabled: true, displayTopology: .empty, isPaused: false, isAccessibilityTrusted: true, frontmostAppBundleID: nil, timestamp: Date())
+            },
+            globalScriptsEnabledProvider: { false }
+        )
+
+        let hostIdentity = try IdentityFactory.makeEphemeralIdentity(commonName: "AirMouse Host PairingRingBufferTest")
+        let clientIdentity = try IdentityFactory.makeEphemeralIdentity(commonName: "AirMouse Client PairingRingBufferTest")
+        let hostID = Data(repeating: 0x77, count: 16)
+
+        _ = try await pairingService.openWindow()
+        let url = try await pairingService.pairingURL(
+            hostID: hostID, hostName: "Test Host", addresses: ["127.0.0.1"],
+            tcpPort: 47800, udpPort: 47800, fingerprint: Data(hostIdentity.fingerprint.bytes)
+        )
+        let windowSnapshot = await pairingService.currentSnapshot()
+
+        let (hostChannel, clientChannel) = MockHostControlChannel.pair(
+            hostSeesPeerFingerprint: clientIdentity.fingerprint,
+            clientSeesPeerFingerprint: hostIdentity.fingerprint
+        )
+        // Both mocked ends report the same TLS exporter secret — real `NWControlChannel`s on the
+        // two sides of one handshake would agree on this by construction (spec §3.2.3); the mock
+        // needs it set explicitly on both to compute a proof the host side actually verifies.
+        let sharedExporter = Data(repeating: 0xAB, count: 32)
+        hostChannel.exporterOverride = sharedExporter
+        clientChannel.exporterOverride = sharedExporter
+
+        await manager.acceptConnection(
+            channel: hostChannel,
+            trustedFingerprints: [], // unknown peer — must prove against the open pairing window.
+            pairingWindow: windowSnapshot,
+            hostIdentity: hostIdentity,
+            hostID: hostID,
+            hostName: "Test Host",
+            udpPort: 47800
+        )
+
+        let client = ClientSession(
+            control: clientChannel,
+            datagramProvider: { _ in InertDatagramChannel() },
+            clock: HostWallClock(),
+            localFingerprint: clientIdentity.fingerprint,
+            device: Hello.Device(name: "Test iPhone", model: "iPhone16,1", os: "iOS 18.6", app: "1.0")
+        )
+        _ = try await client.pair(url: url, macroRevision: nil)
+
+        await waitUntil { await manager.recentConnectionEvents.contains { $0.message.hasPrefix("pairing accepted") } }
+        let events = await manager.recentConnectionEvents
+        #expect(events.contains { $0.message.hasPrefix("pairing accepted") })
+    }
+
+    @Test("recordConnectionEvent caps the ring buffer at 20, dropping the oldest first")
+    func recordConnectionEventCapsRingBuffer() async throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("SessionManagerTests-\(UUID().uuidString)")
+        let documentStore = DocumentStore(baseDirectory: tempDir)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        let manager = SessionManager(
+            eventInjector: EventInjector(poster: RecordingEventPoster(), startHeldInputWatchdog: false),
+            macroEngine: MacroEngine(store: MacroStore(documentStore: documentStore), executor: MockMacroActionExecutor()),
+            macroStore: MacroStore(documentStore: documentStore),
+            trustStore: TrustStore(documentStore: documentStore),
+            pairingService: PairingService(),
+            udpHub: NWUDPHub(),
+            hostStateSnapshotProvider: {
+                HostStateSnapshot(naturalScrollEnabled: true, displayTopology: .empty, isPaused: false, isAccessibilityTrusted: true, frontmostAppBundleID: nil, timestamp: Date())
+            },
+            globalScriptsEnabledProvider: { false }
+        )
+
+        for i in 0..<25 {
+            await manager.recordConnectionEvent("event \(i)")
+        }
+
+        let events = await manager.recentConnectionEvents
+        #expect(events.count == 20)
+        #expect(events.first?.message == "event 5") // the oldest 5 were dropped.
+        #expect(events.last?.message == "event 24")
+    }
 }

@@ -96,10 +96,24 @@ public enum AppError: Sendable, Equatable {
     case noHostsFound
     case isolatedNetwork
     case connectionFailed(hostName: String)
+    /// Every connect candidate refused/timed out — the Mac never answered TCP/TLS at all. Distinct
+    /// from `.connectionFailed` (spec §9 E-CONN-FAILED, still used where no host name/diagnostics
+    /// are available) so this one can offer a Local Network Settings deep link.
+    case hostUnreachable(hostName: String)
+    /// The TLS handshake completed talking to *someone*, but the certificate didn't pin to the
+    /// fingerprint this device expected (reconnect to a previously-trusted Mac whose identity
+    /// changed) — as opposed to `.pairingFingerprintMismatch`, which is the same failure during a
+    /// fresh QR pairing attempt (spec §9 E-PAIR-FP already covers that case with its own copy).
+    case tlsVerificationFailed(hostName: String)
     case pairingURLInvalid
     case pairingVersionMismatch
     case pairingFingerprintMismatch
     case pairingExpired
+    /// The host rejected the pairing proof itself (wrong code), as opposed to the secret having
+    /// expired — spec §9's table coalesces both under E-PAIR-EXPIRED, but the diagnostics work here
+    /// distinguishes them so a mistyped/misread code doesn't tell the user to rescan a fresh code
+    /// that wouldn't have helped.
+    case pairingWrongCode
     case pairingRateLimited
     case pairingDeviceLimit
     case pairingHostProofInvalid
@@ -154,6 +168,18 @@ public enum AppError: Sendable, Equatable {
                 title: String(localized: "Couldn't reach \(hostName)"),
                 message: String(localized: "Make sure the helper is running and both devices are on the same network."),
                 actions: [.retry, .scanQR])
+        case .hostUnreachable(let hostName):
+            return ErrorPresentation(
+                id: "E-CONN-UNREACHABLE", style: .alert,
+                title: String(localized: "Couldn't reach \(hostName)"),
+                message: String(localized: "Make sure your iPhone and Mac are on the same Wi-Fi and that Local Network access is allowed for Air Mouse in Settings › Privacy & Security › Local Network."),
+                actions: [.openSettings, .retry])
+        case .tlsVerificationFailed(let hostName):
+            return ErrorPresentation(
+                id: "E-TLS-MISMATCH", style: .alert,
+                title: String(localized: "Couldn't verify \(hostName)"),
+                message: String(localized: "Its certificate didn't match what Air Mouse expected. If you reinstalled or reset the Mac helper, forget this Mac and pair again."),
+                actions: [.forgetMac, .scanQR])
         case .pairingURLInvalid:
             return ErrorPresentation(
                 id: "E-PAIR-URL", style: .alert,
@@ -177,6 +203,12 @@ public enum AppError: Sendable, Equatable {
                 id: "E-PAIR-EXPIRED", style: .alert,
                 title: String(localized: "Pairing code expired"),
                 message: String(localized: "Codes work for 60 seconds. Click 'Pair new device' on your Mac to show a fresh one."),
+                actions: [.scanQR])
+        case .pairingWrongCode:
+            return ErrorPresentation(
+                id: "E-PAIR-WRONGCODE", style: .alert,
+                title: String(localized: "Wrong pairing code"),
+                message: String(localized: "Try scanning again."),
                 actions: [.scanQR])
         case .pairingRateLimited:
             return ErrorPresentation(

@@ -53,6 +53,9 @@ final class LoopbackHelperProcess {
         process.arguments = ["--loopback"]
         var environment = ProcessInfo.processInfo.environment
         environment["AIRMOUSE_LOOPBACK_LOG"] = logURL.path
+        // Never let a test pairing land in the developer's real trust store (20-device cap).
+        environment["AIRMOUSE_DATA_DIR"] = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AirMouseHelper-itest-\(UUID().uuidString)", isDirectory: true).path
         process.environment = environment
 
         let pipe = Pipe()

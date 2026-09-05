@@ -117,7 +117,7 @@ public enum KeychainKey {
     /// `kSecClassKey`, P-256, Secure Enclave when available, `kSecAttrApplicationTag`.
     public static let clientIdentityKeyTag = "com.airmouse.app.identity"
     /// `kSecClassCertificate` label for the client's own identity certificate.
-    public static let clientIdentityCertificateLabel = "AirMouse Client Identity"
+    public static let clientIdentityCertificateLabel = "AirMouse Client Identity v2" // v2: software key (SE-backed v1 identities fail mutual TLS on device)
     /// `kSecClassCertificate` label prefix for a trusted host's certificate; the full label is
     /// `"\(trustedHostCertificateLabelPrefix)\(hostID base64url)"`.
     public static let trustedHostCertificateLabelPrefix = "AirMouse Trusted Host "

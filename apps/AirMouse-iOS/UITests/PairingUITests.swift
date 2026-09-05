@@ -32,3 +32,27 @@ final class PairingUITests: XCTestCase {
         XCTAssertTrue(connected.exists, "Did not reach Connected within 45 s. Visible texts: \(diagnostics)")
     }
 }
+
+extension PairingUITests {
+    /// After a successful pairing, a plain launch must auto-connect to the remembered Mac (spec §3.3):
+    /// discovery (or last-known addresses) → trusted mTLS reconnect → "Connected" pill, within 30 s.
+    /// Handles the iOS Local Network permission alert, which appears the first time Bonjour is used.
+    @MainActor
+    func testTrustedReconnectReachesConnected() throws {
+        let app = XCUIApplication()
+        addUIInterruptionMonitor(withDescription: "Local Network alert") { alert in
+            for label in ["Allow", "OK"] where alert.buttons[label].exists { alert.buttons[label].tap(); return true }
+            return false
+        }
+        app.launch()
+        let connected = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Connected' AND NOT label CONTAINS[c] 'Not connected'")).firstMatch
+        let deadline = Date().addingTimeInterval(30)
+        while Date() < deadline, !connected.exists {
+            app.tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1))
+        }
+        let debug = app.staticTexts["debug.pairingProgress"].firstMatch
+        let detail = debug.exists ? debug.label : "(no debug label)"
+        XCTAssertTrue(connected.exists, "Trusted reconnect did not reach Connected within 30 s. \(detail)")
+    }
+}

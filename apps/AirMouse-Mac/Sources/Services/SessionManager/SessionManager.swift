@@ -29,6 +29,22 @@ public struct HostWallClock: Clock {
     public func now() -> TimeInterval { Date().timeIntervalSince1970 }
 }
 
+/// One notice-level connection-lifecycle event, kept in a small in-memory ring buffer so the
+/// Diagnostics window (and support conversations) can see recent accept/pairing/disconnect
+/// activity without opening Console.app (spec §9 diagnostics deliverable). `message` is exactly
+/// what's also logged via `Log` — never a secret, proof, or full fingerprint (spec §7.4/§5.7.3).
+public struct ConnectionEvent: Sendable, Equatable, Identifiable {
+    public let id: UUID
+    public let timestamp: Date
+    public let message: String
+
+    public init(timestamp: Date = Date(), message: String) {
+        self.id = UUID()
+        self.timestamp = timestamp
+        self.message = message
+    }
+}
+
 public actor SessionManager {
     private struct Managed {
         let session: HostSession
@@ -70,6 +86,11 @@ public actor SessionManager {
     private var lastHostState: HostStateSnapshot?
     private var tickerTask: Task<Void, Never>?
     private var macroChangesTask: Task<Void, Never>?
+
+    /// Ring buffer backing `recentConnectionEvents` — capped at `maxRecentConnectionEvents` (spec
+    /// §9 diagnostics deliverable: "last 20 notice-level events").
+    private var connectionEvents: [ConnectionEvent] = []
+    private static let maxRecentConnectionEvents = 20
 
     public init(
         eventInjector: EventInjector,
@@ -151,6 +172,21 @@ public actor SessionManager {
     }
 
     public var totalSessionCount: Int { sessions.count }
+
+    /// Last `maxRecentConnectionEvents` connection-lifecycle events, oldest first — the Diagnostics
+    /// window's "Recent connection events" list (spec §9 diagnostics deliverable).
+    public var recentConnectionEvents: [ConnectionEvent] { connectionEvents }
+
+    /// Appends one event to the ring buffer (and lets `HostServer` — which owns TCP accept/TLS
+    /// handshake, before a `Managed` session even exists — contribute to the same shared log this
+    /// actor keeps). Callers should already have logged the identical message via `Log` themselves;
+    /// this only feeds the in-memory list the UI reads.
+    public func recordConnectionEvent(_ message: String) {
+        connectionEvents.append(ConnectionEvent(message: message))
+        if connectionEvents.count > Self.maxRecentConnectionEvents {
+            connectionEvents.removeFirst(connectionEvents.count - Self.maxRecentConnectionEvents)
+        }
+    }
 
     public func disconnect(sessionID: String) async {
         guard let managed = sessions[sessionID] else { return }
@@ -316,8 +352,8 @@ public actor SessionManager {
         case .clientAuthenticated(let device):
             await recordAuthenticated(sessionKey: sessionKey, device: device)
             await attachDatagramChannelIfNeeded(sessionKey: sessionKey)
-        case .clientDisconnected:
-            break
+        case .clientDisconnected(let reason):
+            recordDisconnect(sessionKey: sessionKey, reason: reason)
         case .releaseHeldInputs:
             await eventInjector.releaseAll()
         }
@@ -340,6 +376,8 @@ public actor SessionManager {
         guard let fingerprint = managed.fingerprint else { return }
 
         guard managed.wasUnknownAtAccept, !managed.pairingRecorded else {
+            Log.session.notice("SessionManager: session authenticated, peer=\(Redact.fingerprintPrefix(fingerprint.hexString), privacy: .public)")
+            recordConnectionEvent("authenticated: peer=\(Redact.fingerprintPrefix(fingerprint.hexString))")
             Task { await trustStore.updateLastSeen(fingerprint: fingerprint, date: Date()) }
             return
         }
@@ -356,14 +394,35 @@ public actor SessionManager {
         )
         let added = await trustStore.add(record)
         if added {
+            Log.pairing.notice("SessionManager: pairing accepted, peer=\(Redact.fingerprintPrefix(fingerprint.hexString), privacy: .public)")
+            recordConnectionEvent("pairing accepted: peer=\(Redact.fingerprintPrefix(fingerprint.hexString))")
             await pairingService.markConsumedByPairingSuccess(deviceName: managed.deviceName)
         } else {
             // spec §3.2.6 "20 trusted devices already" — the host verify block already let this
             // handshake through (a race against the cap), so just close it.
+            Log.pairing.error("SessionManager: pairing rejected, peer=\(Redact.fingerprintPrefix(fingerprint.hexString), privacy: .public) reason=deviceLimit")
+            recordConnectionEvent("pairing rejected: device limit reached")
             try? await managed.session.sendError(ErrorPayload(code: .pairingTooManyDevices, message: "too many trusted devices", fatal: true))
         }
         managed.pairingRecorded = true
         sessions[sessionKey] = managed
+    }
+
+    /// Logs+records a `.clientDisconnected` at `.notice`/`.error` (spec §9 diagnostics deliverable:
+    /// "disconnect with reason"). `HostSession` has no dedicated event for *why* an unauthenticated
+    /// (pairing) connection failed — wrong proof vs. expired secret vs. locked out all just end in
+    /// this same event — so a session that was still pending pairing when it ended is reported as
+    /// a failed pairing attempt (with whatever reason string `HostSession`/the peer gave), rather
+    /// than misreported as an ordinary authenticated-session disconnect.
+    private func recordDisconnect(sessionKey: String, reason: String) {
+        guard let managed = sessions[sessionKey] else { return }
+        if managed.wasUnknownAtAccept, !managed.pairingRecorded {
+            Log.pairing.notice("SessionManager: pairing attempt ended before authenticating, reason=\(reason, privacy: .public)")
+            recordConnectionEvent("pairing failed: \(reason)")
+        } else {
+            Log.session.notice("SessionManager: session disconnected, reason=\(reason, privacy: .public)")
+            recordConnectionEvent("disconnected: \(reason)")
+        }
     }
 
     /// Best-effort, low-latency counterpart to the 1s ticker's own `udpAttached` check (`tick()`):

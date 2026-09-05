@@ -35,7 +35,13 @@ public actor DocumentStore {
     }
 
     public static var defaultBaseDirectory: URL {
-        FileManager.default.homeDirectoryForCurrentUser
+        // `AIRMOUSE_DATA_DIR` redirects every document (trust store, macros, host id) to another folder.
+        // `--loopback` and the integration harness use a temporary folder so throwaway pairings never
+        // fill the real 20-device trust store (which is exactly what happened on 2026-09-05).
+        if let override = ProcessInfo.processInfo.environment["AIRMOUSE_DATA_DIR"], !override.isEmpty {
+            return URL(fileURLWithPath: override, isDirectory: true)
+        }
+        return FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/AirMouseHelper", isDirectory: true)
     }
 

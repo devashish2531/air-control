@@ -25,6 +25,7 @@ public struct PairingScreen: View {
     @State private var showPasteField = false
     @State private var torchOn = false
     @State private var lastScannedString: String?
+    @State private var showAttemptDetails = false
 
     public init() {}
 
@@ -197,6 +198,9 @@ public struct PairingScreen: View {
                     manager?.resetPairingProgress()
                 }
                 .buttonStyle(.borderedProminent)
+                if let attempts = manager?.lastConnectionAttempts, !attempts.isEmpty {
+                    attemptDetailsDisclosure(attempts)
+                }
             }
         }
         .padding(24)
@@ -204,6 +208,29 @@ public struct PairingScreen: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
         .foregroundStyle(.primary)
         .transition(.opacity)
+    }
+
+    /// spec §9 diagnostics deliverable: every candidate address tried, its outcome, and elapsed
+    /// time — so a failed pair doesn't leave the user (or support) guessing what actually happened
+    /// on the network, without needing Console.app on the Mac.
+    @ViewBuilder
+    private func attemptDetailsDisclosure(_ attempts: [AddressAttemptResult]) -> some View {
+        DisclosureGroup(String(localized: "Details", comment: "Pairing screen: expands the per-address connection attempt log"), isExpanded: $showAttemptDetails) {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(attempts) { attempt in
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(attempt.address)
+                            .font(.caption.monospaced())
+                        Text("\(attempt.outcome) · \(attempt.elapsedMs) ms")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(.top, 4)
+        }
+        .font(.footnote.weight(.medium))
+        .frame(maxWidth: 260)
     }
 
     // MARK: - Handling

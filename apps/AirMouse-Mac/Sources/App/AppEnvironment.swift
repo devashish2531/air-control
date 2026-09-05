@@ -123,6 +123,12 @@ public final class AppEnvironment {
     /// stack. Awaits the whole wiring before returning, so callers (tests included) see non-placeholder
     /// services immediately.
     public static func live(launchArguments: LaunchArguments = .parse()) async -> AppEnvironment {
+        if launchArguments.loopback, ProcessInfo.processInfo.environment["AIRMOUSE_DATA_DIR"] == nil {
+            // Throwaway run: keep its trust records, macros and host id out of the real store.
+            let temp = FileManager.default.temporaryDirectory
+                .appendingPathComponent("AirMouseHelper-loopback-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
+            setenv("AIRMOUSE_DATA_DIR", temp.path, 1)
+        }
         let environment = AppEnvironment(
             launchArguments: launchArguments,
             settings: HostSettings(),
