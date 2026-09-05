@@ -18,3 +18,13 @@ tools/bin/
 build/
 *.dmg
 *.zip
+
+# Landing page (site/)
+site/node_modules/
+site/.next/
+site/out/
+site/next-env.d.ts
+site/tsconfig.tsbuildinfo
+site/.vercel/
+# Node LTS unpacked here when the machine has no system Node (docs/07-landing-page.md)
+tools/node/

@@ -92,3 +92,11 @@ Raised by the specification author in `03-specifications.md`; defaults stand unl
 | E4 | Spec §4.3.4 / §3.6.1 slider tables | Single-point illustrations (slider 5 → 1.9 Hz; 5 → 1.22) do not match the endpoint-anchored geometric formulas. | Implemented the formulas (they fix both endpoints exactly); tables should be regenerated from them. |
 | E5 | Arch §7.1 SecIdentity | `SecIdentityCreateWithCertificate` is macOS-only. | `SecIdentityCreate(allocator:certificate:privateKey:)` used on both platforms; ephemeral identities are keychain-free, closing most of spike R-1. |
 | E6 | Spec §11.2 / KeycodeMapper | `KBGetLayoutType` returns a four-char code (`'ANSI'`), not a small enum. | Compare in `Int`, never narrow to `Int16`. |
+
+## Addendum F — Landing page (2026-09-05)
+
+| # | Topic | Decision |
+|---|-------|----------|
+| F1 | Public product name | **Air Control** (matches the GitHub repo `devashish2531/air-control`). Apps, bundle display names and docs still say "Air Mouse" and will be renamed in a follow-up pass (supersedes the open item in A8). |
+| F2 | Site stack & hosting | Next.js with static export in `site/`, published to **GitHub Pages** by a GitHub Actions workflow. The Sparkle appcast (`/appcast.xml`) is served from the same Pages site, so the site build must copy it through untouched. |
+| F3 | Download calls to action | macOS: latest GitHub Release DMG (and Homebrew cask once the tap exists). iOS: "Coming soon" with a waitlist link until TestFlight/App Store are live. |

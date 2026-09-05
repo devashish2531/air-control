@@ -12,6 +12,7 @@ Precedence when they disagree: `00-decisions.md` (addenda included) > `04-archit
 | 04 | `04-architecture.md` | System architecture: package layout, XcodeGen projects, module diagrams, runtime views, concurrency, CI/CD, ADR-001…015 | Complete |
 | 05 | `05-plan.md` | Delivery plan: M0–M9 roadmap, 158-task WBS, critical path, quality gates, M0 runbook, backlog | Complete |
 | 06 | `06-implementation-log.md` | Running record of the build: environment, bootstrap, parallel agent waves, integration, end-to-end results | Complete (v0.1 code) |
+| 07 | `07-landing-page.md` | Air Control landing page: Next.js static export in `site/`, GitHub Pages deploy, local dev, custom-domain switch | In progress |
 
 ## Owner decisions still open
 See the addenda in `00-decisions.md`. Defaults stand unless overridden:

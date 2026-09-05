@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sparkle appcast for the Air Control Mac helper.
+
+  PLACEHOLDER — no releases have shipped yet, so this feed is deliberately empty
+  (a feed with zero <item> elements is valid and simply tells Sparkle "you are up
+  to date"). Sparkle is deferred until M8; see docs/00-decisions.md Addendum D5.
+
+  This file is served verbatim from the landing page's GitHub Pages site at
+  /appcast.xml. Next.js copies everything under site/public/ into site/out/
+  untouched, so nothing here is parsed, rewritten or routed by the site build.
+
+  When releases begin, the release workflow should replace this file (or write to
+  it) with entries of the form:
+
+    <item>
+      <title>1.0.0</title>
+      <pubDate>Mon, 01 Jan 2026 12:00:00 +0000</pubDate>
+      <sparkle:version>100</sparkle:version>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<ul><li>What changed.</li></ul>]]></description>
+      <enclosure
+        url="https://github.com/devashish2531/air-control/releases/download/v1.0.0/AirControl-1.0.0.dmg"
+        length="0"
+        type="application/octet-stream"
+        sparkle:edSignature="..." />
+    </item>
+
+  The EdDSA signature is produced by Sparkle's `sign_update` tool with the
+  project's private key; the matching public key lives in the app's Info.plist as
+  SUPublicEDKey. Never publish an item without a signature.
+-->
+<rss version="2.0"
+     xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Air Control</title>
+    <link>https://devashish2531.github.io/air-control/appcast.xml</link>
+    <description>Updates for the Air Control Mac helper.</description>
+    <language>en</language>
+  </channel>
+</rss>

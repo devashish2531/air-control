@@ -1,0 +1,90 @@
+name: Site
+
+# Builds the Air Control landing page (site/) as a fully static export and
+# publishes it to GitHub Pages.
+#
+# One-time setup by the repository owner:
+#   Settings → Pages → Build and deployment → Source: "GitHub Actions"
+# See docs/07-landing-page.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/site.yml"
+  workflow_dispatch:
+
+# Read the repo, mint the OIDC token deploy-pages needs, write to Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; let an in-flight run finish rather than cancelling it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: site
+
+jobs:
+  build:
+    name: Build static export
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Build
+        env:
+          # Project site lives under /air-control/. Set this to an empty string
+          # when the site moves to a custom domain (see docs/07-landing-page.md).
+          NEXT_PUBLIC_BASE_PATH: /air-control
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build
+
+      - name: Verify the export
+        run: |
+          set -euo pipefail
+          test -f out/index.html    || { echo "::error::out/index.html missing"; exit 1; }
+          test -f out/appcast.xml   || { echo "::error::out/appcast.xml missing"; exit 1; }
+          test -f out/.nojekyll     || { echo "::error::out/.nojekyll missing"; exit 1; }
+          grep -q "Air Control" out/index.html || { echo "::error::index.html does not mention Air Control"; exit 1; }
+          echo "Export looks good:"
+          find out -maxdepth 1 -mindepth 1 | sort
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/out
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
