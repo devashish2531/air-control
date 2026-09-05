@@ -43,3 +43,8 @@ The project path contains a space — always quote paths in shell.
 - Multiple agents work in parallel in this repo. Only touch files inside the directories you were assigned. If you need a type
   owned by another module that does not exist yet, write a minimal `protocol` in your own module and note it in your report.
 - Do not run `git commit` unless asked. Do not edit `docs/0*.md`; write deviations to your final report instead.
+
+## Hard safety rules (added 2026-09-05 after an incident)
+- NEVER delete, reset, or modify keychain items, certificates, identities, or private keys that this project did not create. The only keychain items agents may touch are those with this project's own labels/services (`com.airmouse.*`), and even those only via the app's own `IdentityStore`/`KeychainStore` code paths or an explicitly scoped `security delete-generic-password -s com.airmouse.*`. No `security delete-certificate`, `delete-identity`, `delete-keychain`, or keychain-wide loops, ever.
+- No destructive system changes outside the repo (TCC resets other than `tccutil reset Accessibility com.airmouse.helper*`, launchd, network settings, other apps' data) without the owner's explicit, per-action approval.
+- When a task seems to require anything above, stop and report instead.
