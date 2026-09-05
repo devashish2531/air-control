@@ -47,19 +47,26 @@ targets:
         product: AirMouseFilters
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.airmouse.app$(BUNDLE_ID_SUFFIX)
+        PRODUCT_BUNDLE_IDENTIFIER: $(IOS_BUNDLE_ID)
         PRODUCT_NAME: AirMouse
         PRODUCT_MODULE_NAME: Air_Mouse
         ENABLE_DEBUG_DYLIB: NO
         TARGETED_DEVICE_FAMILY: "1,2"
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        # NOTE: INFOPLIST_KEY_UIApplicationSceneManifest_Generation / INFOPLIST_KEY_UILaunchScreen_Generation
+        # only take effect when Xcode itself GENERATES Info.plist. This target supplies a custom
+        # plist via the `info:` block below, so XcodeGen writes it directly and these
+        # INFOPLIST_KEY_* build settings never land in the output — the launch-screen and scene
+        # manifest keys must be set explicitly under `info.properties` instead (UILaunchScreen,
+        # UIApplicationSceneManifest below). Without UILaunchScreen present, iOS 26 has no launch
+        # screen to size against and falls back to scaled compatibility (letterboxed) mode.
     info:
       path: Sources/Info.plist
       properties:
         CFBundleDisplayName: Air Mouse
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIApplicationSceneManifest: { UIApplicationSupportsMultipleScenes: false }
         UIRequiresFullScreen: false
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]

@@ -38,9 +38,11 @@ struct MenuBarIconLabel: View {
         await environment.hostService.start()
         // spec §5.2: onboarding is a first-launch flow gated on Accessibility, never shown for the
         // `--loopback` integration harness (which has no interactive session to grant it in).
-        if !environment.launchArguments.loopback,
-           !environment.permissions.isAccessibilityTrusted,
-           !environment.settings.setupCompleted {
+        // `--show-onboarding` (`LaunchArguments.swift`) is a dev convenience that bypasses that gate.
+        if environment.launchArguments.showOnboarding
+            || (!environment.launchArguments.loopback
+                && !environment.permissions.isAccessibilityTrusted
+                && !environment.settings.setupCompleted) {
             openWindow(id: WindowID.onboarding)
         }
     }

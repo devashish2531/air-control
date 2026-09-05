@@ -55,7 +55,7 @@ targets:
         product: AirMouseFilters
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.airmouse.helper$(BUNDLE_ID_SUFFIX)
+        PRODUCT_BUNDLE_IDENTIFIER: $(MAC_BUNDLE_ID)
         PRODUCT_NAME: AirMouse
         PRODUCT_MODULE_NAME: Air_Mouse
         ENABLE_DEBUG_DYLIB: NO

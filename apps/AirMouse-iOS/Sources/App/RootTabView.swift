@@ -85,8 +85,20 @@ public struct RootTabView: View {
             }
             .navigationTitle(Text("Air Mouse", comment: "iPad sidebar navigation title"))
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    ConnectionPillButton(environment: environment, showDevices: $showDevices)
+                // On iOS 26, an un-grouped topBarLeading item is otherwise sized/clipped by the
+                // system's shared Liquid Glass toolbar background, which assumes icon-sized
+                // content and truncates our wider capsule label. Opt this item out (API is
+                // iOS 26+ only; deployment target is 18) so it draws its own Capsule background
+                // at its own intrinsic size instead.
+                if #available(iOS 26.0, *) {
+                    ToolbarItem(placement: .topBarLeading) {
+                        ConnectionPillButton(environment: environment, showDevices: $showDevices)
+                    }
+                    .sharedBackgroundVisibility(.hidden)
+                } else {
+                    ToolbarItem(placement: .topBarLeading) {
+                        ConnectionPillButton(environment: environment, showDevices: $showDevices)
+                    }
                 }
             }
         } detail: {
@@ -176,12 +188,34 @@ private struct ConnectionPillButton: View {
                 Circle()
                     .fill(dotColor)
                     .frame(width: 8, height: 8)
-                Text(label)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
+                // `ViewThatFits` lets the toolbar shrink to the compact label ("Offline"/host
+                // name) before iOS would otherwise clip the full label; both variants keep
+                // lineLimit(1) so neither ever wraps or truncates mid-word.
+                ViewThatFits(in: .horizontal) {
+                    Text(label)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                    Text(compactLabel)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                }
             }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.ultraThinMaterial, in: Capsule())
+            // Hug the label's intrinsic width instead of letting the system's toolbar button
+            // styling (Liquid Glass on iOS 26) collapse this into a fixed circular glyph slot,
+            // which is what was clipping the text down to "t conne".
+            .fixedSize(horizontal: true, vertical: false)
         }
+        .buttonStyle(.plain)
+        .layoutPriority(1)
         .minimumTapTarget()
+        // `.sharedBackgroundVisibility(.hidden)` opts this item out of the system's shared
+        // Liquid Glass toolbar background — which also opts it out of that background's usual
+        // leading safe-area inset, so without this the pill's edge is flush with the screen
+        // edge (clipping the leading glyph). Restore a comparable inset by hand.
+        .padding(.leading, 18)
         .accessibilityLabel(Text("Connection: \(label)", comment: "Accessibility label for the connection pill"))
         .accessibilityHint(Text("Opens Devices", comment: "Accessibility hint for the connection pill"))
     }
@@ -196,6 +230,21 @@ private struct ConnectionPillButton: View {
         case .reconnecting(let hostName): return String(localized: "Reconnecting to \(hostName)…", comment: "Connection pill state")
         case .suspended: return String(localized: "Suspended", comment: "Connection pill state")
         case .failed: return String(localized: "Not connected", comment: "Connection pill state")
+        }
+    }
+
+    /// Shorter fallback for narrow toolbars (compact-width iPhones, or when the settings gear
+    /// crowds the trailing side) so the pill degrades to "Offline"/"Searching…"/host name
+    /// instead of the system truncating the full label.
+    private var compactLabel: String {
+        switch environment.connection.connectionState {
+        case .idle, .failed: return String(localized: "Offline", comment: "Connection pill compact state")
+        case .browsing: return String(localized: "Searching…", comment: "Connection pill compact state")
+        case .connecting: return String(localized: "Connecting…", comment: "Connection pill compact state")
+        case .pairing: return String(localized: "Pairing…", comment: "Connection pill compact state")
+        case .connected(let hostName): return hostName
+        case .reconnecting(let hostName): return hostName
+        case .suspended: return String(localized: "Paused", comment: "Connection pill compact state")
         }
     }
 
@@ -225,8 +274,19 @@ private struct SettingsGearButton: View {
 private extension View {
     func airMouseRootToolbar(showDevices: Binding<Bool>, showSettings: Binding<Bool>, environment: AppEnvironment) -> some View {
         toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                ConnectionPillButton(environment: environment, showDevices: showDevices)
+            // See the matching comment on the iPad split view's toolbar: without this, iOS 26's
+            // shared Liquid Glass toolbar background sizes the leading item as if it were a
+            // small icon button and clips the wider "Not connected" capsule down to a few
+            // characters. The API is iOS 26+ only; deployment target is 18.
+            if #available(iOS 26.0, *) {
+                ToolbarItem(placement: .topBarLeading) {
+                    ConnectionPillButton(environment: environment, showDevices: showDevices)
+                }
+                .sharedBackgroundVisibility(.hidden)
+            } else {
+                ToolbarItem(placement: .topBarLeading) {
+                    ConnectionPillButton(environment: environment, showDevices: showDevices)
+                }
             }
             ToolbarItem(placement: .topBarTrailing) {
                 SettingsGearButton(showSettings: showSettings)

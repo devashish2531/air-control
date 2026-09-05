@@ -3,6 +3,9 @@ MARKETING_VERSION = 0.1.0
 CURRENT_PROJECT_VERSION = 1
 BUNDLE_ID_SUFFIX =
 DEVELOPMENT_TEAM =
+// Bundle identifiers; override IOS_BUNDLE_ID in Local.xcconfig if com.airmouse.app is not available to your team.
+IOS_BUNDLE_ID = com.airmouse.app$(BUNDLE_ID_SUFFIX)
+MAC_BUNDLE_ID = com.airmouse.helper$(BUNDLE_ID_SUFFIX)
 SWIFT_TREAT_WARNINGS_AS_ERRORS = $(AIRMOUSE_WARNINGS_AS_ERRORS)
 AIRMOUSE_WARNINGS_AS_ERRORS = NO
 #include? "Local.xcconfig"

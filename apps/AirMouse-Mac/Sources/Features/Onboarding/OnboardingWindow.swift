@@ -13,7 +13,11 @@ struct OnboardingWindow: View {
                 ProgressView()
             }
         }
-        .frame(width: 480, height: 420)
+        // The "Pair" step (below) embeds `PairingContentView`, whose QR/countdown/status content
+        // needs ~610pt of height; 420 was sized only for the first three steps and clipped the Pair
+        // step's title/instructions and Next/Done bar off-window, leaving just a blank white QR
+        // backdrop visible (spec §5.2 review).
+        .frame(width: 480, height: 620)
         .onAppear {
             if viewModel == nil {
                 viewModel = OnboardingViewModel(permissions: environment.permissions, settings: environment.settings)
@@ -136,7 +140,7 @@ private struct PairStepView: View {
             Label("Pair", systemImage: "qrcode")
                 .font(.title2.bold())
             Text("Scan this code with the Air Mouse app on your iPhone or iPad.")
-            PairingWindow()
+            PairingContentView()
         }
     }
 }

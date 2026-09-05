@@ -46,6 +46,13 @@
 	<string>Air Mouse finds and connects to your Mac on your local network. Nothing is sent over the internet.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Motion sensors turn your iPhone into an air mouse: pointing the phone moves the Mac's cursor. Sensor data never leaves the device except as cursor movement.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
+	<key>UILaunchScreen</key>
+	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>

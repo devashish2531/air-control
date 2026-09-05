@@ -12,20 +12,27 @@ public struct LaunchArguments: Sendable, Equatable {
     public var bench: Bool
     /// Overrides `am.helper.logLevel` for this run only.
     public var logLevel: LogLevel?
+    /// Dev convenience: forces `Features/Onboarding/OnboardingWindow.swift`'s "Air Mouse Setup" window
+    /// open at launch regardless of Accessibility-trust/`setupCompleted` state (`MenuBarIconLabel`'s
+    /// launch-once task), so a rebuilt/re-signed helper whose Accessibility grant already carried over
+    /// can still be steered back to onboarding for review/screenshots without `tccutil reset`.
+    public var showOnboarding: Bool
 
-    public init(loopback: Bool = false, bench: Bool = false, logLevel: LogLevel? = nil) {
+    public init(loopback: Bool = false, bench: Bool = false, logLevel: LogLevel? = nil, showOnboarding: Bool = false) {
         self.loopback = loopback
         self.bench = bench
         self.logLevel = logLevel
+        self.showOnboarding = showOnboarding
     }
 
     /// Parses `arguments` (default: the process's own, minus the executable path). Recognizes `--loopback`,
-    /// `--bench` as bare flags and `--log-level <level>` / `--log-level=<level>` with a `LogLevel` raw
-    /// value. Anything else is ignored, not rejected, since other agents own additional flags.
+    /// `--bench`, `--show-onboarding` as bare flags and `--log-level <level>` / `--log-level=<level>` with a
+    /// `LogLevel` raw value. Anything else is ignored, not rejected, since other agents own additional flags.
     public static func parse(_ arguments: [String] = Array(CommandLine.arguments.dropFirst())) -> LaunchArguments {
         var loopback = false
         var bench = false
         var logLevel: LogLevel?
+        var showOnboarding = false
 
         var index = 0
         while index < arguments.count {
@@ -35,6 +42,8 @@ public struct LaunchArguments: Sendable, Equatable {
                 loopback = true
             case "--bench":
                 bench = true
+            case "--show-onboarding":
+                showOnboarding = true
             case "--log-level":
                 if index + 1 < arguments.count, let level = LogLevel(rawValue: arguments[index + 1]) {
                     logLevel = level
@@ -48,6 +57,6 @@ public struct LaunchArguments: Sendable, Equatable {
             index += 1
         }
 
-        return LaunchArguments(loopback: loopback, bench: bench, logLevel: logLevel)
+        return LaunchArguments(loopback: loopback, bench: bench, logLevel: logLevel, showOnboarding: showOnboarding)
     }
 }

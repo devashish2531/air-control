@@ -14,12 +14,35 @@ import CoreImage.CIFilterBuiltins
 import SwiftUI
 
 struct PairingWindow: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 16) {
+            PairingContentView()
+            Button("Cancel") {
+                dismiss()
+            }
+            .keyboardShortcut(.cancelAction)
+        }
+        .padding(24)
+        .frame(width: 420, height: 520)
+        .background(Color.white)
+    }
+}
+
+/// The reusable QR/status/disclosure content, with no window-sized frame, background, or Cancel
+/// button of its own — safe to embed either as `PairingWindow`'s standalone-window body (above) or
+/// directly inside `Features/Onboarding/OnboardingWindow.swift`'s "Pair" step, which lays it out
+/// inside its own, differently-sized page (embedding the old all-in-one `PairingWindow`, with its
+/// hardcoded 420×520 frame and opaque white background, inside that smaller page pushed the step's
+/// title/instructions and the Next/Done bar off-window, leaving only a blank white rectangle).
+struct PairingContentView: View {
     @Environment(AppEnvironment.self) private var environment
     @Environment(\.dismiss) private var dismiss
 
     @State private var pairingURLString: String?
     @State private var qrImage: NSImage?
-    @State private var secondsRemaining: Int = PairingWindow.secretLifetimeSeconds
+    @State private var secondsRemaining: Int = PairingContentView.secretLifetimeSeconds
     @State private var showURL = false
     @State private var statusPhase: StatusPhase = .waiting
     @State private var pairedDeviceName: String?
@@ -47,6 +70,7 @@ struct PairingWindow: View {
                     .frame(width: 320, height: 320)
                 if let qrImage {
                     Image(nsImage: qrImage)
+                        .renderingMode(.original)
                         .interpolation(.none)
                         .resizable()
                         .frame(width: 300, height: 300)
@@ -68,15 +92,7 @@ struct PairingWindow: View {
                 }
             }
             .frame(maxWidth: 340)
-
-            Button("Cancel") {
-                dismiss()
-            }
-            .keyboardShortcut(.cancelAction)
         }
-        .padding(24)
-        .frame(width: 420, height: 520)
-        .background(Color.white)
         .onAppear { start() }
         .onDisappear { stop() }
     }
@@ -136,7 +152,7 @@ struct PairingWindow: View {
             return
         }
         pairingURLString = urlString
-        qrImage = Self.renderQRCode(for: urlString)
+        qrImage = PairingQRCode.image(for: urlString)
         secondsRemaining = Self.secretLifetimeSeconds
         if statusPhase != .paired {
             statusPhase = .waiting
@@ -179,10 +195,15 @@ struct PairingWindow: View {
             await openWindow()
         }
     }
+}
 
-    // MARK: - QR rendering (spec §3.1.3: error correction level M, white background, ≥ 300 pt)
+// MARK: - QR rendering (spec §3.1.3: error correction level M, white background, ≥ 300 pt)
 
-    private static func renderQRCode(for string: String) -> NSImage? {
+/// Renders a pairing URL as a crisp, always-black-on-white QR bitmap — independent of `View` state so
+/// it's directly unit-testable and shareable between `PairingWindow` and
+/// `Features/Onboarding/OnboardingWindow.swift`'s embedded "Pair" step.
+enum PairingQRCode {
+    static func image(for string: String, targetSize: CGFloat = 300) -> NSImage? {
         guard let data = string.data(using: .utf8) else { return nil }
         let filter = CIFilter.qrCodeGenerator()
         filter.message = data
@@ -200,12 +221,20 @@ struct PairingWindow: View {
             width: outputImage.extent.width + quietZone * 2,
             height: outputImage.extent.height + quietZone * 2
         ))
-        let targetSize: CGFloat = 300
         let scale = targetSize / bordered.extent.width
         let scaled = bordered.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
 
+        // Composite over an explicit opaque white backdrop before rasterizing: `CIImage` extents
+        // beyond a filter's defined output are undefined per Core Image's contract (only empirically
+        // opaque-white on this toolchain), so without this the quiet-zone border could rasterize as
+        // transparent — showing whatever is behind the QR (e.g. a dark-mode window background)
+        // instead of the white margin scanners rely on (spec §3.1.3, and dark-mode parity from the
+        // Onboarding "Pair" step review).
+        let backdrop = CIImage(color: .white).cropped(to: scaled.extent)
+        let composited = scaled.composited(over: backdrop)
+
         let context = CIContext()
-        guard let cgImage = context.createCGImage(scaled, from: scaled.extent) else { return nil }
+        guard let cgImage = context.createCGImage(composited, from: composited.extent) else { return nil }
         return NSImage(cgImage: cgImage, size: NSSize(width: targetSize, height: targetSize))
     }
 }

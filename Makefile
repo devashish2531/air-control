@@ -49,3 +49,16 @@ mac-run: mac-build
 	  --entitlements apps/AirMouse-Mac/Sources/AirMouseHelper.entitlements --sign "$$ID" "$$APP" && codesign -dv "$$APP" 2>&1 | grep TeamIdentifier; \
 	else echo "No Apple Development identity found; app stays ad-hoc signed (re-grant Accessibility after every rebuild)"; tccutil reset Accessibility com.airmouse.helper$(BUNDLE_ID_SUFFIX); fi; \
 	open "$$APP"
+
+# Build for the first connected iPhone/iPad and install + launch it. Needs an Apple ID signed into Xcode
+# and DEVELOPMENT_TEAM / IOS_BUNDLE_ID in Config/Local.xcconfig (the bundle id must be free on your team).
+.PHONY: ios-run
+ios-run: gen
+	@UDID="$$(xcrun devicectl list devices 2>/dev/null | awk '/connected/ {print $$(NF-3)}' | grep -E '^[0-9A-F-]{36}$$' | head -1)"; \
+	[ -n "$$UDID" ] || { echo "No connected iOS device found (xcrun devicectl list devices)"; exit 1; }; \
+	xcodebuild -quiet -project apps/AirMouse-iOS/AirMouse.xcodeproj -scheme AirMouse -destination "id=$$UDID" \
+	  -allowProvisioningUpdates -allowProvisioningDeviceRegistration CODE_SIGN_STYLE=Automatic build && \
+	APP="$$(ls -d ~/Library/Developer/Xcode/DerivedData/AirMouse-*/Build/Products/Debug-iphoneos/AirMouse.app | head -1)"; \
+	BUNDLE="$$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$$APP/Info.plist")"; \
+	xcrun devicectl device install app --device "$$UDID" "$$APP" >/dev/null && \
+	xcrun devicectl device process launch --device "$$UDID" "$$BUNDLE"
