@@ -43,5 +43,9 @@ clean:
 .PHONY: mac-run
 mac-run: mac-build
 	-pkill -f "AirMouse.app/Contents/MacOS/AirMouse"
-	-tccutil reset Accessibility com.airmouse.helper$(BUNDLE_ID_SUFFIX)
-	open "$$(ls -d ~/Library/Developer/Xcode/DerivedData/AirMouseHelper-*/Build/Products/Debug/AirMouse.app | head -1)"
+	@APP="$$(ls -d ~/Library/Developer/Xcode/DerivedData/AirMouseHelper-*/Build/Products/Debug/AirMouse.app | head -1)"; \
+	ID="$$(security find-identity -v -p codesigning | grep -m1 -o '"Apple Development: [^"]*"' | tr -d '"')"; \
+	if [ -n "$$ID" ]; then echo "Signing with $$ID"; codesign --force --options runtime --timestamp=none \
+	  --entitlements apps/AirMouse-Mac/Sources/AirMouseHelper.entitlements --sign "$$ID" "$$APP" && codesign -dv "$$APP" 2>&1 | grep TeamIdentifier; \
+	else echo "No Apple Development identity found; app stays ad-hoc signed (re-grant Accessibility after every rebuild)"; tccutil reset Accessibility com.airmouse.helper$(BUNDLE_ID_SUFFIX); fi; \
+	open "$$APP"
