@@ -33,13 +33,25 @@ actor AppDiagnosticsSink: DiagnosticsSink {
                     channel: ""
                 )
             }
+            // `HostServing` doesn't carry `recentConnectionEvents()` (a tiny extra surface on the
+            // concrete `HostServer`, same pattern as `pairingServiceStatusForUI()`) — best-effort
+            // downcast, matching how `PairingWindowView` already recovers that same extra surface.
+            let events = await (hostService as? HostServer)?.recentConnectionEvents() ?? []
+            let formatter = Self.eventTimeFormatter
             return DiagnosticsSnapshot(
                 sessions: sessionStats,
                 injectedEventsPerSecond: 0,
                 injectP50Millis: 0,
                 injectP95Millis: 0,
-                generatedAt: Date()
+                generatedAt: Date(),
+                recentEvents: events.map { "\(formatter.string(from: $0.timestamp))  \($0.message)" }
             )
         }
     }
+
+    private static let eventTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter
+    }()
 }

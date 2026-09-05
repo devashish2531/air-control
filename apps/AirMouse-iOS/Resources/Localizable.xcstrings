@@ -564,7 +564,7 @@
 
     },
     "Connecting…" : {
-      "comment" : "Connection pill state\nTouchpad ribbon connection state",
+      "comment" : "Connection pill compact state\nConnection pill state\nTouchpad ribbon connection state",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1629,6 +1629,9 @@
         }
       }
     },
+    "Offline" : {
+      "comment" : "Connection pill compact state"
+    },
     "OK" : {
       "comment" : "Error recovery action: dismisses the alert",
       "localizations" : {
@@ -1823,7 +1826,7 @@
       "comment" : "Pairing screen: verifying state"
     },
     "Pairing…" : {
-      "comment" : "Connection pill state\nTouchpad ribbon connection state",
+      "comment" : "Connection pill compact state\nConnection pill state\nTouchpad ribbon connection state",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1857,6 +1860,9 @@
           }
         }
       }
+    },
+    "Paused" : {
+      "comment" : "Connection pill compact state"
     },
     "Paused on Mac" : {
       "comment" : "Touchpad ribbon connection state"
@@ -2305,7 +2311,7 @@
 
     },
     "Searching…" : {
-      "comment" : "Connection pill state\nTouchpad ribbon connection state",
+      "comment" : "Connection pill compact state\nConnection pill state\nTouchpad ribbon connection state",
       "localizations" : {
         "en" : {
           "stringUnit" : {
