@@ -57,7 +57,7 @@ mac-run: mac-build
 # and DEVELOPMENT_TEAM / IOS_BUNDLE_ID in Config/Local.xcconfig (the bundle id must be free on your team).
 .PHONY: ios-run
 ios-run: gen
-	@UDID="$$(xcrun devicectl list devices 2>/dev/null | grep -E '\bconnected\b' | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' | head -1)"; \
+	@UDID="$$(xcrun devicectl list devices 2>/dev/null | grep -E '\b(connected|available)\b' | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' | head -1)"; \
 	[ -n "$$UDID" ] || { echo "No connected iOS device found (xcrun devicectl list devices)"; exit 1; }; \
 	xcodebuild -quiet -project apps/AirMouse-iOS/AirMouse.xcodeproj -scheme AirMouse -destination "id=$$UDID" \
 	  -allowProvisioningUpdates -allowProvisioningDeviceRegistration CODE_SIGN_STYLE=Automatic build && \

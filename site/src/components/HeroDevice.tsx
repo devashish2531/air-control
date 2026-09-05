@@ -23,7 +23,7 @@ export function HeroDevice() {
             <span className="mac__bar-spacer" />
             <img
               className="mac__bar-icon"
-              src={asset("/icon-mac.png")}
+              src={asset("/icon-mac-64.png")}
               alt=""
               width={16}
               height={16}
@@ -58,26 +58,35 @@ export function HeroDevice() {
 
         <div className="phone">
           <div className="phone__screen">
-            <div className="phone__island" />
+            <div className="phone__inset">
+              <div className="phone__island" />
+            </div>
 
             <div className="phone__titlebar">
               <img
                 className="phone__app-icon"
-                src={asset("/icon-ios.png")}
+                src={asset("/icon-ios-64.png")}
                 alt=""
                 width={28}
                 height={28}
                 decoding="async"
-                fetchPriority="high"
               />
               <span className="phone__app-name">Air Control</span>
             </div>
 
             <div className="phone__tabs">
-              <span className="phone__tab phone__tab--active">Touchpad</span>
-              <span className="phone__tab">Air</span>
-              <span className="phone__tab">Keys</span>
-              <span className="phone__tab">Remote</span>
+              <span className="phone__tab phone__tab--active">
+                <span className="phone__tab-label">Pad</span>
+              </span>
+              <span className="phone__tab">
+                <span className="phone__tab-label">Air</span>
+              </span>
+              <span className="phone__tab">
+                <span className="phone__tab-label">Keys</span>
+              </span>
+              <span className="phone__tab">
+                <span className="phone__tab-label">Remote</span>
+              </span>
             </div>
 
             <div className="phone__touchpad">

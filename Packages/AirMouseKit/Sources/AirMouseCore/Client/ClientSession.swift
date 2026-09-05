@@ -47,7 +47,16 @@ public actor ClientSession {
     private var envelopeIDCounter: UInt32 = 0
     private var isClosed = false
 
-    private let pairChallengeReply = PendingReply<PairChallenge>()
+    /// Whichever of `pairChallenge` (normal first-time/re- pairing) or `helloAck` (spec decision,
+    /// not in §3.2/§3.3: the host may skip straight to `helloAck` when it already trusts this
+    /// peer's certificate — see `HostSessionStateMachine`'s `.tlsAccepted(.known)`/
+    /// `.helloReceivedPairingTrue` case, and `HostSession.beginPairingChallenge`) arrives first in
+    /// response to `hello { pairing: true }`. A single actor-isolated waiter rather than two
+    /// continuations raced via a `TaskGroup`: `PendingReply` is deliberately not internally
+    /// synchronized (see its own doc comment), and racing two unstructured child tasks each
+    /// calling `.await()`/`.deliver()` concurrently with this actor's own message handling would
+    /// break that single-actor-access invariant.
+    private let firstPairingReply = PendingReply<FirstPairingReply>()
     private let pairConfirmReply = PendingReply<PairConfirm>()
     private let helloAckReply = PendingReply<HelloAck>()
     private let sessionKeyReply = PendingReply<Void>()
@@ -116,33 +125,51 @@ public actor ClientSession {
         }
         ensureReceiveLoopStarted()
         try await sendHello(pairing: true, macroRevision: macroRevision)
-        let challenge = try await pairChallengeReply.await()
-        let exporter = await control.exporterSecret()
-        let proof = try PairingClient.computeProof(
-            secret: url.secret,
-            exporter: exporter,
-            nonce: challenge.nonce.data,
-            clientFingerprint: localFingerprint,
-            hostFingerprint: hostFingerprint,
-            hostID: challenge.hostID.data
-        )
-        try await send(.pairProof(PairProof(proof: B64UData(proof))))
-        let confirm = try await pairConfirmReply.await()
-        let verified = try PairingClient.verifyHostProof(
-            confirm.hostProof.data,
-            secret: url.secret,
-            exporter: exporter,
-            nonce: challenge.nonce.data,
-            clientFingerprint: localFingerprint,
-            hostFingerprint: hostFingerprint,
-            hostID: challenge.hostID.data
-        )
-        guard verified else { throw CoreError.pairingHostProofInvalid }
-        eventsContinuation.yield(.paired(hostFingerprint: hostFingerprint))
 
-        let ack = try await helloAckReply.await()
-        try await sessionKeyReply.await()
-        return ConnectedInfo(ack: ack)
+        // spec decision (§3.2/§3.3 don't define this): a host that already trusts this peer's
+        // certificate may answer a re-pairing `hello { pairing: true }` with `helloAck` directly,
+        // never sending `pairChallenge` at all (see `HostSessionStateMachine`). This used to hang
+        // forever waiting only on `pairChallenge` — see `firstPairingReply`'s doc comment — until
+        // the host's own no-heartbeat watchdog closed the connection out from under it, surfacing
+        // as a bare "internal" error. Handle whichever answer actually arrives.
+        switch try await firstPairingReply.await() {
+        case .alreadyTrusted(let ack):
+            // No proof round trip happened in this branch, so the TLS peer's fingerprint — not
+            // this QR's claimed fingerprint, which nothing here cryptographically checked — is
+            // the only one anything actually verified.
+            let trustedFingerprint = await control.peerFingerprint ?? hostFingerprint
+            eventsContinuation.yield(.paired(hostFingerprint: trustedFingerprint))
+            try await sessionKeyReply.await()
+            return ConnectedInfo(ack: ack)
+
+        case .challenge(let challenge):
+            let exporter = await control.exporterSecret()
+            let proof = try PairingClient.computeProof(
+                secret: url.secret,
+                exporter: exporter,
+                nonce: challenge.nonce.data,
+                clientFingerprint: localFingerprint,
+                hostFingerprint: hostFingerprint,
+                hostID: challenge.hostID.data
+            )
+            try await send(.pairProof(PairProof(proof: B64UData(proof))))
+            let confirm = try await pairConfirmReply.await()
+            let verified = try PairingClient.verifyHostProof(
+                confirm.hostProof.data,
+                secret: url.secret,
+                exporter: exporter,
+                nonce: challenge.nonce.data,
+                clientFingerprint: localFingerprint,
+                hostFingerprint: hostFingerprint,
+                hostID: challenge.hostID.data
+            )
+            guard verified else { throw CoreError.pairingHostProofInvalid }
+            eventsContinuation.yield(.paired(hostFingerprint: hostFingerprint))
+
+            let ack = try await helloAckReply.await()
+            try await sessionKeyReply.await()
+            return ConnectedInfo(ack: ack)
+        }
     }
 
     private func sendHello(pairing: Bool, macroRevision: Int?) async throws {
@@ -295,7 +322,7 @@ public actor ClientSession {
     }
 
     private func failAllWaiters(with error: Error) {
-        pairChallengeReply.fail(error)
+        firstPairingReply.fail(error)
         pairConfirmReply.fail(error)
         helloAckReply.fail(error)
         sessionKeyReply.fail(error)
@@ -355,13 +382,18 @@ public actor ClientSession {
         switch message {
         case .pairChallenge(let challenge):
             eventsContinuation.yield(.pairingChallengeReceived(hostName: challenge.hostName))
-            pairChallengeReply.deliver(challenge)
+            firstPairingReply.deliver(.challenge(challenge))
         case .pairConfirm(let confirm):
             pairConfirmReply.deliver(confirm)
         case .helloAck(let ack):
             negotiatedVersion = ack.protocol
             udpPort = ack.udpPort
             helloAckReply.deliver(ack)
+            // Only meaningful to a `pair(url:)` still waiting on `firstPairingReply` (the
+            // already-trusted shortcut); harmless — buffered and never read — for `connect()` or
+            // for the `helloAck` that follows a normal `pairConfirm` in `pair(url:)`'s other
+            // branch, both of which never touch this slot.
+            firstPairingReply.deliver(.alreadyTrusted(ack))
             eventsContinuation.yield(.connected(ConnectedInfo(ack: ack)))
         case .sessionKey(let key):
             await installSessionKey(key)
@@ -397,7 +429,10 @@ public actor ClientSession {
 
     private func installSessionKey(_ message: SessionKeyMessage) async {
         guard let secret = SessionSecret(data: message.secret.data) else {
-            sessionKeyReply.fail(CoreError.internalFailure("bad session secret length"))
+            sessionKeyReply.fail(CoreError.protocolMismatch(
+                expected: "a \(SessionSecret.byteCount)-byte session secret",
+                got: "\(message.secret.data.count) bytes"
+            ))
             return
         }
         let keys = SessionKeys.derive(secret: secret, sessionID: message.sessionID)
@@ -447,6 +482,13 @@ public actor ClientSession {
         outstandingProbeTimestamp = nil
         _ = recordProbeOutcome(answered: true)
     }
+}
+
+/// Whichever message actually answers `hello { pairing: true }` first — see `ClientSession.
+/// firstPairingReply`'s doc comment for why this is one waiter instead of racing two.
+private enum FirstPairingReply: Sendable {
+    case challenge(PairChallenge)
+    case alreadyTrusted(HelloAck)
 }
 
 /// A single in-flight "waiting for exactly one reply of type `T`" slot, safe against the reply

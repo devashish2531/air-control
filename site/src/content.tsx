@@ -6,19 +6,38 @@ import { site } from "@/site.config";
 /* Features — one sentence each, drawn from docs/01-requirements.md §3.        */
 /* -------------------------------------------------------------------------- */
 
+/** One of the six bento card color surfaces defined in globals.css (`--card-*`). */
+export type FeatureCardTone = "blue" | "peach" | "violet" | "black" | "mint" | "gray";
+
 export type Feature = {
   id: string;
   title: string;
+  /** Punchy landing-page headline, <=6 words. Shown instead of `body`. */
+  headline: string;
+  /** One factual sentence, <=22 words, distilled from `body`. Shown instead of `body`. */
+  benefit: string;
+  /** Full sentence, kept for reference/attributes — not rendered on the page. */
   body: string;
-  /** Decorative: the section heading already names the feature. */
+  /** Decorative: the card header already names the feature. */
   icon: ReactNode;
   /**
-   * Small decorative line-art shown only inside the two `.tile--wide` bento
-   * tiles (Touchpad, Air mouse). Purely illustrative — aria-hidden by the
-   * caller — so it never duplicates information the title/body already give.
+   * Line-art shown at the bottom of the card (`.card__illustration`,
+   * `margin-top: auto`), aria-hidden by the caller. Recolored per card via
+   * the `--ill-a`/`--ill-b` custom properties set in sections.css.
    */
   illustration?: ReactNode;
+  /** Which `--card-*` gradient/surface this feature's bento tile uses. */
+  card: FeatureCardTone;
+  /** Spans 2 columns of the bento grid (3 cols >=64rem, 2 cols 40-64rem). */
+  wide?: boolean;
 };
+
+/**
+ * Bento grid order (spec §3): 3x3 at >=64rem reads
+ *   [Touchpad Touchpad Keyboard] [Air Air Presenter] [Macros Macros iPad]
+ * which this array's order produces directly under CSS grid auto-placement
+ * (each `wide` card spans 2 columns) — keep this order if reshuffled.
+ */
 
 /** 24×24 stroke icons, inlined so the page loads no external assets. */
 function Glyph({ children }: { children: ReactNode }) {
@@ -114,18 +133,217 @@ function AirMouseIllustration() {
         height="84"
         rx="10"
         transform="rotate(-16 49 88)"
-        stroke="currentColor"
+        stroke="var(--ill-a, currentColor)"
         strokeWidth="1.6"
         strokeOpacity="0.6"
       />
       <path
         d="M70 70l150-40M78 92l150-40M84 114l148-38"
-        stroke="currentColor"
+        stroke="var(--ill-b, currentColor)"
         strokeWidth="1.5"
         strokeDasharray="1 8"
         strokeLinecap="round"
       />
-      <path d="M232 24l8 20-11-3-3 12-9-24z" fill="currentColor" />
+      <path d="M232 24l8 20-11-3-3 12-9-24z" fill="var(--ill-b, currentColor)" />
+    </svg>
+  );
+}
+
+/**
+ * A 3x2 button deck of rounded pills, each with a tiny glyph — the "define a
+ * button, it appears on the phone" idea. One pill is filled to read as
+ * pressed, the way a macro button looks the moment it is tapped.
+ */
+function MacrosIllustration() {
+  const columns = [8, 100, 192];
+  const rows = [8, 76];
+  const pressed = { col: 1, row: 0 };
+
+  return (
+    <svg
+      viewBox="0 0 280 140"
+      width="280"
+      height="140"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {rows.map((y, rowIndex) =>
+        columns.map((x, colIndex) => {
+          const isPressed = rowIndex === pressed.row && colIndex === pressed.col;
+          return (
+            <g key={`${rowIndex}-${colIndex}`}>
+              <rect
+                x={x}
+                y={y}
+                width={80}
+                height={56}
+                rx="14"
+                fill={isPressed ? "var(--ill-a, currentColor)" : "none"}
+                fillOpacity={isPressed ? 0.14 : undefined}
+                stroke={isPressed ? "var(--ill-a, currentColor)" : "var(--ill-b, currentColor)"}
+                strokeOpacity={isPressed ? 0.9 : 0.4}
+                strokeWidth="1.5"
+              />
+              <circle
+                cx={x + 40}
+                cy={y + 28}
+                r="5"
+                fill={isPressed ? "var(--ill-a, currentColor)" : "var(--ill-b, currentColor)"}
+                fillOpacity={isPressed ? 1 : 0.7}
+              />
+            </g>
+          );
+        }),
+      )}
+    </svg>
+  );
+}
+
+/**
+ * A row of five key caps for the modifier row plus return — ⌘ ⌥ ⌃ ⇧ ⏎ — so
+ * the Keyboard tile shows the one row of keys that is unique to this app.
+ */
+function KeyRowIllustration() {
+  const glyphs = ["⌘", "⌥", "⌃", "⇧", "⏎"];
+  const gap = 10;
+  const keyWidth = (280 - gap * (glyphs.length - 1)) / glyphs.length;
+
+  return (
+    <svg
+      viewBox="0 0 280 48"
+      width="280"
+      height="48"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+      style={{ fontFamily: "var(--font-sans)" }}
+    >
+      {glyphs.map((glyph, index) => {
+        const x = index * (keyWidth + gap);
+        const tint = index % 2 === 0 ? "var(--ill-a, currentColor)" : "var(--ill-b, currentColor)";
+        return (
+          <g key={glyph}>
+            <rect
+              x={x}
+              y="0"
+              width={keyWidth}
+              height="48"
+              rx="10"
+              stroke={tint}
+              strokeOpacity="0.55"
+              strokeWidth="1.5"
+            />
+            <text x={x + keyWidth / 2} y="30" textAnchor="middle" fontSize="18" fill={tint}>
+              {glyph}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/**
+ * Three rounded media-remote buttons — previous / play / next — standing in
+ * for the presenter's playback controls.
+ */
+function MediaRowIllustration() {
+  const glyphs = ["⏮︎", "▶︎", "⏭︎"];
+  const size = 56;
+  const gap = 16;
+  const startX = (280 - (glyphs.length * size + (glyphs.length - 1) * gap)) / 2;
+
+  return (
+    <svg
+      viewBox="0 0 280 64"
+      width="280"
+      height="64"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+      style={{ fontFamily: "var(--font-sans)" }}
+    >
+      {glyphs.map((glyph, index) => {
+        const x = startX + index * (size + gap);
+        return (
+          <g key={glyph}>
+            <rect
+              x={x}
+              y="4"
+              width={size}
+              height={size}
+              rx="16"
+              stroke="var(--ill-a, currentColor)"
+              strokeOpacity="0.7"
+              strokeWidth="1.5"
+            />
+            <text
+              x={x + size / 2}
+              y={4 + size / 2 + 7}
+              textAnchor="middle"
+              fontSize="20"
+              fill="var(--ill-b, currentColor)"
+            >
+              {glyph}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/**
+ * A landscape iPad outline: a big touchpad on the left and a narrow column
+ * of shortcut-bar keys on the right, for the iPad layout card (spec §3,
+ * "a simple iPad outline illustration ... in blue").
+ */
+function IPadIllustration() {
+  const keyYs = [10, 42, 74, 106];
+
+  return (
+    <svg
+      viewBox="0 0 280 140"
+      width="280"
+      height="140"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect
+        x="4"
+        y="4"
+        width="272"
+        height="132"
+        rx="16"
+        stroke="var(--ill-a, currentColor)"
+        strokeOpacity="0.5"
+        strokeWidth="2"
+      />
+      <rect
+        x="16"
+        y="16"
+        width="188"
+        height="108"
+        rx="12"
+        stroke="var(--ill-a, currentColor)"
+        strokeOpacity="0.3"
+        strokeWidth="1.5"
+      />
+      {keyYs.map((y) => (
+        <rect
+          key={y}
+          x="216"
+          y={y}
+          width="48"
+          height="24"
+          rx="6"
+          stroke="var(--ill-a, currentColor)"
+          strokeOpacity="0.35"
+          strokeWidth="1.5"
+        />
+      ))}
     </svg>
   );
 }
@@ -134,6 +352,9 @@ export const features: Feature[] = [
   {
     id: "touchpad",
     title: "Touchpad",
+    headline: "Slide. Tap. Scroll. Pinch.",
+    benefit:
+      "Slide to move the cursor, tap to click, two-finger scroll, pinch to zoom, and three-finger swipes for Mission Control.",
     body: "Your phone's screen is a trackpad: slide to move the cursor, tap to click, two-finger scroll with momentum, pinch to zoom, and three-finger swipes for Mission Control and Spaces.",
     icon: (
       <Glyph>
@@ -142,10 +363,31 @@ export const features: Feature[] = [
       </Glyph>
     ),
     illustration: <TouchpadIllustration />,
+    card: "blue",
+    wide: true,
+  },
+  {
+    id: "keyboard",
+    title: "Keyboard",
+    headline: "Type from the couch.",
+    benefit:
+      "Types straight into whatever app is frontmost, with modifier chords, arrow and function keys, and a dedicated row for ⌘ ⌥ ⌃ ⇧.",
+    body: "Type from the phone straight into whatever app is frontmost on the Mac, with modifier chords, arrow and function keys, and a dedicated row for ⌘, ⌥, ⌃ and ⇧.",
+    icon: (
+      <Glyph>
+        <rect x="2" y="6" width="20" height="12" rx="2" />
+        <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
+      </Glyph>
+    ),
+    illustration: <KeyRowIllustration />,
+    card: "peach",
   },
   {
     id: "air-mouse",
     title: "Air mouse",
+    headline: "Point the phone. The cursor follows.",
+    benefit:
+      "Gyroscope and accelerometer fusion with drift correction and a clutch button that holds the pointer still while you gesture.",
     body: "Point the phone like a laser pointer and the cursor follows — gyroscope and accelerometer fusion with drift correction and a clutch button, so the pointer holds still while you gesture.",
     icon: (
       <Glyph>
@@ -155,21 +397,15 @@ export const features: Feature[] = [
       </Glyph>
     ),
     illustration: <AirMouseIllustration />,
-  },
-  {
-    id: "keyboard",
-    title: "Keyboard",
-    body: "Type from the phone straight into whatever app is frontmost on the Mac, with modifier chords, arrow and function keys, and a dedicated row for ⌘, ⌥, ⌃ and ⇧.",
-    icon: (
-      <Glyph>
-        <rect x="2" y="6" width="20" height="12" rx="2" />
-        <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
-      </Glyph>
-    ),
+    card: "violet",
+    wide: true,
   },
   {
     id: "presenter",
     title: "Presenter & media remote",
+    headline: "Next slide, without looking.",
+    benefit:
+      "Large next, previous and blank-screen buttons you can hit without looking, plus volume, play-pause and track skip controls.",
     body: "Large next / previous / blank-screen buttons you can hit without looking, plus volume, play-pause and track skip that talk to whatever is playing on the Mac.",
     icon: (
       <Glyph>
@@ -178,10 +414,15 @@ export const features: Feature[] = [
         <path d="M10 8.2l4 2.05-4 2.05z" />
       </Glyph>
     ),
+    illustration: <MediaRowIllustration />,
+    card: "black",
   },
   {
     id: "macros",
     title: "Macros",
+    headline: "Your shortcuts, as buttons.",
+    benefit:
+      "Define a key combo, an app or a Shortcut on the Mac, and it appears as a button on the phone.",
     body: "Define buttons on the Mac — a key combo, an app to launch, a Shortcut to run — and they appear as a button deck on the phone, with scripts kept behind an explicit opt-in.",
     icon: (
       <Glyph>
@@ -191,10 +432,16 @@ export const features: Feature[] = [
         <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.8" />
       </Glyph>
     ),
+    illustration: <MacrosIllustration />,
+    card: "mint",
+    wide: true,
   },
   {
     id: "ipad",
     title: "iPad layout",
+    headline: "Bigger pad. Same speed.",
+    benefit:
+      "An oversized touchpad plus a persistent keyboard and shortcut bar in landscape, with hardware keyboard pass-through.",
     body: "In landscape the iPad shows an oversized touchpad and a persistent keyboard and shortcut bar side by side, and passes an attached hardware keyboard straight through.",
     icon: (
       <Glyph>
@@ -202,6 +449,91 @@ export const features: Feature[] = [
         <path d="M10.5 19h3" />
       </Glyph>
     ),
+    illustration: <IPadIllustration />,
+    card: "gray",
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/* Devices row — three 64px line-icon SVGs (spec §4)                          */
+/* -------------------------------------------------------------------------- */
+
+/** 64x64 stroke icons, black line-art (tinted via `.devices__icon` in sections.css). */
+function DeviceGlyph({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      width="64"
+      height="64"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {children}
+    </svg>
+  );
+}
+
+function IPhoneDeviceIcon() {
+  return (
+    <DeviceGlyph>
+      <rect x="20" y="4" width="24" height="56" rx="6.5" />
+      <rect x="27" y="10" width="10" height="4" rx="2" fill="currentColor" stroke="none" />
+    </DeviceGlyph>
+  );
+}
+
+function IPadDeviceIcon() {
+  return (
+    <DeviceGlyph>
+      <rect x="10" y="7" width="44" height="50" rx="5" />
+      <circle cx="32" cy="14.5" r="1.4" fill="currentColor" stroke="none" />
+    </DeviceGlyph>
+  );
+}
+
+function MacDeviceIcon() {
+  return (
+    <DeviceGlyph>
+      <rect x="10" y="12" width="44" height="30" rx="3" />
+      <path d="M4 46h56l-6 8H10z" />
+    </DeviceGlyph>
+  );
+}
+
+export type Device = {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  /** e.g. "iOS 18 or later" — derived from `site.minimumOS`. */
+  requirement: string;
+};
+
+// site.minimumOS.ios reads "iOS 18 / iPadOS 18" — split it for the iPhone/iPad columns.
+const [iosRequirement, ipadosRequirement] = site.minimumOS.ios.split(" / ");
+
+export const devices: Device[] = [
+  {
+    id: "iphone",
+    label: "iPhone",
+    icon: <IPhoneDeviceIcon />,
+    requirement: `${iosRequirement} or later`,
+  },
+  {
+    id: "ipad",
+    label: "iPad",
+    icon: <IPadDeviceIcon />,
+    requirement: `${ipadosRequirement ?? iosRequirement} or later`,
+  },
+  {
+    id: "mac",
+    label: "Mac",
+    icon: <MacDeviceIcon />,
+    requirement: `${site.minimumOS.macos} or later`,
   },
 ];
 
@@ -212,15 +544,15 @@ export const features: Feature[] = [
 export const steps = [
   {
     title: "Install the Mac helper",
-    body: "A small menu-bar app. Grant it Accessibility once — that is the only permission it asks for — and it starts at login and stays out of your way.",
+    body: "A menu-bar app that asks for Accessibility once — its only permission — then starts at login and stays out of the way.",
   },
   {
     title: "Scan the QR code",
-    body: "The helper shows a QR code containing its address, its certificate fingerprint and a one-time secret that expires in 60 seconds. Point the phone at it.",
+    body: "Point your phone at the QR code the helper shows, carrying a one-time secret that expires in 60 seconds.",
   },
   {
     title: "Take control",
-    body: "The phone lands on the touchpad and reconnects on its own from then on. Swipe between touchpad, air mouse, keyboard, remote and your macros.",
+    body: "The phone lands on the touchpad and reconnects on its own from then on, every time.",
   },
 ];
 
@@ -228,17 +560,22 @@ export const steps = [
 /* Security                                                                   */
 /* -------------------------------------------------------------------------- */
 
-export type SecurityPoint = {
+/**
+ * Three pillars shown on the landing page's Security section, below the
+ * two-up value cards (spec §7) — a condensed, landing-page-scale summary;
+ * SECURITY.md carries the complete threat model.
+ */
+export type SecurityPillar = {
   title: string;
   body: string;
-  /** 24×24 stroke icon shown in a 32px accent-tint square (see .security__glyph). */
+  /** 24×24 stroke icon shown in a 56px accent-tint square (see .pillar__glyph). */
   icon: ReactNode;
 };
 
-export const securityPoints: SecurityPoint[] = [
+export const securityPillars: SecurityPillar[] = [
   {
-    title: "Local network only",
-    body: "The phone talks to your Mac directly over your Wi‑Fi. There is no relay, no cloud, no server in the middle — and nothing to sign in to.",
+    title: "Local Wi‑Fi only",
+    body: "No relay, no cloud, no server in the middle — the phone talks to your Mac directly.",
     icon: (
       <Glyph>
         <path d="M4 12a11 11 0 0 1 16 0" />
@@ -249,7 +586,7 @@ export const securityPoints: SecurityPoint[] = [
   },
   {
     title: "Mutual TLS 1.3",
-    body: "Both ends hold their own certificate and each verifies the other's. Motion packets on the low-latency UDP path carry their own authenticated encryption with replay protection.",
+    body: "Both ends verify each other's certificate; motion packets carry authenticated encryption with replay protection.",
     icon: (
       <Glyph>
         <path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z" />
@@ -258,8 +595,8 @@ export const securityPoints: SecurityPoint[] = [
     ),
   },
   {
-    title: "One-time pairing code",
-    body: "The QR code carries a secret that is valid for 60 seconds and can be used exactly once. A photograph of it afterwards is worthless.",
+    title: "One-time pairing",
+    body: "The QR secret is valid for 60 seconds and used once; only paired devices are accepted, revocable from either end.",
     icon: (
       <Glyph>
         <rect x="3.5" y="3.5" width="6" height="6" rx="1" />
@@ -269,37 +606,17 @@ export const securityPoints: SecurityPoint[] = [
       </Glyph>
     ),
   },
-  {
-    title: "Only devices you paired",
-    body: "Any device presenting a certificate that is not on the Mac's trusted list is refused at the handshake. You can revoke a phone from either end at any time.",
-    icon: (
-      <Glyph>
-        <circle cx="12" cy="12" r="7.5" />
-        <path d="M12 8v.01" />
-        <path d="M8.7 10.2c.5-1.6 1.8-2.6 3.3-2.6s2.8 1 3.3 2.6M7.3 13c.4-2.8 2.4-4.9 4.7-4.9s4.3 2.1 4.7 4.9M6.3 16c.6-4 3.3-7 5.7-7s5.1 3 5.7 7" />
-      </Glyph>
-    ),
-  },
-  {
-    title: "No telemetry",
-    body: "Nothing is collected, counted or phoned home. The latency HUD and diagnostics export exist for you, not for us.",
-    icon: (
-      <Glyph>
-        <path d="M3 3l18 18" />
-        <path d="M10.6 5.4A10.4 10.4 0 0 1 12 5.3c5 0 8.5 3.5 9.8 6.7-.5 1.2-1.3 2.6-2.4 3.9M6.6 6.6C4.3 8.1 2.6 10.2 1.7 12c1.3 3.2 4.8 6.7 9.8 6.7 1.5 0 2.9-.3 4.1-.9" />
-        <path d="M9.9 10a3 3 0 0 0 4.1 4.1" />
-      </Glyph>
-    ),
-  },
-  {
-    title: "Open source",
-    body: "The protocol, the crypto and both apps are public and auditable. The threat model and reporting process live in SECURITY.md.",
-    icon: (
-      <Glyph>
-        <path d="M9 6l-6 6 6 6M15 6l6 6-6 6" />
-      </Glyph>
-    ),
-  },
+];
+
+/* -------------------------------------------------------------------------- */
+/* Stats band — four proof points, shown as giant numbers on a black band.    */
+/* -------------------------------------------------------------------------- */
+
+export const stats: { value: string; caption: string }[] = [
+  { value: "< 20 ms", caption: "motion latency, design target on 5 GHz Wi‑Fi" },
+  { value: "0", caption: "accounts, sign-ins or servers" },
+  { value: "0 bytes", caption: "of telemetry, ever" },
+  { value: "MIT", caption: "licensed and fully open" },
 ];
 
 /* -------------------------------------------------------------------------- */

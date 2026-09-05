@@ -79,8 +79,26 @@ extension KeychainIdentityStore {
     /// server's CertificateVerify. This runs one throwaway signature on a background thread and gives up
     /// after `timeout`; callers treat `false` as "stale identity: delete and mint a fresh one".
     public func canSign(_ identity: SecIdentity, timeout: TimeInterval = 2.0) -> Bool {
+        if case .usable = signingProbe(identity, timeout: timeout) { return true }
+        return false
+    }
+
+    /// The detailed form of `canSign`: *why* an identity's private key can't produce a signature.
+    /// The two failure modes need completely different responses and are otherwise indistinguishable
+    /// (both just stall the TLS handshake), so callers — and on-device diagnostics, which have no OS
+    /// log access — need them told apart:
+    ///
+    /// - `.signingFailed` is a synchronous refusal (`SecKeyCreateSignature` returned an error). The
+    ///   key is present but unusable for this algorithm.
+    /// - `.blocked` means the call never returned at all within `timeout` — the ACL-prompt case on
+    ///   macOS, and (empirically, on a real iPhone) a Data-Protection key whose access control the
+    ///   current process can't satisfy without an authentication context.
+    public func signingProbe(_ identity: SecIdentity, timeout: TimeInterval = 2.0) -> SigningProbe {
         var privateKey: SecKey?
-        guard SecIdentityCopyPrivateKey(identity, &privateKey) == errSecSuccess, let privateKey else { return false }
+        let status = SecIdentityCopyPrivateKey(identity, &privateKey)
+        guard status == errSecSuccess, let privateKey else {
+            return .noPrivateKey(status: status)
+        }
         let semaphore = DispatchSemaphore(value: 0)
         let box = SignatureProbeResult()
         // `SecKey` isn't `Sendable`, but Security.framework's CF types are safe to hand across threads
@@ -91,12 +109,16 @@ extension KeychainIdentityStore {
             var error: Unmanaged<CFError>?
             let payload = Data("airmouse-identity-probe".utf8) as CFData
             let signature = SecKeyCreateSignature(keyForProbeThread, .ecdsaSignatureMessageX962SHA256, payload, &error)
-            box.set(signature != nil)
+            if signature != nil {
+                box.set(.usable)
+            } else {
+                box.set(.signingFailed(description: error.map { String(describing: $0.takeRetainedValue()) } ?? "unknown"))
+            }
             semaphore.signal()
         }
         thread.qualityOfService = .userInitiated
         thread.start()
-        guard semaphore.wait(timeout: .now() + timeout) == .success else { return false }
+        guard semaphore.wait(timeout: .now() + timeout) == .success else { return .blocked }
         return box.value
     }
 
@@ -144,9 +166,32 @@ extension KeychainIdentityStore {
     }
 }
 
+/// Outcome of `KeychainIdentityStore.signingProbe` — see its doc comment.
+public enum SigningProbe: Sendable, Equatable {
+    /// The key produced a signature: safe to hand to the TLS stack.
+    case usable
+    /// The identity carries no usable private key at all (`SecIdentityCopyPrivateKey` failed).
+    case noPrivateKey(status: OSStatus)
+    /// `SecKeyCreateSignature` returned an error. `description` is the `CFError`'s own text.
+    case signingFailed(description: String)
+    /// `SecKeyCreateSignature` never returned within the probe's timeout (an ACL/authentication
+    /// prompt nobody can answer) — the failure mode that stalls a TLS handshake outright.
+    case blocked
+
+    /// A short, log-safe rendering (no key material is ever involved in any case's payload).
+    public var summary: String {
+        switch self {
+        case .usable: return "usable"
+        case .noPrivateKey(let status): return "no-private-key(\(status))"
+        case .signingFailed(let description): return "signing-failed(\(description))"
+        case .blocked: return "blocked"
+        }
+    }
+}
+
 private final class SignatureProbeResult: @unchecked Sendable {
     private let lock = NSLock()
-    private var stored = false
-    var value: Bool { lock.lock(); defer { lock.unlock() }; return stored }
-    func set(_ newValue: Bool) { lock.lock(); stored = newValue; lock.unlock() }
+    private var stored: SigningProbe = .blocked
+    var value: SigningProbe { lock.lock(); defer { lock.unlock() }; return stored }
+    func set(_ newValue: SigningProbe) { lock.lock(); stored = newValue; lock.unlock() }
 }

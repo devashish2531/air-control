@@ -23,12 +23,21 @@ public enum CoreError: Error, Sendable, Equatable {
     case pairingInvalidProof
     case pairingTooManyDevices
     case pairingHostProofInvalid
+    /// Not part of the original spec: the host answered a re-pairing attempt with
+    /// `pairing.alreadyTrusted` (spec decision, see `HostSessionStateMachine`) — this peer's
+    /// certificate is already trusted and there was no open pairing window to prove against.
+    case pairingAlreadyTrusted
     case authUntrusted
     case authRevoked
     case rateLimited
     case macroBlockedByPolicy
     case sessionTimedOut
     case channelClosed
+    /// A message arrived that made no sense for the phase the session is in (e.g. a malformed
+    /// `sessionKey` payload) — distinct from `.internalFailure`, which is this process's own
+    /// failure, not the peer's. `expected`/`got` are short, developer-facing descriptions (never
+    /// secrets), matching `AppError.protocolMismatch`'s copy.
+    case protocolMismatch(expected: String, got: String)
     case internalFailure(String)
 
     /// Coarse UI category (spec §9).
@@ -36,11 +45,12 @@ public enum CoreError: Error, Sendable, Equatable {
         switch self {
         case .protocolViolation: .protocolMismatch
         case .versionMismatch: .protocolMismatch
-        case .pairingExpired, .pairingInvalidProof, .pairingTooManyDevices, .pairingHostProofInvalid: .pairing
+        case .pairingExpired, .pairingInvalidProof, .pairingTooManyDevices, .pairingHostProofInvalid, .pairingAlreadyTrusted: .pairing
         case .authUntrusted, .authRevoked: .authentication
         case .rateLimited: .rateLimited
         case .macroBlockedByPolicy: .macro
         case .sessionTimedOut, .channelClosed: .network
+        case .protocolMismatch: .protocolMismatch
         case .internalFailure: .internalFailure
         }
     }
@@ -52,6 +62,7 @@ public enum CoreError: Error, Sendable, Equatable {
         case .pairingExpired: .pairingExpired
         case .pairingInvalidProof: .pairingInvalidProof
         case .pairingTooManyDevices: .pairingTooManyDevices
+        case .pairingAlreadyTrusted: .alreadyTrusted
         case .authUntrusted: .authUntrusted
         case .authRevoked: .authRevoked
         case .rateLimited: .rateLimited
@@ -69,6 +80,7 @@ public enum CoreError: Error, Sendable, Equatable {
         case .pairingExpired: self = .pairingExpired
         case .pairingInvalidProof: self = .pairingInvalidProof
         case .pairingTooManyDevices: self = .pairingTooManyDevices
+        case .alreadyTrusted: self = .pairingAlreadyTrusted
         case .authUntrusted: self = .authUntrusted
         case .authRevoked: self = .authRevoked
         case .rateLimited: self = .rateLimited

@@ -11,7 +11,16 @@ import Foundation
 /// process* sign immediately, with no `SecurityAgent` prompt to answer: `canSign` never blocks past its
 /// timeout, so a test run that would otherwise hang forever waiting on an unanswerable prompt instead
 /// fails fast and visibly.
-@Suite struct IdentityTierRoundTripTests {
+///
+/// `.serialized`: every test here mutates the real login Keychain under `kSecClassIdentity`/
+/// `kSecClassKey`, and — a real, pre-existing platform quirk noted throughout this file —
+/// `kSecClassIdentity` queries are not reliably filtered by label. Running these concurrently (Swift
+/// Testing's default) let one test's `deleteIdentity`/`loadIdentity` race another's concurrently-alive
+/// identity, observed empirically as a spurious "deleteIdentity did not actually remove our own
+/// identity" failure; serializing this suite's tests relative to each other removes that self-race
+/// (tests in *other* suites/files that also touch the Keychain can still interleave, but that's the
+/// same pre-existing quirk, not something this trait is meant to solve).
+@Suite(.serialized) struct IdentityTierRoundTripTests {
     @Test func createLoadSignDeleteRoundTrip() throws {
         let label = "AirMouseCryptoTests.tier.\(UUID().uuidString)"
         defer { try? IdentityFactory.deleteIdentity(label: label) }
@@ -65,6 +74,49 @@ import Foundation
             let der = certificateRef.map { SecCertificateCopyData($0) as Data }
             #expect(der != created.certificateDER, "deleteIdentity did not actually remove our own identity")
         }
+    }
+
+    /// Regression test for the "no persistent Keychain tier is usable
+    /// (keyPersistenceFailed(status: -25304))" defect: `.legacyNoPrompt` used to persist its private key
+    /// by importing a software `SecKey` via `SecItemAdd(kSecValueRef:)`, which a direct repro (a bare
+    /// `swiftc`-built binary, no Xcode project or code signing involved) showed always fails with
+    /// `errSecInvalidItemRef`/-25304 when adding to the legacy/file-based keychain, regardless of ACL
+    /// attributes — the legacy keychain simply does not accept a "foreign" `SecKey` add via
+    /// `kSecValueRef`. The fix (`IdentityFactory.makeNativeLegacyPrivateKey`) generates the key natively
+    /// with `SecKeyCreateRandomKey` instead, exactly like `.dataProtection`, just with a no-prompt
+    /// `SecAccess` ACL. This test creates a `.legacyNoPrompt` identity under a dedicated TEST label,
+    /// loads it back, and proves it can sign immediately (no ACL prompt, no -25304), then deletes it.
+    @Test func legacyNoPromptIdentityPersistsLoadsAndSignsWithoutInvalidItemRef() throws {
+        let label = "AirMouseCryptoTests.legacyNoPrompt.regression-25304.\(UUID().uuidString)"
+        defer { try? IdentityFactory.deleteIdentity(label: label) }
+
+        let created: GeneratedIdentity
+        do {
+            // Same unsigned-test-host reasoning as the round trip above: this always lands on
+            // `.legacyNoPrompt` here, which is exactly the tier this regression test targets. Any
+            // `IdentityFactoryError` here — in particular `.keyPersistenceFailed(status: -25304)` —
+            // is the regression this test exists to catch, so let it fail the test rather than
+            // swallowing it as an environment-skip (unlike the general round trip above, a Keychain-
+            // less CI runner would fail differently — at `.dataProtection` too — which is out of scope
+            // for this specific -25304 regression).
+            created = try IdentityFactory.makeIdentity(
+                commonName: "AirMouse Host legacyNoPrompt-regression \(label)",
+                label: label,
+                preferSecureEnclave: false
+            )
+        } catch let error as IdentityFactoryError {
+            if case .keyPersistenceFailed(let status) = error, status == -25304 {
+                Issue.record("regression: .legacyNoPrompt key persistence failed with errSecInvalidItemRef (-25304)")
+            }
+            throw error
+        }
+        #expect(created.tier == .legacyNoPrompt)
+        #expect(created.backing == .keychainSecKey)
+
+        let store = KeychainIdentityStore()
+        let maybeLoaded = try store.loadIdentity(label: label)
+        let loaded = try #require(maybeLoaded, "loadIdentity found nothing right after makeIdentity persisted it")
+        #expect(store.canSign(loaded, timeout: 5.0), "freshly created .legacyNoPrompt identity must be able to sign immediately")
     }
 
     @Test func legacyNoPromptTierIsUsedByThisUnsignedTestHost() throws {

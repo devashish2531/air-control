@@ -8,10 +8,17 @@ import Testing
         #expect(effects == [.completeAuthentication])
     }
 
-    @Test func knownPeerAuthenticatesEvenOnHelloPairingTrue() {
+    /// Spec decision (§3.2/§3.3 don't define this): a known peer's `hello { pairing: true }` — the
+    /// device re-scanned a pairing QR while this Mac already trusts its certificate — runs through
+    /// the same pairing flow as an unknown peer, rather than authenticating immediately without
+    /// ever answering `pairChallenge`/`pairConfirm` (which used to hang the client's
+    /// `ClientSession.pair(url:)` until the 6 s no-heartbeat watchdog closed the connection).
+    /// `HostSession.beginPairingChallenge` then decides, from the pairing window's own state,
+    /// whether to actually run the challenge/proof round trip or answer `pairing.alreadyTrusted`.
+    @Test func knownPeerEntersPairingFlowOnHelloPairingTrue() {
         let (state, effects) = HostSessionStateMachine.reduce(state: .tlsAccepted(peer: .known), event: .helloReceivedPairingTrue)
-        #expect(state == .authenticated)
-        #expect(effects == [.completeAuthentication])
+        #expect(state == .pairing)
+        #expect(effects == [.beginPairingFlow])
     }
 
     @Test func unknownPeerEntersPairingOnHelloPairingTrue() {

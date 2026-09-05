@@ -242,7 +242,11 @@ public actor SessionManager {
             clock: clock,
             identity: identity,
             peerKnowledge: knowledge,
-            pairingWindow: knowledge == .unknown ? pairingWindow : nil,
+            // spec decision (§3.2/§3.3 don't define re-pairing an already-trusted device): always
+            // hand the session a snapshot of the open pairing window, even for an already-known
+            // peer — `HostSessionStateMachine` only actually consults it when that peer's `hello`
+            // says `pairing: true` (re-scanned the QR), so a plain trusted reconnect is unaffected.
+            pairingWindow: pairingWindow,
             hostState: hostState,
             macros: macros,
             macroRevision: revision,
@@ -349,8 +353,8 @@ public actor SessionManager {
             await eventInjector.recenter()
         case .settings:
             break // per-session settings layering is a Preferences/session-settings concern, not injection.
-        case .clientAuthenticated(let device):
-            await recordAuthenticated(sessionKey: sessionKey, device: device)
+        case .clientAuthenticated(let device, let viaPairingFlow):
+            await recordAuthenticated(sessionKey: sessionKey, device: device, viaPairingFlow: viaPairingFlow)
             await attachDatagramChannelIfNeeded(sessionKey: sessionKey)
         case .clientDisconnected(let reason):
             recordDisconnect(sessionKey: sessionKey, reason: reason)
@@ -368,20 +372,51 @@ public actor SessionManager {
     /// `sessionEnded` (`HostSession.teardown()` yields `.clientDisconnected` and finishes the stream,
     /// but never touches `state`) — so a client that pairs and disconnects immediately (e.g.
     /// `airmouse-cli pair`) can never race a slower, once-a-second-polled write and lose the record.
-    private func recordAuthenticated(sessionKey: String, device: Hello.Device) async {
+    private func recordAuthenticated(sessionKey: String, device: Hello.Device, viaPairingFlow: Bool) async {
         guard var managed = sessions[sessionKey] else { return }
         managed.deviceName = device.name
         managed.deviceModel = device.model
         sessions[sessionKey] = managed
         guard let fingerprint = managed.fingerprint else { return }
 
-        guard managed.wasUnknownAtAccept, !managed.pairingRecorded else {
+        guard managed.wasUnknownAtAccept else {
+            // Trusted reconnect, or a trusted device that re-scanned a pairing QR (`viaPairingFlow`
+            // — spec decision, see `HostSessionStateMachine`'s `.tlsAccepted(.known)`/
+            // `.helloReceivedPairingTrue` case). Either way the peer's identity was already proven
+            // by its certificate; refresh the existing record (name/model may have changed) rather
+            // than adding a duplicate.
             Log.session.notice("SessionManager: session authenticated, peer=\(Redact.fingerprintPrefix(fingerprint.hexString), privacy: .public)")
-            recordConnectionEvent("authenticated: peer=\(Redact.fingerprintPrefix(fingerprint.hexString))")
-            Task { await trustStore.updateLastSeen(fingerprint: fingerprint, date: Date()) }
+            recordConnectionEvent(viaPairingFlow
+                ? "re-pairing accepted: peer=\(Redact.fingerprintPrefix(fingerprint.hexString))"
+                : "authenticated: peer=\(Redact.fingerprintPrefix(fingerprint.hexString))")
+            // Captured as plain `let`s (not `managed` itself) so this detached write can't trip
+            // the Sendable-closure "mutated after capture" warning — `managed.pairingRecorded` is
+            // set just below, after this closure is created.
+            let deviceName = managed.deviceName
+            let deviceModel = managed.deviceModel
+            Task {
+                if var record = await trustStore.lookup(fingerprint: fingerprint) {
+                    record.name = deviceName
+                    record.model = deviceModel
+                    record.lastSeen = Date()
+                    await trustStore.update(record)
+                } else {
+                    await trustStore.updateLastSeen(fingerprint: fingerprint, date: Date())
+                }
+            }
+            // A real pairing-flow round trip against this Mac's own pairing window happened here
+            // (unlike a plain `pairing: false` reconnect, which never touches that window at all)
+            // — consume it so the Pairing window's UI reflects "Paired with <device>" instead of
+            // sitting on "Waiting…" forever.
+            if viaPairingFlow, !managed.pairingRecorded {
+                managed.pairingRecorded = true
+                sessions[sessionKey] = managed
+                await pairingService.markConsumedByPairingSuccess(deviceName: managed.deviceName)
+            }
             return
         }
 
+        guard !managed.pairingRecorded else { return }
         let record = CoreTrustedDeviceRecord(
             fingerprint: fingerprint,
             name: managed.deviceName,

@@ -41,8 +41,15 @@ public enum HostEvent: Sendable, Equatable {
     case macroInvoke(MacroInvoke, messageID: UInt32)
     case recenter
     case settings(Settings)
-    /// A new device authenticated (spec §3.2's pairing/reconnect flows both end here).
-    case clientAuthenticated(device: Hello.Device)
+    /// A device authenticated (spec §3.2's pairing/reconnect flows both end here). `viaPairingFlow`
+    /// is `true` when this authentication came from a completed `pairChallenge`/`pairProof`/
+    /// `pairConfirm` round trip — whether the peer's certificate was unknown (first-time pairing)
+    /// or already known (spec decision, not in §3.2/§3.3: re-pairing an already-trusted device,
+    /// e.g. re-scanning "Pair new device"'s QR, succeeds instead of mismatching the client's
+    /// pairing-flow expectations — see `HostSessionStateMachine`'s `.tlsAccepted(.known)`/
+    /// `.helloReceivedPairingTrue` case) — and `false` for a plain trusted `hello { pairing:
+    /// false }` reconnect that never touched the pairing window at all.
+    case clientAuthenticated(device: Hello.Device, viaPairingFlow: Bool)
     case clientDisconnected(reason: String)
     /// Every held input this session was tracking has just been released (stale timeout, close,
     /// or the 60 s watchdog) — the app's `EventInjector` must post the corresponding "up" events.

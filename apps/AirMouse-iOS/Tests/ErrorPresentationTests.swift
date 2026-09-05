@@ -62,6 +62,32 @@ import Testing
         #expect(p.actions == [.openSettings, .retry])
     }
 
+    // MARK: - UX/diagnostics fix deliverable: three new reconnect-time failure cases
+
+    @Test func hostRefusedUntrustedHasTheExactCopy() {
+        let p = AppError.hostRefusedUntrusted.presentation
+        #expect(p.id == "E-HOST-REFUSED")
+        #expect(p.style == .alert)
+        #expect(p.message == "Your Mac didn't accept this iPhone. Open Pair New Device on the Mac and scan the new code.")
+    }
+
+    @Test func hostIdentityChangedHasTheExactCopyAndIsDistinctFromTLSVerificationFailed() {
+        let p = AppError.hostIdentityChanged.presentation
+        #expect(p.id == "E-HOST-IDENTITY-CHANGED")
+        #expect(p.style == .alert)
+        #expect(p.message == "This Mac's identity has changed. Forget it and pair again.")
+        #expect(p.actions == [.forgetMac, .scanQR])
+        #expect(p.id != AppError.tlsVerificationFailed(hostName: "Marcus's Mac").presentation.id)
+    }
+
+    @Test func tlsHandshakeFailedInterpolatesTheDetail() {
+        let p = AppError.tlsHandshakeFailed(detail: "client identity did not sign").presentation
+        #expect(p.id == "E-TLS-HANDSHAKE")
+        #expect(p.style == .alert)
+        #expect(p.message.contains("client identity did not sign"))
+        #expect(p.message.contains("Update both apps"))
+    }
+
     @Test func tlsVerificationFailedIsDistinctFromPairingFingerprintMismatch() {
         let p = AppError.tlsVerificationFailed(hostName: "Marcus's Mac").presentation
         #expect(p.id == "E-TLS-MISMATCH")

@@ -1,33 +1,104 @@
 /*
- * Sections — owned by Sections.tsx (Features, HowItWorks, Security,
+ * Sections — owned by Sections.tsx (Spotlights, Stats, HowItWorks, Security,
  * OpenSource, Faq, FinalCta).
  *
- * Reuses globals.css tokens/classes (.container, .tile, .grouped,
- * .grouped__row, .section, .section__head, .band--dark, .link-arrow,
- * .badge, .button, [data-reveal]) — nothing here redefines them.
+ * Reuses globals.css tokens/classes (.container, .tile, .tile--outline,
+ * .grouped, .grouped__row, .section, .section__head, .section--tint,
+ * .band--dark, .link-arrow, .badge, .button, [data-reveal]) — nothing here
+ * redefines them.
  */
 
 /* -------------------------------------------------------------------------- */
-/* Features — bento grid                                                     */
+/* Spotlights — alternating full-width feature rows + a 3-up compact row     */
 /* -------------------------------------------------------------------------- */
 
-.bento {
+.spotlight-row {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 4vw, 2rem);
+  background: var(--bg-secondary);
+  border-radius: var(--r-xl);
+  padding: clamp(2rem, 5vw, 4rem);
+}
+
+.spotlight-row + .spotlight-row {
+  margin-top: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+@media (min-width: 56rem) {
+  .spotlight-row {
+    flex-direction: row;
+    align-items: center;
+    gap: clamp(2rem, 5vw, 3.5rem);
+  }
+
+  .spotlight-row--reverse {
+    flex-direction: row-reverse;
+  }
+
+  .spotlight-row__text {
+    flex: 0 0 40%;
+  }
+
+  .spotlight-row__illustration {
+    flex: 1 1 auto;
+  }
+}
+
+.spotlight-row__text {
+  min-width: 0;
+}
+
+.spotlight-row__eyebrow {
+  margin-bottom: 0.25rem;
+}
+
+.spotlight-row__heading {
+  margin: 0.35rem 0 0.85rem;
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+.spotlight-row__illustration {
+  min-width: 0;
+  color: var(--accent);
+}
+
+.spotlight-row__illustration svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 340px;
+  margin-inline: auto;
+}
+
+.tile-row {
   display: grid;
   grid-template-columns: 1fr;
   gap: clamp(1rem, 2.5vw, 1.5rem);
-  grid-auto-flow: dense;
+  margin-top: clamp(1.5rem, 3vw, 2rem);
 }
 
-@media (min-width: 40rem) {
-  .bento {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 64rem) {
-  .bento {
+@media (min-width: 48rem) {
+  .tile-row {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+.tile-row .tile {
+  display: flex;
+  flex-direction: column;
+}
+
+.tile-row .tile h3 {
+  margin-bottom: 0.5rem;
+}
+
+.tile-row .tile p {
+  color: var(--text-secondary);
 }
 
 .tile__glyph {
@@ -42,27 +113,47 @@
   color: var(--accent);
 }
 
-.bento .tile h3 {
-  margin-bottom: 0.5rem;
+/* -------------------------------------------------------------------------- */
+/* Stats band — four giant numbers on a full-bleed black band                */
+/* -------------------------------------------------------------------------- */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(2rem, 5vw, 3rem) clamp(1rem, 3vw, 2rem);
+  text-align: center;
 }
 
-.bento .tile p {
+@media (min-width: 48rem) {
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stat-item__value {
+  margin: 0;
+  font-size: clamp(2.75rem, 6vw, 4.5rem);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.stat-item__caption {
+  margin: 0.5rem 0 0;
   color: var(--text-secondary);
 }
 
-.tile__illustration {
-  margin-top: 1.5rem;
-  color: var(--accent);
-  opacity: 0.9;
-}
-
-.tile__illustration svg {
-  width: 100%;
-  height: auto;
+.stats-note {
+  max-width: var(--measure);
+  margin: clamp(2rem, 5vw, 3rem) auto 0;
+  text-align: center;
+  color: var(--text-secondary);
 }
 
 /* -------------------------------------------------------------------------- */
-/* How it works — numbered steps + latency stat tile                         */
+/* How it works — numbered steps                                             */
 /* -------------------------------------------------------------------------- */
 
 .steps {
@@ -93,43 +184,11 @@
   color: var(--text-tertiary);
 }
 
-.stat {
-  display: grid;
-  grid-template-columns: 1fr;
-  align-items: center;
-  gap: clamp(1.25rem, 3vw, 2rem);
-}
-
-@media (min-width: 48rem) {
-  .stat {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.stat__value {
-  margin: 0;
-  font-size: clamp(3rem, 7vw, 5rem);
-  line-height: 1;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-
-.stat__caption {
-  margin: 0.5rem 0 0;
-  color: var(--text-secondary);
-}
-
-.stat__note {
-  margin: 0;
-  color: var(--text-secondary);
-}
-
 /* -------------------------------------------------------------------------- */
-/* Security — dark band, two-column grouped list                             */
+/* Security — --bg-secondary section, three pillars                          */
 /* -------------------------------------------------------------------------- */
 
-.security__grid {
+.pillar-row {
   display: grid;
   grid-template-columns: 1fr;
   gap: clamp(1rem, 2.5vw, 1.5rem);
@@ -137,32 +196,28 @@
 }
 
 @media (min-width: 48rem) {
-  .security__grid {
-    grid-template-columns: 1fr 1fr;
+  .pillar-row {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
-.security__row {
-  align-items: flex-start;
-}
-
-.security__glyph {
+.pillar__glyph {
   display: inline-flex;
-  flex: none;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 1rem;
   border-radius: var(--r-sm);
   background: var(--accent-tint);
   color: var(--accent);
 }
 
-.security__row h3 {
-  margin-bottom: 0.25rem;
+.pillar h3 {
+  margin-bottom: 0.5rem;
 }
 
-.security__row p {
+.pillar p {
   color: var(--text-secondary);
 }
 
@@ -189,6 +244,18 @@
   }
 }
 
+/*
+ * min-width: 0 overrides the grid item's default `min-width: auto`, which
+ * would otherwise floor this column at its content's min-content size. The
+ * Homebrew <code> below is `white-space: nowrap` (its min-content width IS
+ * its full one-line width), so without this the grid track — and the whole
+ * document — gets pulled wider than the viewport (same failure mode as the
+ * comment on .hero__brew in the old hero.css).
+ */
+.opensource__copy {
+  min-width: 0;
+}
+
 .opensource__copy .eyebrow {
   margin-bottom: 0.75rem;
 }
@@ -199,6 +266,33 @@
 
 .opensource__copy .lede {
   margin-bottom: 1.5rem;
+}
+
+.opensource__copy .actions {
+  margin-bottom: 1rem;
+}
+
+.opensource__brew {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--r-sm);
+  background: var(--bg-tertiary);
+  color: var(--text);
+  font-size: 0.8125rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  /* Stays scrollable — just hides the scrollbar chrome, which reads as
+     visual noise under a one-line command. */
+  scrollbar-width: none;
+}
+
+.opensource__brew::-webkit-scrollbar {
+  display: none;
+}
+
+.opensource__brew-note {
+  color: var(--text-secondary);
 }
 
 .facts.grouped {
@@ -217,6 +311,18 @@
 .facts dd {
   text-align: right;
   font-weight: 500;
+}
+
+/* Invisible hit-area extension so the "MIT" / "Open a report" links clear
+   44px tall without growing their visible size. */
+.facts dd a {
+  position: relative;
+}
+
+.facts dd a::before {
+  content: "";
+  position: absolute;
+  inset: -12px 0;
 }
 
 /* Shared button row: Open source's tile actions and the final CTA. */

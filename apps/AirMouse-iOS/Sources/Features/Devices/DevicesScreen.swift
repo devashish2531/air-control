@@ -20,6 +20,12 @@ public struct DevicesScreen: View {
     @State private var browsingStartedAt: Date?
     @State private var showEmptyStateGuidance = false
     @State private var selectedUnpairedHost: DiscoveredHost?
+    /// Set for the duration of one `connectToKnownHost` attempt started from this screen (spec
+    /// item 3: "tapping a known Mac shows progress").
+    @State private var connectingRecordID: String?
+    /// Non-`nil` only when the attempt above actually failed — drives the real-reason alert (spec
+    /// item 3: "on failure an alert with the real reason").
+    @State private var connectFailure: ConnectFailurePresentation?
 
     public init() {}
 
@@ -105,6 +111,24 @@ public struct DevicesScreen: View {
         } message: {
             Text("This removes the pairing and its saved credentials. You'll need to scan the QR code again to reconnect.", comment: "Devices screen: forget confirmation message")
         }
+        .alert(
+            connectFailure?.error.presentation.title ?? "",
+            isPresented: Binding(
+                get: { connectFailure != nil },
+                set: { if !$0 { connectFailure = nil } }
+            ),
+            presenting: connectFailure
+        ) { failure in
+            Button(String(localized: "Try Again", comment: "Devices screen: retries a failed connect-to-known-host attempt")) {
+                attemptConnect(failure.record)
+            }
+            Button(Self.forgetActionTitle(for: failure.error), role: .destructive) {
+                Task { await manager?.forget(failure.record) }
+            }
+            Button(String(localized: "Cancel", comment: "Error recovery action: cancels reconnect and returns to Devices"), role: .cancel) {}
+        } message: { failure in
+            Text(failure.error.presentation.message)
+        }
     }
 
     // MARK: - Rows
@@ -128,7 +152,9 @@ public struct DevicesScreen: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            if status == .connected {
+            if connectingRecordID == row.record.id {
+                ProgressView()
+            } else if status == .connected {
                 Circle().fill(.green).frame(width: 8, height: 8)
             } else if status == .available {
                 Circle().fill(.yellow).frame(width: 8, height: 8)
@@ -140,7 +166,7 @@ public struct DevicesScreen: View {
             }
             if status != .connected {
                 Button(String(localized: "Retry", comment: "Error recovery action: retries the failed connection attempt")) {
-                    Task { await manager?.connectToKnownHost(row.record) }
+                    attemptConnect(row.record)
                 }
                 .tint(.blue)
             }
@@ -148,7 +174,19 @@ public struct DevicesScreen: View {
         .contentShape(Rectangle())
         .onTapGesture {
             guard status != .connected else { return }
-            Task { await manager?.connectToKnownHost(row.record) }
+            attemptConnect(row.record)
+        }
+    }
+
+    /// spec item 3: drives `connectingRecordID` for the row's progress indicator, then — once the
+    /// attempt settles — surfaces `connectFailure` if (and only if) it actually failed.
+    private func attemptConnect(_ record: TrustedDeviceRecord) {
+        guard connectingRecordID == nil else { return }
+        connectingRecordID = record.id
+        Task {
+            await manager?.connectToKnownHost(record)
+            connectingRecordID = nil
+            connectFailure = Self.failureAlert(afterConnectingTo: record, manager: manager)
         }
     }
 
@@ -244,6 +282,23 @@ public struct DevicesScreen: View {
         }
     }
 
+    // MARK: - Connect-failure alert (spec item 3)
+
+    /// `nil` unless the just-finished `connectToKnownHost` attempt actually failed.
+    static func failureAlert(afterConnectingTo record: TrustedDeviceRecord, manager: (any DeviceConnectAttemptObserving)?) -> ConnectFailurePresentation? {
+        guard let manager, case .failed = manager.connectionState, let error = manager.lastError else { return nil }
+        return ConnectFailurePresentation(record: record, error: error)
+    }
+
+    /// spec item 3: "for `hostIdentityChanged` the destructive action reads 'Forget and pair
+    /// again'" — every other failure keeps the usual "Forget Mac" wording.
+    nonisolated static func forgetActionTitle(for error: AppError) -> String {
+        if case .hostIdentityChanged = error {
+            return String(localized: "Forget and pair again", comment: "Devices screen: destructive action when the Mac's identity changed")
+        }
+        return String(localized: "Forget Mac", comment: "Error recovery action: forgets the trusted host")
+    }
+
     // MARK: - Helpers
 
     private var unpairedDiscoveredHosts: [DiscoveredHost]? {
@@ -274,6 +329,31 @@ public struct DevicesScreen: View {
         }
     }
 }
+
+// MARK: - Connect-failure alert test seam (spec item 3)
+
+/// One failed `connectToKnownHost` attempt, ready to present — the record it was for (so
+/// "Try Again"/"Forget Mac" know what to act on) and the real `AppError` (spec item 3: "an alert
+/// with the real reason").
+struct ConnectFailurePresentation: Identifiable, Equatable {
+    let record: TrustedDeviceRecord
+    let error: AppError
+    var id: String { record.id }
+}
+
+/// What `DevicesScreen.attemptConnect`'s failure decision needs from a connection manager —
+/// narrow enough that a test can supply a fake without a real `NWConnection`/Keychain (mirrors
+/// `DevicesScreen.unpaired`'s own "extract the pure decision, mock the seam" pattern).
+/// `ConnectionManager`'s `connectionState`/`lastError` are `private(set)`, so a real instance
+/// can't have its state puppeted from a test either — a fake conforming to this protocol is the
+/// only way to drive `DevicesScreen.failureAlert` deterministically without a live network attempt.
+@MainActor
+protocol DeviceConnectAttemptObserving: AnyObject {
+    var connectionState: ConnectionState { get }
+    var lastError: AppError? { get }
+}
+
+extension ConnectionManager: DeviceConnectAttemptObserving {}
 
 #Preview {
     NavigationStack {

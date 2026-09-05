@@ -21,6 +21,11 @@ import AirMouseProtocol
 
 /// Transport-level errors surfaced by this module's channels — distinct from `AirMouseCore`'s own
 /// error types, which never see `Network` (arch §3.1).
+///
+/// Still used by `NWDatagramChannel` (the UDP motion channel has no TLS handshake to classify, so
+/// its coarser cases are all it needs). `NWControlChannel.connect` itself now throws the far more
+/// precise `TransportFailure` below — see that type's doc comment for why the coarse cases here
+/// were no longer enough to drive correct UX/diagnostics for the control channel.
 public enum TransportError: Error, Sendable, Equatable {
     /// spec §4.5.5: `NWBrowser`/`NWConnection` surfaced a Local Network permission denial
     /// (`NWError.dns(kDNSServiceErr_PolicyDenied)` or `currentPath?.unsatisfiedReason == .localNetworkDenied`).
@@ -34,6 +39,81 @@ public enum TransportError: Error, Sendable, Equatable {
     case timedOut
     case cancelled
     case invalidPort(Int)
+}
+
+/// Precise classification of why one TLS control-channel connect attempt didn't reach `.ready` —
+/// the UX/diagnostics fix this type exists for: three failure modes that all used to collapse into
+/// the same "Couldn't reach"/"timed out" copy even though they need completely different user
+/// guidance (verified against a real macOS + iOS pair):
+///
+///  1. The Mac refuses an untrusted phone (its pairing window is closed): the Mac's own verify
+///     block rejects our client certificate and sends a fatal TLS alert. *Our* verify block (which
+///     only ever judges the Mac's certificate) still accepted the Mac fine — the failure arrives as
+///     `.failed(NWError.tls(status))` with no local pin rejection on our side → `.tlsAlertFromPeer`.
+///  2. Our own client identity (a Secure Enclave key) can't sign the TLS transcript: the Mac's
+///     certificate *was* accepted by our verify block, but the handshake then stalls forever (no
+///     alert ever arrives) until our own per-candidate watchdog gives up → `.clientIdentityFailure`.
+///  3. A stale trust record (the Mac's identity was regenerated): our own verify block sees the
+///     new certificate, computes its fingerprint, and rejects it because it doesn't match the
+///     pinned value → `.peerCertificateMismatch`, decided *before* looking at the underlying
+///     `NWError` at all, since our own rejection also happens to surface as `NWError.tls`.
+///
+/// `HandshakeProgress` is what lets `NWControlChannel.connect` tell these three apart from outside
+/// the handshake: it records whether our verify block ever ran, and whether it accepted the peer.
+public enum TransportFailure: Error, Sendable, Equatable {
+    /// TCP connect refused/timed out/host unreachable — a definitive network-level answer arrived
+    /// (`.failed`) before our own verify block ever ran, i.e. before any TLS progress at all.
+    case unreachable
+    /// spec §4.5.5: Local Network permission denial.
+    case localNetworkDenied
+    /// `.failed` with `NWError.tls(status)`, and our own verify block either never ran or accepted
+    /// the peer — the *peer* (Mac) is the one that rejected the handshake. `description` is a short
+    /// human-readable rendering of the alert/OSStatus (never the raw certificate/keys).
+    case tlsAlertFromPeer(description: String)
+    /// Our own verify block rejected the peer's certificate: its fingerprint didn't match what was
+    /// pinned for this host. `expected`/`actual` are `Fingerprint.shortLogPrefix` values (8 hex
+    /// characters) — never a full fingerprint (spec §7.4 logging rule).
+    case peerCertificateMismatch(expected: String, actual: String)
+    /// Our own verify block accepted the peer, but the handshake still never reached `.ready` and
+    /// our own per-candidate watchdog fired — i.e. *we* never produced a valid client response
+    /// (most likely the local client identity's private key couldn't sign). `description` notes the
+    /// candidate/timeout that gave up.
+    case clientIdentityFailure(description: String)
+    /// The connection was cancelled (by the peer, or the transport) before ever reaching `.ready`,
+    /// without an explicit `.failed` error and before our own timeout fired.
+    case closedBeforeReady
+    /// Our own per-candidate watchdog fired with no signal at all — verify block never ran, no
+    /// `.failed`, nothing. Distinct from `.unreachable` (which is a definitive OS-level answer) and
+    /// from `.clientIdentityFailure` (which requires verify to have already accepted the peer).
+    case timedOut
+    case invalidPort(Int)
+}
+
+/// Tracks how far one `NWConnection`'s TLS handshake progressed — specifically, whether *our own*
+/// verify block (validating the peer's certificate against the pinned fingerprint) ever ran, and
+/// whether it accepted the peer. This is the signal `TransportFailure`'s classification is built
+/// on: from outside the handshake, "the Mac rejected us" (1), "our client identity is stuck" (2),
+/// and "we rejected the Mac" (3) all otherwise look identical (either a `.failed` with some
+/// `NWError`, or nothing at all until a timeout).
+final class HandshakeProgress: @unchecked Sendable {
+    private let lock = NSLock()
+    private var invoked = false
+    private var accepted = false
+    private var actualFingerprintPrefix: String?
+
+    func recordVerify(accepted isAccepted: Bool, actualFingerprintPrefix prefix: String?) {
+        lock.lock()
+        invoked = true
+        accepted = isAccepted
+        actualFingerprintPrefix = prefix
+        lock.unlock()
+    }
+
+    func snapshot() -> (invoked: Bool, accepted: Bool, actualFingerprintPrefix: String?) {
+        lock.lock()
+        defer { lock.unlock() }
+        return (invoked, accepted, actualFingerprintPrefix)
+    }
 }
 
 /// A `CheckedContinuation<Void, Error>` that can be resumed exactly once from a `@Sendable`
@@ -125,7 +205,7 @@ public final class NWControlChannel: ControlChannel, @unchecked Sendable {
         timeout: TimeInterval = Double(ProtocolConstants.addressPerCandidateTimeoutMs) / 1000.0
     ) async throws -> NWControlChannel {
         guard let portValue = NWEndpoint.Port(rawValue: UInt16(clamping: port)) else {
-            throw TransportError.invalidPort(port)
+            throw TransportFailure.invalidPort(port)
         }
         return try await connect(
             to: .hostPort(host: NWEndpoint.Host(host), port: portValue),
@@ -148,6 +228,7 @@ public final class NWControlChannel: ControlChannel, @unchecked Sendable {
         timeout: TimeInterval = Double(ProtocolConstants.addressPerCandidateTimeoutMs) / 1000.0
     ) async throws -> NWControlChannel {
         let queue = DispatchQueue(label: "com.airmouse.app.net.control")
+        let progress = HandshakeProgress()
         let tlsOptions = NWProtocolTLS.Options()
         let secOptions = tlsOptions.securityProtocolOptions
         sec_protocol_options_set_min_tls_protocol_version(secOptions, .TLSv13)
@@ -157,10 +238,13 @@ public final class NWControlChannel: ControlChannel, @unchecked Sendable {
         }
         sec_protocol_options_set_verify_block(secOptions, { _, trust, complete in
             guard let fingerprint = try? TLSPinning.fingerprint(from: trust) else {
+                progress.recordVerify(accepted: false, actualFingerprintPrefix: nil)
                 complete(false)
                 return
             }
-            complete(fingerprint == expectedHostFingerprint)
+            let matches = fingerprint == expectedHostFingerprint
+            progress.recordVerify(accepted: matches, actualFingerprintPrefix: fingerprint.shortLogPrefix)
+            complete(matches)
         }, queue)
 
         let parameters = NWParameters(tls: tlsOptions, tcp: NWProtocolTCP.Options())
@@ -175,13 +259,21 @@ public final class NWControlChannel: ControlChannel, @unchecked Sendable {
                 case .ready:
                     waiter.resume(.success(()))
                 case .failed(let error):
-                    waiter.resume(.failure(Self.mapConnectError(error, connection: connection)))
+                    let failure = Self.classifyConnectError(error, progress: progress, connection: connection, expectedHostFingerprint: expectedHostFingerprint)
+                    Log.net.error("NWControlChannel connect .failed: \(String(describing: error), privacy: .public) -> \(String(describing: failure), privacy: .public)")
+                    waiter.resume(.failure(failure))
                 case .waiting(let error):
                     if Self.isLocalNetworkDenied(error, connection: connection) {
-                        waiter.resume(.failure(TransportError.localNetworkDenied))
+                        Log.net.error("NWControlChannel connect .waiting: local network access denied")
+                        waiter.resume(.failure(TransportFailure.localNetworkDenied))
                     }
                 case .cancelled:
-                    waiter.resume(.failure(TransportError.cancelled))
+                    // No-ops via `OneShotContinuation` unless nothing else has resolved this connect
+                    // attempt yet — i.e. an unexpected close (peer/transport tore it down) rather than
+                    // our own timeout-triggered `connection.cancel()` below.
+                    if waiter.resume(.failure(TransportFailure.closedBeforeReady)) {
+                        Log.net.error("NWControlChannel connect .cancelled before ready (unexpected)")
+                    }
                 case .setup, .preparing:
                     break
                 @unknown default:
@@ -190,7 +282,9 @@ public final class NWControlChannel: ControlChannel, @unchecked Sendable {
             }
             connection.start(queue: queue)
             queue.asyncAfter(deadline: .now() + timeout) {
-                if waiter.resume(.failure(TransportError.timedOut)) {
+                let failure = Self.classifyTimeout(progress: progress, timeout: timeout)
+                Log.net.error("NWControlChannel connect timed out after \(timeout, privacy: .public)s -> \(String(describing: failure), privacy: .public)")
+                if waiter.resume(.failure(failure)) {
                     connection.cancel()
                 }
             }
@@ -270,7 +364,20 @@ public final class NWControlChannel: ControlChannel, @unchecked Sendable {
                 self.incomingContinuation.yield(data)
             }
             if let error {
-                self.incomingContinuation.finish(throwing: Self.mapConnectError(error, connection: self.connection))
+                // Post-`.ready` (this loop only ever runs after a successful handshake): no
+                // connect-time classification applies here (no verify-block progress to consult),
+                // so this just distinguishes local-network revocation and a late TLS alert from a
+                // generic "the connection is gone" — reusing `.unreachable` as the closest fit.
+                let failure: TransportFailure
+                if Self.isLocalNetworkDenied(error, connection: self.connection) {
+                    failure = .localNetworkDenied
+                } else if case .tls(let status) = error {
+                    failure = .tlsAlertFromPeer(description: Self.describeTLSAlert(status))
+                } else {
+                    failure = .unreachable
+                }
+                Log.net.error("NWControlChannel receive loop error: \(String(describing: error), privacy: .public) -> \(String(describing: failure), privacy: .public)")
+                self.incomingContinuation.finish(throwing: failure)
                 return
             }
             if isComplete {
@@ -287,9 +394,63 @@ public final class NWControlChannel: ControlChannel, @unchecked Sendable {
         return false
     }
 
-    private static func mapConnectError(_ error: NWError, connection: NWConnection) -> Error {
-        if isLocalNetworkDenied(error, connection: connection) { return TransportError.localNetworkDenied }
-        if case .tls = error { return TransportError.tlsHandshakeFailed(String(describing: error)) }
-        return TransportError.connectionFailed(String(describing: error))
+    /// Classifies a `.failed(error)` state update — see `TransportFailure`'s doc comment for the
+    /// three scenarios this distinguishes. Order matters: a rejection by *our own* verify block
+    /// (`progress.accepted == false`) must be checked before inspecting `error` at all, because
+    /// that rejection also surfaces as `NWError.tls(...)` — indistinguishable from a peer-sent
+    /// alert by the `NWError` alone.
+    private static func classifyConnectError(
+        _ error: NWError,
+        progress: HandshakeProgress,
+        connection: NWConnection,
+        expectedHostFingerprint: Fingerprint
+    ) -> TransportFailure {
+        if isLocalNetworkDenied(error, connection: connection) { return .localNetworkDenied }
+        let snapshot = progress.snapshot()
+        if snapshot.invoked, !snapshot.accepted {
+            return .peerCertificateMismatch(
+                expected: expectedHostFingerprint.shortLogPrefix,
+                actual: snapshot.actualFingerprintPrefix ?? "unknown"
+            )
+        }
+        if case .tls(let status) = error {
+            return .tlsAlertFromPeer(description: Self.describeTLSAlert(status))
+        }
+        return .unreachable
+    }
+
+    /// Classifies our own per-candidate watchdog firing with no `.failed`/`.ready` ever arriving.
+    private static func classifyTimeout(progress: HandshakeProgress, timeout: TimeInterval) -> TransportFailure {
+        let snapshot = progress.snapshot()
+        if snapshot.invoked, snapshot.accepted {
+            // The peer's certificate was already accepted, so TLS reached the point where *we*
+            // must respond with our own client certificate/signature — the only thing left to
+            // stall on is our own client identity (e.g. a Secure Enclave key that can't sign).
+            return .clientIdentityFailure(description: "client identity did not complete the handshake within \(timeout)s after the peer's certificate was accepted")
+        }
+        return .timedOut
+    }
+
+    /// SecureTransport alert/OSStatus codes that mean "the peer rejected our certificate" — spelled
+    /// out numerically (rather than via the `errSSLPeer*` symbols) because those symbols live in the
+    /// deprecated SecureTransport API surface and trip `-Wdeprecated-declarations` under this
+    /// project's `AIRMOUSE_WARNINGS_AS_ERRORS`. Values per `<Security/SecureTransport.h>`.
+    private static let peerCertificateRejectionStatuses: Set<OSStatus> = [
+        -9807, // errSSLXCertChainInvalid
+        -9808, // errSSLBadCert
+        -9826, // errSSLPeerBadCert
+        -9827, // errSSLPeerUnsupportedCert
+        -9828, // errSSLPeerCertRevoked
+        -9829, // errSSLPeerCertExpired
+        -9830, // errSSLPeerCertUnknown
+        -9832, // errSSLPeerUnknownCA
+        -9833, // errSSLPeerAccessDenied
+    ]
+
+    private static func describeTLSAlert(_ status: OSStatus) -> String {
+        if peerCertificateRejectionStatuses.contains(status) {
+            return "peer refused our certificate (status \(status))"
+        }
+        return "TLS alert from peer (status \(status))"
     }
 }

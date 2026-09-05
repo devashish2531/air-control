@@ -241,33 +241,26 @@ public enum IdentityFactory: Sendable {
         preferSecureEnclave: Bool,
         accessibility: CFString
     ) throws -> (SecKey, IdentityBackingKind) {
-        guard tier == .dataProtection else {
-            // `.legacyNoPrompt` deliberately never attempts native generation (the `SecKeyCreateRandomKey`
-            // call below) at all — see this function's doc comment: a key *natively* generated in the
-            // legacy keychain comes back as an old CDSA-backed `SecKey` that the modern
-            // `SecKeyCreateSignature`/`SecKeyAlgorithm` API (what the TLS handshake and `canSign` both
-            // use) cannot sign with (`errSecParam`/-50, "algorithm not supported by the key") — a hard,
-            // unconditional incompatibility, not a prompt/ACL issue, and not something that shows up
-            // until the first real signature attempt. Importing a software CryptoKit key (Path B)
-            // instead always yields a modern `SecKey` wrapper, so this tier goes straight there.
-            let softwareKey = try importSoftwarePrivateKey(
-                P256.Signing.PrivateKey(),
-                tier: tier,
-                label: label,
-                accessibility: accessibility
-            )
-            return (softwareKey, .software)
+        #if os(macOS)
+        if tier == .legacyNoPrompt {
+            // See `makeNativeLegacyPrivateKey`'s doc comment: this tier generates the key natively
+            // (like `.dataProtection` below), not by importing a software key via `SecItemAdd
+            // (kSecValueRef:)` — that path is confirmed broken for the legacy/file-based keychain
+            // (`errSecInvalidItemRef`/-25304) independent of ACL attributes.
+            return try makeNativeLegacyPrivateKey(label: label)
         }
+        #endif
 
         var attributes: [CFString: Any] = [
             kSecAttrKeyType: kSecAttrKeyTypeECSECPrimeRandom,
             kSecAttrKeySizeInBits: 256,
-            kSecAttrIsPermanent: true,
-            kSecAttrLabel: label,
-            kSecAttrApplicationTag: Data(label.utf8),
             kSecAttrSynchronizable: false,
             kSecUseDataProtectionKeychain: true,
+            // Identifying/persistence attributes belong to the *private* key alone — see
+            // `privateKeyAttrs`. Top level, `SecKeyCreateRandomKey` applies them to both halves of
+            // the pair, which is the bug this shape fixes.
             kSecPrivateKeyAttrs: try privateKeyAttrs(tier: tier, label: label, accessibility: accessibility),
+            kSecPublicKeyAttrs: [kSecAttrIsPermanent: false] as [CFString: Any],
         ]
 
         #if os(iOS)
@@ -307,10 +300,27 @@ public enum IdentityFactory: Sendable {
     }
 
     /// Builds the `kSecPrivateKeyAttrs` sub-dictionary for native (`SecKeyCreateRandomKey`) key
-    /// generation — reachable only for `.dataProtection` (see the caller: `.legacyNoPrompt` never
-    /// generates natively at all, only imports a software key — `importSoftwarePrivateKey` builds its
-    /// own, differently-shaped attributes directly). Uses the modern `kSecAttrAccessControl`
+    /// generation — reachable only for `.dataProtection` (`.legacyNoPrompt` also generates natively,
+    /// but via `makeNativeLegacyPrivateKey`, which builds its own, differently-shaped attributes using
+    /// `kSecAttrAccess` instead of this `kSecAttrAccessControl`). Uses the modern `kSecAttrAccessControl`
     /// (a `SecAccessControl`), required alongside `kSecUseDataProtectionKeychain: true`.
+    ///
+    /// `kSecAttrIsPermanent`/`kSecAttrLabel`/`kSecAttrApplicationTag` live **here**, not in the
+    /// caller's top-level dictionary. `SecKeyCreateRandomKey` applies top-level attributes to *both*
+    /// halves of the generated pair, so putting them there persists the **public** key into the
+    /// Keychain under the very same label and `kSecAttrApplicationLabel` (the public-key hash the
+    /// identity join keys off) as the private one. The identity is then fine in the process that
+    /// minted it — `makeIdentity` pairs the certificate with the `SecKey` it holds directly, via
+    /// `SecIdentityCreate` — but on the *next* launch a
+    /// `SecItemCopyMatching(kSecClassIdentity, kSecAttrLabel:)` lookup can join the certificate to
+    /// that stray public-key item instead, and `SecIdentityCopyPrivateKey` then hands back an
+    /// `ECPublicKey`. Signing with it fails `errSecParam`/-50 ("algorithm not supported by the key"),
+    /// which for a TLS 1.3 client means it never emits its Certificate/CertificateVerify flight at
+    /// all: the peer sits in boringssl's `read_client_certificate` state, no alert is sent by either
+    /// side, and the handshake simply stalls until some watchdog gives up. Reproduced on a real
+    /// iPhone (iOS 26): every launch *after* the one that minted the identity failed to pair this way.
+    /// The public half is never needed from the Keychain (it is recoverable from the certificate and
+    /// from the private key), so it is generated non-permanently instead.
     private static func privateKeyAttrs(tier: IdentityStoreTier, label: String, accessibility: CFString) throws -> [CFString: Any] {
         precondition(tier == .dataProtection, "native key generation is only attempted for .dataProtection")
         var accessControlError: Unmanaged<CFError>?
@@ -319,7 +329,12 @@ public enum IdentityFactory: Sendable {
                 description: accessControlError.map { String(describing: $0.takeRetainedValue()) } ?? "unknown"
             )
         }
-        return [kSecAttrAccessControl: accessControl]
+        return [
+            kSecAttrAccessControl: accessControl,
+            kSecAttrIsPermanent: true,
+            kSecAttrLabel: label,
+            kSecAttrApplicationTag: Data(label.utf8),
+        ]
     }
 
     #if os(macOS)
@@ -360,9 +375,78 @@ public enum IdentityFactory: Sendable {
         }
         return try createNoPromptAccess()
     }
+
+    /// `.legacyNoPrompt` key generation: natively, exactly like `.dataProtection` below, just with the
+    /// no-prompt `SecAccess` ACL (`kSecAttrAccess`, built by `makeNoPromptAccess`) instead of the
+    /// Data-Protection-only `kSecAttrAccessControl`, and `kSecUseDataProtectionKeychain: false` so the
+    /// key lands in the legacy/file-based keychain.
+    ///
+    /// This tier used to import a software-generated key instead (`SecItemAdd(kSecValueRef:)` on a
+    /// transient `SecKey` from `SecKeyCreateWithData`), on the theory that a *natively* legacy-keychain-
+    /// generated key comes back as an old CDSA-backed `SecKey` the modern `SecKeyAlgorithm` API can't
+    /// sign with. Two things changed that:
+    ///
+    /// 1. Direct reproduction (a standalone `swiftc`-built binary, no Xcode project involved) showed
+    ///    `SecItemAdd(kSecClassKey, kSecValueRef: <a SecKeyCreateWithData-origin key>,
+    ///    kSecUseDataProtectionKeychain: false)` fails with `errSecInvalidItemRef`/-25304 — "the
+    ///    specified item is no longer valid" — for *every* combination of `kSecAttrAccess`,
+    ///    `kSecAttrAccessible`, and an explicit `kSecUseKeychain` target tried, including all three
+    ///    omitted. The legacy/file-based keychain does not accept a "foreign" `SecKey` add via
+    ///    `kSecValueRef` at all; it only accepts a key it generated itself. That import path was
+    ///    therefore never going to work for this tier, regardless of ACL tuning — this is the actual
+    ///    root cause of the "no persistent Keychain tier is usable" defect this fix closes.
+    /// 2. The CDSA-signing concern turned out not to hold on this macOS release: the same repro process,
+    ///    generating a key with `SecKeyCreateRandomKey` directly in the legacy keychain (this function),
+    ///    confirmed `SecKeyIsAlgorithmSupported`/`SecKeyCreateSignature` both succeed for the resulting
+    ///    (CDSA-backed) key with `.ecdsaSignatureMessageX962SHA256` — exactly the algorithm `canSign`
+    ///    and the TLS handshake use — as well as `.ecdsaSignatureDigestX962SHA256`.
+    ///
+    /// Retries a handful of times on `errSecItemNotFound`/-25300 ("failed to generate CDSA key"):
+    /// observed, empirically, as an intermittent failure of this exact call when *another* process is
+    /// concurrently generating/deleting legacy-keychain keys (heavy contention on the legacy keychain's
+    /// single-threaded CSSM/CDSA backend, `securityd`) — never when this call runs alone. A short bounded
+    /// retry absorbs that transient contention instead of surfacing it as "no persistent Keychain tier is
+    /// usable", which would otherwise reintroduce a (rarer, but real) version of the defect this fix closes.
+    private static func makeNativeLegacyPrivateKey(label: String) throws -> (SecKey, IdentityBackingKind) {
+        let attributes: [CFString: Any] = [
+            kSecAttrKeyType: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecAttrKeySizeInBits: 256,
+            kSecAttrSynchronizable: false,
+            kSecUseDataProtectionKeychain: false,
+            // Same split as `privateKeyAttrs` — and for the same reason (see its doc comment): a
+            // top-level `kSecAttrIsPermanent`/label/tag would persist the public half too, under the
+            // identity join's own key, and a later lookup could hand back a signing-incapable
+            // `ECPublicKey` as the "private" key.
+            kSecPrivateKeyAttrs: [
+                kSecAttrIsPermanent: true,
+                kSecAttrLabel: label,
+                kSecAttrApplicationTag: Data(label.utf8),
+                kSecAttrAccess: try makeNoPromptAccess(label: label),
+            ] as [CFString: Any],
+            kSecPublicKeyAttrs: [kSecAttrIsPermanent: false] as [CFString: Any],
+        ]
+        var lastError: Unmanaged<CFError>?
+        for attempt in 0..<3 {
+            var error: Unmanaged<CFError>?
+            if let secKey = SecKeyCreateRandomKey(attributes as CFDictionary, &error) {
+                return (secKey, .keychainSecKey)
+            }
+            lastError = error
+            if attempt < 2 {
+                Thread.sleep(forTimeInterval: 0.05 * Double(attempt + 1))
+            }
+        }
+        throw IdentityFactoryError.keyGenerationFailed(
+            description: lastError.map { String(describing: $0.takeRetainedValue()) } ?? "unknown"
+        )
+    }
     #endif
 
     // MARK: - Path B (persistent variant): import a software CryptoKit key into the Keychain
+    //
+    // Reachable only for `.dataProtection` now — see `makeNativeLegacyPrivateKey`'s doc comment for why
+    // `.legacyNoPrompt` no longer uses this path at all (a foreign `SecKey`'s `kSecValueRef` cannot be
+    // added to the legacy/file-based keychain).
 
     private static func importSoftwarePrivateKey(
         _ privateKey: P256.Signing.PrivateKey,
@@ -370,35 +454,24 @@ public enum IdentityFactory: Sendable {
         label: String,
         accessibility: CFString
     ) throws -> SecKey {
+        precondition(tier == .dataProtection, "software-key import is only attempted for .dataProtection")
         let secKey = try makeTransientSecKey(privateKey)
 
-        var addQuery: [CFString: Any] = [
+        var accessControlError: Unmanaged<CFError>?
+        guard let accessControl = SecAccessControlCreateWithFlags(nil, accessibility, [], &accessControlError) else {
+            throw IdentityFactoryError.accessControlCreationFailed(
+                description: accessControlError.map { String(describing: $0.takeRetainedValue()) } ?? "unknown"
+            )
+        }
+        let addQuery: [CFString: Any] = [
             kSecClass: kSecClassKey,
             kSecValueRef: secKey,
             kSecAttrLabel: label,
             kSecAttrApplicationTag: Data(label.utf8),
             kSecAttrSynchronizable: false,
-            kSecUseDataProtectionKeychain: tier == .dataProtection,
+            kSecUseDataProtectionKeychain: true,
+            kSecAttrAccessControl: accessControl,
         ]
-        switch tier {
-        case .dataProtection:
-            var accessControlError: Unmanaged<CFError>?
-            guard let accessControl = SecAccessControlCreateWithFlags(nil, accessibility, [], &accessControlError) else {
-                throw IdentityFactoryError.accessControlCreationFailed(
-                    description: accessControlError.map { String(describing: $0.takeRetainedValue()) } ?? "unknown"
-                )
-            }
-            addQuery[kSecAttrAccessControl] = accessControl
-        case .legacyNoPrompt:
-            #if os(macOS)
-            addQuery[kSecAttrAccessible] = accessibility
-            addQuery[kSecAttrAccess] = try makeNoPromptAccess(label: label)
-            #else
-            throw IdentityFactoryError.accessControlCreationFailed(description: "legacyNoPrompt tier is macOS-only")
-            #endif
-        case .ephemeral:
-            throw IdentityFactoryError.accessControlCreationFailed(description: "ephemeral identities never persist a private key")
-        }
 
         let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
         guard addStatus == errSecSuccess || addStatus == errSecDuplicateItem else {

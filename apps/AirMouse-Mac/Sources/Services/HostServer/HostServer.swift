@@ -377,6 +377,12 @@ public actor HostServer: HostServing {
             pairingWindowOpen: windowOpen,
             pendingConnectionCount: pendingCount
         )
+        // `.notice` (persisted without `sudo log config`, same rationale as `accept(_:)`'s connection-
+        // accepted line): the verify block's own decision, for diagnosing "phone can't connect" reports
+        // without a debugger — fp prefix only (spec §7.4: FP prefixes are the one `.public` peer
+        // identifier), plus whether it was already trusted, whether a pairing window was open, and the
+        // resulting decision.
+        Log.net.notice("HostServer: verifyPeer fp=\(fingerprint.shortLogPrefix, privacy: .public) known=\(trusted.contains(fingerprint), privacy: .public) windowOpen=\(windowOpen, privacy: .public) decision=\(String(describing: decision), privacy: .public)")
         return decision != .reject
     }
 

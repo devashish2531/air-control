@@ -5,8 +5,9 @@
  * Air Control landing page — design foundation.
  *
  * Apple-style marketing page: system font, one accent, translucent chrome,
- * big-radius tiles, black band sections, calm motion. Light is the base
- * palette; `prefers-color-scheme: dark` swaps only the tokens below.
+ * big-radius tiles, black band sections, calm motion. The site is light-only
+ * (Apple product pages stay light regardless of OS setting) — the only dark
+ * surface is `.band--dark`, a local token override for marketing bands.
  *
  * Ownership: this file is the shared foundation (tokens, reset, typography,
  * primitives, header/footer chrome). Hero-specific rules live in hero.css,
@@ -18,7 +19,7 @@
 /* -------------------------------------------------------------------------- */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   /* Surfaces */
   --bg: #ffffff;
@@ -30,7 +31,7 @@
   /* Text — see the typography section for size/weight roles. */
   --text: #1d1d1f;
   --text-secondary: #6e6e73; /* 4.6:1 on white — OK for body text */
-  --text-tertiary: #86868b; /* >=18px text or non-essential only (3.5:1) */
+  --text-tertiary: #7d7d82; /* >=18px text or non-essential only (measured 3.76:1 on --bg-secondary) */
 
   /* Separators */
   --separator: rgba(0, 0, 0, 0.08);
@@ -41,6 +42,11 @@
   --accent-hover: #0077ed;
   --accent-contrast: #ffffff;
   --accent-tint: rgba(0, 113, 227, 0.1);
+  /* Text-sized accent color: --accent on --accent-tint is only 4.10:1, below
+     4.5:1 at the sub-18px sizes it's used at (badge, eyebrow, link-arrow).
+     --accent-text keeps that same look, just darkened enough to clear it —
+     measured 5.01:1 on the badge's tint-over-white, 5.73:1 on plain --bg. */
+  --accent-text: #0064c9;
   --link: #0066cc;
 
   /* Translucent chrome (nav, menu sheet) */
@@ -93,6 +99,69 @@
     "Apple Color Emoji", "Segoe UI Emoji";
   --font-mono:
     ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* -------------------------------------------------------------------- */
+  /* v2 — Apple system palette, gradient cards/text/band (DESIGN-SPEC-v2.md).
+     Supersedes the v1 "no gradients / one accent" rule. Light-only, like the
+     rest of the page — these are ambient hues, not theme-switched tokens. */
+  /* -------------------------------------------------------------------- */
+  --blue: #0a84ff;
+  --indigo: #5e5ce6;
+  --purple: #bf5af2;
+  --pink: #ff375f;
+  --orange: #ff9f0a;
+  --yellow: #ffd60a;
+  --green: #30d158;
+  --mint: #66d4cf;
+  --teal: #5ac8fa;
+
+  /* Gradient text (see .grad-text below). */
+  --grad-text-hero: linear-gradient(90deg, #0a84ff 0%, #5e5ce6 50%, #bf5af2 100%);
+  --grad-text-warm: linear-gradient(90deg, #ff375f 0%, #ff9f0a 100%);
+  --grad-text-cool: linear-gradient(90deg, #30d158 0%, #5ac8fa 100%);
+
+  /*
+   * Bento card surfaces. Contrast measured with
+   * scratchpad/contrast.mjs (see the implementation report for the full
+   * table) — every stop here is unchanged from DESIGN-SPEC-v2.md because
+   * #1d1d1f/white text already clears 4.5:1 against both ends of each of
+   * these gradients.
+   */
+  --card-blue: linear-gradient(160deg, #eaf3ff 0%, #d6e8ff 100%);
+  --card-violet: linear-gradient(160deg, #1b1a3f 0%, #2d1f5e 55%, #4a2b8a 100%);
+  --card-peach: linear-gradient(160deg, #ffe9f3 0%, #ffd9c2 100%);
+  --card-black: linear-gradient(160deg, #101012 0%, #1c1c1e 100%);
+  --card-mint: linear-gradient(160deg, #e6fbf7 0%, #d5f6ff 100%);
+  --card-gray: #f5f5f7;
+  --card-aurora: linear-gradient(135deg, #3a0f3f 0%, #141a3a 45%, #0b2a2e 100%);
+  /*
+   * Spec default #2997ff measures only 3.02:1 for white body text (fails
+   * 4.5:1) — darkened to clear it at 17px/regular (6.18:1) while staying an
+   * unmistakably-blue "open source" card. See the contrast report.
+   */
+  --card-solid-blue: #005fc0;
+  /*
+   * Spec defaults (#0a84ff / #5e5ce6 / #bf5af2) measure as low as 3.52:1 for
+   * white text, and lower still at the reduced-opacity white used for the
+   * lede (85%) and proof line (75%) — well short of 4.5:1. All three stops
+   * darkened until white at every opacity used on this band clears 4.5:1 at
+   * every stop (worst case 5.05:1, white75% on the middle stop) — see the
+   * contrast report.
+   */
+  --band-cta: linear-gradient(120deg, #0052a1 0%, #4442bd 55%, #7527a6 100%);
+  --stage:
+    radial-gradient(60% 70% at 30% 20%, #e3edff 0%, transparent 70%),
+    radial-gradient(50% 60% at 80% 30%, #f1e6ff 0%, transparent 70%),
+    radial-gradient(60% 60% at 60% 90%, #ffe9dc 0%, transparent 70%), #f5f5f7;
+
+  /*
+   * --text-secondary (#6e6e73) measures below 4.5:1 against the darker
+   * stops of --card-blue/--card-peach/--card-mint (and even the lightest
+   * stop of --card-peach) — this local override is applied on those three
+   * card tones only (see .card--blue/.card--peach/.card--mint in
+   * sections.css), never globally.
+   */
+  --text-secondary-on-card: #515154;
 }
 
 @media (min-width: 64rem) {
@@ -101,45 +170,11 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #000000;
-    --bg-secondary: #1d1d1f;
-    --bg-tertiary: #2c2c2e;
-    --surface: #1c1c1e;
-    --surface-elevated: #2c2c2e;
-
-    --text: #f5f5f7;
-    --text-secondary: #a1a1a6;
-    --text-tertiary: #86868b;
-
-    --separator: rgba(255, 255, 255, 0.12);
-    --separator-strong: rgba(255, 255, 255, 0.24);
-
-    --accent: #2997ff;
-    --accent-hover: #47a6ff;
-    --accent-contrast: #000000;
-    --accent-tint: rgba(41, 151, 255, 0.16);
-    --link: #2997ff;
-
-    --material: rgba(0, 0, 0, 0.6);
-
-    --shadow-1:
-      0 1px 2px rgba(0, 0, 0, 0.5),
-      0 2px 8px rgba(0, 0, 0, 0.5);
-    --shadow-2:
-      0 4px 16px rgba(0, 0, 0, 0.6),
-      0 1px 3px rgba(0, 0, 0, 0.55);
-    --shadow-3:
-      0 24px 60px rgba(0, 0, 0, 0.7),
-      0 6px 16px rgba(0, 0, 0, 0.6);
-  }
-}
-
 /*
- * Inverted band: a full-bleed section that is always dark, in either theme.
- * Redefines the same token names locally so children (buttons, tiles, links)
- * need no special casing — see the Security section in sections.css.
+ * Inverted band: a full-bleed section that is always dark, regardless of the
+ * (light-only) ambient theme. Redefines the same token names locally so
+ * children (buttons, tiles, links) need no special casing — see the Stats
+ * band in Sections.tsx.
  */
 .band--dark {
   --bg: #000000;
@@ -159,6 +194,7 @@
   --accent-hover: #47a6ff;
   --accent-contrast: #000000;
   --accent-tint: rgba(41, 151, 255, 0.16);
+  --accent-text: #2997ff;
   --link: #2997ff;
 
   --material: rgba(0, 0, 0, 0.6);
@@ -175,45 +211,6 @@
 
   background: var(--bg);
   color: var(--text);
-}
-
-/* The inverse of .band--dark, needed only when the ambient theme is dark. */
-@media (prefers-color-scheme: dark) {
-  .band--light {
-    --bg: #ffffff;
-    --bg-secondary: #f5f5f7;
-    --bg-tertiary: #e8e8ed;
-    --surface: #ffffff;
-    --surface-elevated: #ffffff;
-
-    --text: #1d1d1f;
-    --text-secondary: #6e6e73;
-    --text-tertiary: #86868b;
-
-    --separator: rgba(0, 0, 0, 0.08);
-    --separator-strong: rgba(0, 0, 0, 0.16);
-
-    --accent: #0071e3;
-    --accent-hover: #0077ed;
-    --accent-contrast: #ffffff;
-    --accent-tint: rgba(0, 113, 227, 0.1);
-    --link: #0066cc;
-
-    --material: rgba(255, 255, 255, 0.72);
-
-    --shadow-1:
-      0 1px 2px rgba(0, 0, 0, 0.04),
-      0 2px 8px rgba(0, 0, 0, 0.04);
-    --shadow-2:
-      0 4px 16px rgba(0, 0, 0, 0.08),
-      0 1px 3px rgba(0, 0, 0, 0.05);
-    --shadow-3:
-      0 24px 60px rgba(0, 0, 0, 0.14),
-      0 6px 16px rgba(0, 0, 0, 0.08);
-
-    background: var(--bg);
-    color: var(--text);
-  }
 }
 
 /* Reduced transparency: solid chrome, no blur. */
@@ -234,12 +231,6 @@
   :root {
     --separator: var(--separator-strong);
     --text-secondary: #515154;
-  }
-}
-
-@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
-  :root {
-    --text-secondary: #c7c7cc;
   }
 }
 
@@ -379,6 +370,45 @@ main {
   color: var(--text-secondary);
 }
 
+/*
+ * Gradient text (v2, DESIGN-SPEC-v2.md). Used sparingly: the hero h1's
+ * second sentence, one h2 continuation per section at most, and stat
+ * numbers — never as the only way information is conveyed (headings still
+ * carry the words either way).
+ */
+.grad-text {
+  background: var(--grad-text-hero);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.grad-text--warm {
+  background-image: var(--grad-text-warm);
+}
+
+.grad-text--cool {
+  background-image: var(--grad-text-cool);
+}
+
+/* Browsers without text-clip support: fall back to a solid indigo, not
+   invisible transparent-on-transparent text. */
+@supports not (background-clip: text) {
+  .grad-text {
+    background: none;
+    color: var(--indigo);
+  }
+}
+
+/* Forced/high-contrast colors mode: gradients and transparent text both
+   fight the user's chosen palette — fall back to the system text color. */
+@media (forced-colors: active) {
+  .grad-text {
+    background: none;
+    color: CanvasText;
+  }
+}
+
 .lede {
   font-size: clamp(1.125rem, 1.8vw, 1.375rem);
   line-height: 1.4;
@@ -395,7 +425,7 @@ main {
   letter-spacing: 0.06em;
   font-weight: 600;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .small {
@@ -456,6 +486,17 @@ main {
   background: var(--separator-strong);
 }
 
+/* White pill button for dark/gradient bands (v2 final CTA, .band--cta). */
+.button--light {
+  background: #ffffff;
+  color: var(--text);
+}
+
+.button--light:hover {
+  background: #f0f0f2;
+  color: var(--text);
+}
+
 .button--small {
   min-height: 32px;
   padding: 0 1rem;
@@ -463,16 +504,25 @@ main {
 }
 
 .link-arrow {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  color: var(--link);
+  color: var(--accent-text);
   font-weight: 500;
   text-decoration: none;
 }
 
 .link-arrow:hover {
   text-decoration: underline;
+}
+
+/* Invisible hit-area extension so the link clears 44px tall without growing
+   its visible size — harmless when a link-arrow sits mid-sentence too. */
+.link-arrow::before {
+  content: "";
+  position: absolute;
+  inset: -12px 0;
 }
 
 .link-arrow__chevron {
@@ -496,7 +546,7 @@ main {
   padding: 0.3rem 0.75rem;
   border-radius: var(--r-pill);
   background: var(--accent-tint);
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -512,15 +562,15 @@ main {
   padding: clamp(1.5rem, 3vw, 2.25rem);
 }
 
-@media (prefers-color-scheme: dark) {
-  .tile {
-    background: var(--surface);
-    border: 1px solid var(--separator);
-  }
-}
-
 .band--dark .tile {
   background: var(--surface);
+  border: 1px solid var(--separator);
+}
+
+/* A tile that sits on a --bg-secondary section: white so it still reads as
+   a card, with a hairline border since white-on-white has no fill contrast. */
+.tile--outline {
+  background: var(--bg);
   border: 1px solid var(--separator);
 }
 
@@ -530,16 +580,16 @@ main {
   }
 }
 
+/* A full-bleed section tinted --bg-secondary (alternates with plain white
+   sections and .band--dark — see the page outline in Sections.tsx). */
+.section--tint {
+  background: var(--bg-secondary);
+}
+
 .grouped {
   background: var(--surface);
   border-radius: var(--r-md);
   overflow: hidden;
-}
-
-@media (prefers-color-scheme: dark) {
-  .grouped {
-    background: #1c1c1e;
-  }
 }
 
 .band--dark .grouped {
@@ -625,7 +675,7 @@ main {
 .skip-link {
   position: absolute;
   left: 0.75rem;
-  top: -100px;
+  top: 0.75rem;
   z-index: var(--z-skip);
   padding: 0.7rem 1.1rem;
   background: var(--accent);
@@ -633,11 +683,12 @@ main {
   border-radius: var(--r-sm);
   font-weight: 600;
   text-decoration: none;
-  transition: top var(--dur-ui) var(--ease-out);
+  transform: translateY(-200%);
+  transition: transform var(--dur-ui) var(--ease-out);
 }
 
 .skip-link:focus {
-  top: 0.75rem;
+  transform: translateY(0);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -674,15 +725,26 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  flex: none;
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .brand img {
+  flex: none;
   border-radius: 22%;
+}
+
+/* Icon-only below 360px: the label would otherwise crowd the Download pill
+   and menu button off a 320-360px viewport. */
+@media (max-width: 22.5rem) {
+  .brand__label {
+    display: none;
+  }
 }
 
 .nav {
@@ -724,6 +786,7 @@ main {
 }
 
 .nav__cta a:not(.button) {
+  position: relative;
   color: var(--text-secondary);
   font-size: 0.9375rem;
   font-weight: 500;
@@ -731,8 +794,25 @@ main {
   white-space: nowrap;
 }
 
+/* Invisible hit-area extension so the text-only nav link clears 44px tall
+   without growing its visible size. */
+.nav__cta a:not(.button)::before {
+  content: "";
+  position: absolute;
+  inset: -12px 0;
+}
+
 .nav__cta a:not(.button):hover {
   color: var(--text);
+}
+
+/* Below 48rem the section nav collapses into the menu sheet, which already
+   carries this same GitHub link — hide the bar copy so Download + the menu
+   button are the only things left in nav__cta. */
+@media (max-width: 48rem) {
+  .nav__github {
+    display: none;
+  }
 }
 
 .menu-button {

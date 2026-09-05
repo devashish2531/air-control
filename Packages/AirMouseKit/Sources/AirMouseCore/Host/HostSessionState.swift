@@ -75,10 +75,26 @@ public enum HostSessionStateMachine {
             // Re-delivering the acceptance event is a no-op; the state already reflects it.
             return (.tlsAccepted(peer: peer), [])
 
-        // Known peer: `hello { pairing: false }` (or, unusually, true) both authenticate — the
-        // certificate alone already proved trust (spec §3.2.1(a)); pairing again is harmless.
-        case (.tlsAccepted(.known), .helloReceivedPairingFalse), (.tlsAccepted(.known), .helloReceivedPairingTrue):
+        // Known peer, `hello { pairing: false }`: the certificate alone already proved trust
+        // (spec §3.2.1(a)) — authenticate directly, no pairing flow involved.
+        case (.tlsAccepted(.known), .helloReceivedPairingFalse):
             return (.authenticated, [.completeAuthentication])
+
+        // Known peer, `hello { pairing: true }`: the device re-scanned a pairing QR while this
+        // Mac already trusts its certificate (e.g. paired once, "Forget"-ten only on one side, or
+        // the owner just scanned again out of habit). Spec §3.2/§3.3 don't define this case; this
+        // used to fall into the case above and authenticate immediately without ever answering
+        // `pairChallenge`/`pairConfirm` — which the client's `ClientSession.pair(url:)` always
+        // waits for first, so it hung until the 6 s no-heartbeat watchdog closed the connection
+        // out from under it (surfaced to the user as a bare "internal" error). The decision
+        // recorded here: re-pairing a trusted device must still succeed, so run it through the
+        // exact same pairing flow as an unknown peer (`HostSession.beginPairingChallenge` decides,
+        // from the pairing window's state, whether to actually run it or answer
+        // `pairing.alreadyTrusted`) — `SessionManager` then *updates* the existing trust record
+        // instead of adding a duplicate, since `HostEvent.clientAuthenticated(viaPairingFlow:)`
+        // still distinguishes "known at TLS accept" from "brand new".
+        case (.tlsAccepted(.known), .helloReceivedPairingTrue):
+            return (.pairing, [.beginPairingFlow])
 
         // Unknown peer, window was open at accept: only a pairing hello is acceptable.
         case (.tlsAccepted(.unknown), .helloReceivedPairingTrue):

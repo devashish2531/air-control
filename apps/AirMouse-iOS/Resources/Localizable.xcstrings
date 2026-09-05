@@ -2907,6 +2907,88 @@
     },
     "Your Macs" : {
       "comment" : "Devices screen: trusted hosts section header"
+    },
+    "Not accepted by your Mac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not accepted by your Mac"
+          }
+        }
+      }
+    },
+    "Your Mac didn't accept this iPhone. Open Pair New Device on the Mac and scan the new code." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Mac didn't accept this iPhone. Open Pair New Device on the Mac and scan the new code."
+          }
+        }
+      }
+    },
+    "Mac identity changed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac identity changed"
+          }
+        }
+      }
+    },
+    "This Mac's identity has changed. Forget it and pair again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Mac's identity has changed. Forget it and pair again."
+          }
+        }
+      }
+    },
+    "Secure connection failed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secure connection failed"
+          }
+        }
+      }
+    },
+    "Secure connection failed (\\(detail)). Update both apps and try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secure connection failed (\\(detail)). Update both apps and try again."
+          }
+        }
+      }
+    },
+    "Try Again" : {
+      "comment" : "Devices screen: retries a failed connect-to-known-host attempt",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        }
+      }
+    },
+    "Forget and pair again" : {
+      "comment" : "Devices screen: destructive action when the Mac's identity changed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forget and pair again"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

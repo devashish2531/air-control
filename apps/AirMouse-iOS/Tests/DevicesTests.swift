@@ -68,4 +68,91 @@ private func makeRow(hostID: Data?, fingerprintByte: UInt8) -> KnownHostRow {
         let row = makeRow(hostID: Data([0x01]), fingerprintByte: 42)
         #expect(row.id == row.record.fingerprint.hexString)
     }
+
+    @Test func forgettingAKnownHostMakesItReappearAsUnpaired() {
+        // spec item 3: "After Forget, a discovered unpaired Mac shows a 'Pair' affordance" — driven
+        // entirely by `unpaired`'s own filter once the record is gone from `knownHostRows`.
+        let hostID = Data([0x01])
+        let discovered = [makeHost(id: hostID, name: "Devashish's Mac mini")]
+        let rowsBeforeForget = [makeRow(hostID: hostID, fingerprintByte: 9)]
+        #expect(DevicesScreen.unpaired(discovered: discovered, knownHostRows: rowsBeforeForget).isEmpty)
+
+        let rowsAfterForget: [KnownHostRow] = [] // `ConnectionManager.forget` removes the row and calls `refreshKnownHostRows()`.
+        #expect(DevicesScreen.unpaired(discovered: discovered, knownHostRows: rowsAfterForget).map(\.id) == [hostID])
+    }
+}
+
+// MARK: - Failure-title copy (spec item 3: "for `hostIdentityChanged` the destructive action
+// reads 'Forget and pair again'") — pure, no manager needed.
+
+@Suite struct DevicesForgetActionTitleTests {
+    @Test func hostIdentityChangedUsesForgetAndPairAgain() {
+        #expect(DevicesScreen.forgetActionTitle(for: .hostIdentityChanged) == "Forget and pair again")
+    }
+
+    @Test func everyOtherFailureUsesTheUsualForgetMacWording() {
+        #expect(DevicesScreen.forgetActionTitle(for: .hostUnreachable(hostName: "Marcus's Mac")) == "Forget Mac")
+        #expect(DevicesScreen.forgetActionTitle(for: .hostRefusedUntrusted) == "Forget Mac")
+        #expect(DevicesScreen.forgetActionTitle(for: .tlsHandshakeFailed(detail: "timed out")) == "Forget Mac")
+    }
+}
+
+// MARK: - Connect-failure alert flow with a mock manager (spec item 3: "on failure an alert with
+// the real reason") — `@MainActor` because `DeviceConnectAttemptObserving` (and the real
+// `ConnectionManager` it mirrors) are MainActor-isolated.
+
+@MainActor
+private final class MockDeviceConnectManager: DeviceConnectAttemptObserving {
+    // Fully qualified: `AirMouseCore` (imported above for `TrustedDeviceRecord`/`Fingerprint`)
+    // also exports a `ConnectionState`, ambiguous with this app's own shell-facing one otherwise.
+    var connectionState: Air_Mouse.ConnectionState
+    var lastError: AppError?
+
+    init(connectionState: Air_Mouse.ConnectionState, lastError: AppError?) {
+        self.connectionState = connectionState
+        self.lastError = lastError
+    }
+}
+
+@MainActor
+@Suite struct DevicesConnectFailureAlertTests {
+    private func makeRecord(fingerprintByte: UInt8 = 1) -> TrustedDeviceRecord {
+        let fingerprint = Fingerprint(bytes: [UInt8](repeating: fingerprintByte, count: 32))!
+        return TrustedDeviceRecord(fingerprint: fingerprint, name: "Marcus's Mac", model: "Mac15,6", osVersion: "macOS 15.0", firstPaired: Date(), lastSeen: Date())
+    }
+
+    @Test func noManagerMeansNoAlert() {
+        #expect(DevicesScreen.failureAlert(afterConnectingTo: makeRecord(), manager: nil) == nil)
+    }
+
+    @Test func successfulConnectionShowsNoAlert() {
+        let mock = MockDeviceConnectManager(connectionState: .connected(hostName: "Marcus's Mac"), lastError: nil)
+        #expect(DevicesScreen.failureAlert(afterConnectingTo: makeRecord(), manager: mock) == nil)
+    }
+
+    @Test func stillConnectingShowsNoAlertYet() {
+        let mock = MockDeviceConnectManager(connectionState: .connecting, lastError: nil)
+        #expect(DevicesScreen.failureAlert(afterConnectingTo: makeRecord(), manager: mock) == nil)
+    }
+
+    @Test func failedConnectionSurfacesTheRealErrorForTheSameRecord() {
+        let record = makeRecord()
+        let mock = MockDeviceConnectManager(connectionState: .failed(reason: "Couldn't reach"), lastError: .hostRefusedUntrusted)
+        let alert = DevicesScreen.failureAlert(afterConnectingTo: record, manager: mock)
+        #expect(alert?.error == .hostRefusedUntrusted)
+        #expect(alert?.record == record)
+    }
+
+    @Test func hostIdentityChangedIsSurfacedVerbatim() {
+        let mock = MockDeviceConnectManager(connectionState: .failed(reason: "identity changed"), lastError: .hostIdentityChanged)
+        let alert = DevicesScreen.failureAlert(afterConnectingTo: makeRecord(), manager: mock)
+        #expect(alert?.error == .hostIdentityChanged)
+    }
+
+    @Test func failedStateWithNoLastErrorShowsNoAlert() {
+        // Defensive: `lastError` and `connectionState` are two separate published properties: if
+        // they're ever momentarily out of sync, don't show a blank/stale alert.
+        let mock = MockDeviceConnectManager(connectionState: .failed(reason: "x"), lastError: nil)
+        #expect(DevicesScreen.failureAlert(afterConnectingTo: makeRecord(), manager: mock) == nil)
+    }
 }

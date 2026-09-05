@@ -105,6 +105,17 @@ public enum AppError: Sendable, Equatable {
     /// changed) — as opposed to `.pairingFingerprintMismatch`, which is the same failure during a
     /// fresh QR pairing attempt (spec §9 E-PAIR-FP already covers that case with its own copy).
     case tlsVerificationFailed(hostName: String)
+    /// The Mac's own verify block rejected our client certificate (fatal TLS alert) — most often
+    /// its pairing window is closed and it no longer recognizes this client as trusted. Distinct
+    /// from `.hostUnreachable` (never reached a TLS peer at all) and from `.hostIdentityChanged`
+    /// (a rejection *we* made of the Mac's certificate, not the Mac rejecting us).
+    case hostRefusedUntrusted
+    /// Reconnect to an already-trusted Mac whose certificate no longer matches the pinned
+    /// fingerprint on file — the Mac's identity was regenerated (reinstalled/reset helper).
+    case hostIdentityChanged
+    /// Our own client identity couldn't complete the TLS handshake (e.g. a Secure Enclave key that
+    /// can't sign) — the peer's certificate was accepted, but we never produced a valid response.
+    case tlsHandshakeFailed(detail: String)
     case pairingURLInvalid
     case pairingVersionMismatch
     case pairingFingerprintMismatch
@@ -117,6 +128,14 @@ public enum AppError: Sendable, Equatable {
     case pairingRateLimited
     case pairingDeviceLimit
     case pairingHostProofInvalid
+    /// Not part of the original spec §9 table: this device is already trusted by the Mac, but it
+    /// re-scanned a pairing QR while no pairing window was open (spec decision, see
+    /// `AirMouseCore.HostSessionStateMachine`) — the fix is simply to reconnect, not to pair again.
+    case pairingAlreadyTrusted
+    /// A peer message arrived that made no sense for the phase the session was in (spec decision:
+    /// see `AirMouseCore.CoreError.protocolMismatch`) — distinct from `.generic`'s bare wire code so
+    /// this at least reads as a real, if unexpected, protocol-level problem.
+    case protocolMismatch(detail: String)
     case authUntrusted
     case authRevoked
     case versionAppOutdated
@@ -180,6 +199,24 @@ public enum AppError: Sendable, Equatable {
                 title: String(localized: "Couldn't verify \(hostName)"),
                 message: String(localized: "Its certificate didn't match what Air Mouse expected. If you reinstalled or reset the Mac helper, forget this Mac and pair again."),
                 actions: [.forgetMac, .scanQR])
+        case .hostRefusedUntrusted:
+            return ErrorPresentation(
+                id: "E-HOST-REFUSED", style: .alert,
+                title: String(localized: "Not accepted by your Mac"),
+                message: String(localized: "Your Mac didn't accept this iPhone. Open Pair New Device on the Mac and scan the new code."),
+                actions: [.scanQR])
+        case .hostIdentityChanged:
+            return ErrorPresentation(
+                id: "E-HOST-IDENTITY-CHANGED", style: .alert,
+                title: String(localized: "Mac identity changed"),
+                message: String(localized: "This Mac's identity has changed. Forget it and pair again."),
+                actions: [.forgetMac, .scanQR])
+        case .tlsHandshakeFailed(let detail):
+            return ErrorPresentation(
+                id: "E-TLS-HANDSHAKE", style: .alert,
+                title: String(localized: "Secure connection failed"),
+                message: String(localized: "Secure connection failed (\(detail)). Update both apps and try again."),
+                actions: [.retry])
         case .pairingURLInvalid:
             return ErrorPresentation(
                 id: "E-PAIR-URL", style: .alert,
@@ -228,6 +265,18 @@ public enum AppError: Sendable, Equatable {
                 title: String(localized: "Security check failed"),
                 message: String(localized: "Your Mac couldn't prove it showed this code. Pairing was cancelled."),
                 actions: [.scanQR])
+        case .pairingAlreadyTrusted:
+            return ErrorPresentation(
+                id: "E-PAIR-ALREADYTRUSTED", style: .alert,
+                title: String(localized: "Already paired"),
+                message: String(localized: "This iPhone is already paired with this Mac. Just reconnect instead of scanning again."),
+                actions: [.reconnect])
+        case .protocolMismatch(let detail):
+            return ErrorPresentation(
+                id: "E-PROTO-MISMATCH", style: .alert,
+                title: String(localized: "Connection problem"),
+                message: detail,
+                actions: [.retry])
         case .authUntrusted:
             return ErrorPresentation(
                 id: "E-AUTH-UNTRUSTED", style: .alert,

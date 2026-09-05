@@ -58,38 +58,12 @@
   align-items: center;
   gap: 0.6rem;
   margin-top: 0.25rem;
+  width: 100%;
   color: var(--text-secondary);
 }
 
 .hero__requirements {
   margin: 0;
-}
-
-.hero__brew {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.hero__brew-code {
-  display: inline-block;
-  padding: 0.4rem 0.85rem;
-  border-radius: var(--r-sm);
-  background: var(--bg-secondary);
-  color: var(--text);
-}
-
-@media (prefers-color-scheme: dark) {
-  .hero__brew-code {
-    background: var(--surface);
-    border: 1px solid var(--separator);
-  }
-}
-
-.hero__brew-note {
-  margin: 0;
-  color: var(--text-secondary);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -139,12 +113,31 @@
 /* (0-2-0 beats 0-1-0) without touching globals.css.                          */
 /* -------------------------------------------------------------------------- */
 
-.hero__device {
+/*
+ * Stage panel: a soft --bg-secondary plinth behind the device composition so
+ * it reads as a product shot rather than a bare illustration floating on the
+ * page. Bigger than .hero__device on every side so the tint bleeds out from
+ * behind it; the device itself carries the entrance animation, so the panel
+ * is deliberately static (no motion of its own).
+ */
+.hero__stage {
   width: 100%;
-  max-width: 900px;
+  max-width: 1160px;
   margin-inline: auto;
   margin-top: clamp(2.75rem, 6vw, 4.5rem);
-  container-type: inline-size;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border-radius: var(--r-xl);
+  /* v2: soft blue/lavender/peach mesh (DESIGN-SPEC-v2.md §2) instead of the
+     flat --bg-secondary plinth — subtle, not saturated; the device mock
+     above it is unchanged. */
+  background: var(--stage);
+}
+
+.hero__device {
+  width: 100%;
+  max-width: 1008px;
+  margin-inline: auto;
+  container: hero-device / inline-size;
 }
 
 .hero__device[data-reveal] {
@@ -193,12 +186,6 @@
   background: var(--surface);
   box-shadow: var(--shadow-3);
   overflow: hidden;
-}
-
-@media (prefers-color-scheme: dark) {
-  .mac {
-    border: 1px solid var(--separator-strong);
-  }
 }
 
 .mac__bar {
@@ -305,14 +292,29 @@
   flex-direction: column;
 }
 
+/*
+ * The island sits in its own flex row, sized in container-query units, so it
+ * always reserves real space above the title row. (Percentage padding on
+ * .phone__titlebar used to try to reserve that space instead, but padding
+ * percentages resolve against the containing block's *width* even for
+ * padding-top/bottom — on a phone silhouette that is much taller than it is
+ * wide, that meant the reserved gap was too small and the island overlapped
+ * the title row. cqw sidesteps that mismatch entirely.)
+ */
+.phone__inset {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  padding-block: 2.4cqw 1.6cqw;
+}
+
 .phone__island {
-  position: absolute;
-  top: 2.6%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 34%;
-  height: 3.6%;
-  min-height: 6px;
+  width: 9cqw;
+  height: 2.3cqw;
+  min-width: 22px;
+  min-height: 7px;
+  max-width: 58px;
+  max-height: 16px;
   border-radius: var(--r-pill);
   background: #000;
 }
@@ -322,7 +324,7 @@
   align-items: center;
   justify-content: center;
   gap: 1.8cqw;
-  padding: 11% 6% 3%;
+  padding: 0 6% 3%;
 }
 
 .phone__app-icon {
@@ -347,16 +349,26 @@
 }
 
 .phone__tab {
-  flex: 1;
+  /* flex-basis 0 (not auto) plus min-width: 0 is what actually makes the
+     four segments equal width — flex items otherwise refuse to shrink below
+     their own content's min-content size, so "Keys" and "Remote" (the
+     longest labels) would win extra width over "Pad" and "Air". */
+  flex: 1 1 0;
+  min-width: 0;
   text-align: center;
   padding: 1.4cqw 0;
   border-radius: calc(var(--r-sm) - 3px);
   font-size: clamp(0.4rem, 1.9cqw, 0.6rem);
   font-weight: 500;
   color: var(--text-secondary);
+}
+
+.phone__tab-label {
+  display: inline-block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .phone__tab--active {
@@ -371,13 +383,6 @@
   margin: 0 6% 8%;
   border-radius: var(--r-md);
   background: var(--bg-secondary);
-}
-
-@media (prefers-color-scheme: dark) {
-  .phone__touchpad {
-    background: var(--surface);
-    border: 1px solid var(--separator);
-  }
 }
 
 .finger {
@@ -509,5 +514,43 @@
 
   .mac__button-accent {
     opacity: 1;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Narrow composition (< 40rem container width): the phone is the point of   */
+/* this illustration on a phone-sized viewport, so it grows and sheds text   */
+/* that would be unreadable at that size; the Mac window shrinks to make     */
+/* room and may lose some of its body content — that's fine, it's secondary. */
+/* -------------------------------------------------------------------------- */
+
+@container hero-device (max-width: 40rem) {
+  .device {
+    aspect-ratio: 4 / 5;
+  }
+
+  /* Mac keeps its own 16:10 aspect-ratio at every other size, but here both
+     width and height are set explicitly (78% / 64% of the now-taller 4:5
+     composition) so the window stays big enough for the phone (bottom-left,
+     42% wide, ~73% of the composition's height because of its own 9:19.5
+     aspect-ratio) to overlap its lower-left quadrant by roughly half the
+     phone's height — the same tucked-in relationship as the desktop
+     composition, just recomputed for a portrait container. */
+  .mac {
+    width: 78%;
+    height: 64%;
+  }
+
+  .phone {
+    width: 42%;
+  }
+
+  .phone__app-name,
+  .phone__tab-label {
+    display: none;
+  }
+
+  .phone__tab {
+    min-height: 14px;
   }
 }

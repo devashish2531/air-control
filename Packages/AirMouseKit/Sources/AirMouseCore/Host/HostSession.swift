@@ -39,9 +39,15 @@ public actor HostSession {
     private let identity: HostIdentity
     private let capabilities: [Capability]
     private let udpPort: Int
-    /// The pairing window this connection may prove against, if it arrived with an unknown
-    /// certificate (nil for an already-trusted reconnect).
+    /// The pairing window this connection may prove against — handed in regardless of
+    /// `peerKnowledge` (spec decision: a known peer's `hello { pairing: true }` still needs it,
+    /// see `initialPeerKnowledge`'s doc comment) and consulted only if `hello.pairing == true`.
     private var pairingWindow: PairingWindow?
+    /// `peerKnowledge` as observed at TLS accept time, kept independently of `state` (which loses
+    /// it once the state machine moves into `.pairing`) — `beginPairingChallenge()` needs it to
+    /// pick the right error when a known peer's re-pairing attempt finds no open window
+    /// (`pairing.alreadyTrusted` rather than the unknown-peer `pairing.expired` wording).
+    private let initialPeerKnowledge: HostPeerKnowledge
     private var currentMacroRevision: Int
     private var currentHostState: HostState
     private var currentMacros: [Macro]
@@ -99,6 +105,7 @@ public actor HostSession {
         self.clock = clock
         self.identity = identity
         self.pairingWindow = pairingWindow
+        self.initialPeerKnowledge = peerKnowledge
         self.currentHostState = hostState
         self.currentMacros = macros
         self.currentMacroRevision = macroRevision
@@ -430,7 +437,7 @@ public actor HostSession {
             pendingHelloDevice = hello.device
             await beginPairingChallenge()
         case .authenticated:
-            await completeAuthentication(device: hello.device, macroRevision: hello.macroRevision)
+            await completeAuthentication(device: hello.device, macroRevision: hello.macroRevision, viaPairingFlow: false)
         default:
             break
         }
@@ -438,7 +445,16 @@ public actor HostSession {
 
     private func beginPairingChallenge() async {
         guard let window = pairingWindow, window.isOpen(now: Date(timeIntervalSince1970: clock.now())) else {
-            try? await send(.error(ErrorPayload(code: .pairingExpired, message: "no pairing window open", fatal: true)))
+            // spec decision (§3.2/§3.3 don't define re-pairing an already-trusted device): a known
+            // peer that re-scanned a pairing QR with no window open gets a distinct, clearer error
+            // than an unknown peer would — from a device this Mac already trusts, "no pairing
+            // window open" reads like pairing failed outright, when the actual fix is simply to
+            // reconnect normally (spec §3.3.1) rather than scan again.
+            if initialPeerKnowledge == .known {
+                try? await send(.error(ErrorPayload(code: .alreadyTrusted, message: "already trusted; reconnect without pairing", fatal: true)))
+            } else {
+                try? await send(.error(ErrorPayload(code: .pairingExpired, message: "no pairing window open", fatal: true)))
+            }
             await teardown()
             return
         }
@@ -500,7 +516,7 @@ public actor HostSession {
             let device = pendingHelloDevice
             pendingPairing = nil
             pendingHelloDevice = nil
-            await completeAuthentication(device: device, macroRevision: nil)
+            await completeAuthentication(device: device, macroRevision: nil, viaPairingFlow: true)
         case .wrongProofRetry:
             try? await send(.error(ErrorPayload(code: .pairingInvalidProof, message: "invalid proof", fatal: false)))
         case .wrongProofLockedOut:
@@ -518,9 +534,9 @@ public actor HostSession {
     /// reconnect, or the `hello{pairing:true}` that started a now-completed pairing flow); a
     /// completed pairing flow itself carries no second `hello`, so both are `nil` there and the
     /// macro list is always (re)sent.
-    private func completeAuthentication(device: Hello.Device?, macroRevision: Int?) async {
+    private func completeAuthentication(device: Hello.Device?, macroRevision: Int?, viaPairingFlow: Bool) async {
         if let device {
-            eventsContinuation.yield(.clientAuthenticated(device: device))
+            eventsContinuation.yield(.clientAuthenticated(device: device, viaPairingFlow: viaPairingFlow))
         }
         let sendMacros = macroRevision == nil || macroRevision != currentMacroRevision
         // spec order (and `ClientSession.pair()`/`connect()`'s wait order) is `helloAck` *then*

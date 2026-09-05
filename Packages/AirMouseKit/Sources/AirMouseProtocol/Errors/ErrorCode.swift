@@ -30,6 +30,13 @@ public enum ErrorCode: String, Sendable, Equatable, Hashable, CaseIterable, Coda
     case rateLimited = "rate.limited"
     /// spec §5.5.5: script/shortcut macro blocked by host policy.
     case macroBlockedByPolicy = "macro.blockedByPolicy"
+    /// Not part of the original spec (§3.2/§3.3 don't define re-pairing an already-trusted
+    /// device): a peer whose certificate the host already trusts sent `hello { pairing: true }`
+    /// (re-scanned a pairing QR) while no pairing window was open, so there was nothing to prove
+    /// against. Distinct from `pairing.expired` — that wording tells an *unknown* peer "the code
+    /// timed out, scan a fresh one"; this one tells an already-trusted peer "you don't need to
+    /// pair at all, just reconnect" (spec §3.3.1).
+    case alreadyTrusted = "pairing.alreadyTrusted"
     /// Unclassified host-side failure.
     case internalError = "internal"
 }

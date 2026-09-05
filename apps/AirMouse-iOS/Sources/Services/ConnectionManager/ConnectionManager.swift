@@ -42,6 +42,20 @@ public struct AddressAttemptResult: Sendable, Equatable, Identifiable {
     public let elapsedMs: Int
     public let succeeded: Bool
     public let isTLSFailure: Bool
+    /// The precise transport-level classification for this candidate (`nil` on success). Lets
+    /// `mapPairingError`/`mapConnectError` pick the single most diagnostically useful failure among
+    /// several candidates instead of collapsing everything to a boolean (spec §9 diagnostics +
+    /// the UX-fix deliverable's typed classification).
+    public let failure: TransportFailure?
+
+    public init(address: String, outcome: String, elapsedMs: Int, succeeded: Bool, isTLSFailure: Bool, failure: TransportFailure? = nil) {
+        self.address = address
+        self.outcome = outcome
+        self.elapsedMs = elapsedMs
+        self.succeeded = succeeded
+        self.isTLSFailure = isTLSFailure
+        self.failure = failure
+    }
 }
 
 /// One "Mac known to this device" row for `DevicesScreen`: a trusted record plus its live browse
@@ -231,6 +245,11 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
             currentDisplayName = info.host.name
             currentResolvedHost = channel.resolvedHost
             backoff.reset()
+
+            // spec item 4: a host id already trusted under a *different* fingerprint (the Mac's
+            // identity was regenerated, e.g. a factory-reset helper) must be replaced, not left
+            // sitting alongside the freshly-paired record for the same physical Mac.
+            await Self.replaceStaleRecord(forHostID: url.hostID, newFingerprint: fingerprint, knownHosts: knownHosts)
 
             let record = TrustedDeviceRecord(
                 fingerprint: fingerprint,
@@ -453,7 +472,7 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
     ) async throws -> NWControlChannel {
         let ordered = AddressSelector.order(bonjour: nil, lastKnown: candidates.filter { $0.source == .lastKnown }, qr: candidates.filter { $0.source == .qr })
         var attemptCount = ordered.count + (liveEndpoint != nil ? 1 : 0)
-        guard attemptCount > 0 else { throw TransportError.connectionFailed("no candidate addresses") }
+        guard attemptCount > 0 else { throw TransportFailure.unreachable }
 
         // `SecIdentity` is a CF type with no `Sendable` conformance; box it (matching
         // `GeneratedIdentity`'s own `@unchecked Sendable` rationale: Security.framework's CF
@@ -500,7 +519,7 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
             }
             attemptCount = index
 
-            var lastError: Error = TransportError.connectionFailed("no candidate addresses")
+            var lastError: Error = TransportFailure.unreachable
             var remaining = attemptCount
             var winner: NWControlChannel?
             // Collected progressively (not just at the end) so a candidate that finishes before
@@ -510,21 +529,24 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
                 let outcome: String
                 let succeeded: Bool
                 let isTLS: Bool
+                let classified: TransportFailure?
                 switch attempt.result {
                 case .success(let channel):
                     outcome = "connected"
                     succeeded = true
                     isTLS = false
+                    classified = nil
                     winner = channel
                 case .failure(let error):
                     outcome = Self.describeOutcome(error)
                     succeeded = false
                     isTLS = Self.isTLSFailure(error)
+                    classified = error as? TransportFailure
                     lastError = error
                 }
                 lastConnectionAttempts.append(AddressAttemptResult(
                     address: attempt.address, outcome: outcome, elapsedMs: attempt.elapsedMs,
-                    succeeded: succeeded, isTLSFailure: isTLS
+                    succeeded: succeeded, isTLSFailure: isTLS, failure: classified
                 ))
                 if winner != nil { break }
             }
@@ -539,23 +561,46 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
     }
 
     nonisolated private static func isTLSFailure(_ error: Error) -> Bool {
-        if case .tlsHandshakeFailed = error as? TransportError { return true }
-        return false
+        switch error as? TransportFailure {
+        case .tlsAlertFromPeer, .peerCertificateMismatch, .clientIdentityFailure: return true
+        default: return false
+        }
     }
 
     /// Human-readable outcome for one candidate — no secrets/proofs, just what happened (spec §9
     /// diagnostics deliverable: "per-address outcome (refused/timeout/TLS error text/`NWError`
-    /// description)").
+    /// description)") — and the real text `PairingScreen`'s "Details" disclosure shows.
     nonisolated private static func describeOutcome(_ error: Error) -> String {
-        switch error as? TransportError {
+        switch error as? TransportFailure {
+        case .unreachable: return "unreachable"
         case .localNetworkDenied: return "local network access denied"
-        case .tlsHandshakeFailed(let detail): return "TLS handshake failed: \(detail)"
-        case .connectionFailed(let detail): return detail
+        case .tlsAlertFromPeer(let description): return description
+        case .peerCertificateMismatch(let expected, let actual): return "certificate mismatch (expected \(expected)…, got \(actual)…)"
+        case .clientIdentityFailure(let description): return description
+        case .closedBeforeReady: return "connection closed before ready"
         case .timedOut: return "timed out"
-        case .cancelled: return "cancelled"
         case .invalidPort(let port): return "invalid port \(port)"
         case nil: return String(describing: error)
         }
+    }
+
+    /// The most diagnostically useful `TransportFailure` among everything one attempt saw: a
+    /// specific TLS-classification candidate always outranks a generic terminal `.unreachable`/
+    /// `.timedOut` — several candidates can fail for boring reasons (nothing listening on that
+    /// address) while just one hit the interesting failure that actually explains what happened.
+    nonisolated private static func mostSpecificFailure(_ terminal: TransportFailure, attempts: [AddressAttemptResult]) -> TransportFailure {
+        func rank(_ failure: TransportFailure) -> Int {
+            switch failure {
+            case .peerCertificateMismatch: return 4
+            case .tlsAlertFromPeer: return 3
+            case .clientIdentityFailure: return 3
+            case .localNetworkDenied: return 2
+            case .closedBeforeReady, .timedOut: return 1
+            case .unreachable, .invalidPort: return 0
+            }
+        }
+        let candidates = attempts.compactMap(\.failure) + [terminal]
+        return candidates.max(by: { rank($0) < rank($1) }) ?? terminal
     }
 
     /// spec §9 diagnostics deliverable: drop zone-stripped IPv6 link-local literals (`fe80::…`
@@ -574,10 +619,10 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
             group.addTask { try await operation() }
             group.addTask {
                 try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-                throw TransportError.timedOut
+                throw TransportFailure.timedOut
             }
             guard let result = try await group.next() else {
-                throw TransportError.timedOut
+                throw TransportFailure.timedOut
             }
             group.cancelAll()
             return result
@@ -796,22 +841,26 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
     ///     all" (every candidate refused/timed out) apart from "reached one, but its fingerprint
     ///     didn't match" (spec §9 diagnostics deliverable, (a) vs (b)).
     nonisolated static func mapPairingError(_ error: Error, attempts: [AddressAttemptResult], hostName: String) -> AppError {
-        if let transportError = error as? TransportError {
+        if let transportFailure = error as? TransportFailure {
             let anySucceeded = attempts.contains { $0.succeeded }
-            let anyTLSFailure = attempts.contains { $0.isTLSFailure }
-            switch transportError {
+            switch mostSpecificFailure(transportFailure, attempts: attempts) {
             case .localNetworkDenied: return .localNetworkDenied
-            case .tlsHandshakeFailed:
-                // A TLS failure *during pairing* only ever means the peer that answered isn't the
-                // one that showed this QR (spec §9 E-PAIR-FP has the exact copy for that already).
+            case .peerCertificateMismatch:
+                // A pin mismatch *during pairing* only ever means the peer that answered isn't the
+                // one that showed this QR (spec §9 E-PAIR-FP has the exact copy for that already) —
+                // never `.hostIdentityChanged`, which is the reconnect-to-a-trusted-host wording.
                 return .pairingFingerprintMismatch
+            case .tlsAlertFromPeer:
+                // The Mac's own verify block rejected us mid-pairing (e.g. the pairing window
+                // closed the instant before our handshake landed).
+                return .hostRefusedUntrusted
+            case .clientIdentityFailure(let description):
+                return .tlsHandshakeFailed(detail: description)
             case .timedOut:
                 if anySucceeded { return .pairingExpired } // TCP/TLS fine; the pairChallenge itself never arrived (spec §3.2.6).
                 if attempts.isEmpty { return .pairingExpired } // no candidate ever reported in — same inference as before.
-                if anyTLSFailure { return .pairingFingerprintMismatch }
                 return .hostUnreachable(hostName: hostName)
-            default:
-                if anyTLSFailure { return .pairingFingerprintMismatch }
+            case .unreachable, .closedBeforeReady, .invalidPort:
                 return attempts.isEmpty ? .connectionFailed(hostName: hostName) : .hostUnreachable(hostName: hostName)
             }
         }
@@ -821,27 +870,59 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
             case .pairingInvalidProof: return .pairingWrongCode // spec §9 diagnostics deliverable (d): distinct from an expired secret.
             case .pairingTooManyDevices: return .pairingDeviceLimit
             case .pairingHostProofInvalid: return .pairingHostProofInvalid
+            case .pairingAlreadyTrusted: return .pairingAlreadyTrusted
             case .authUntrusted: return .authUntrusted
             case .authRevoked: return .authRevoked
             case .versionMismatch: return .versionAppOutdated
             case .rateLimited: return .pairingRateLimited
+            case .protocolMismatch(let expected, let got):
+                return .protocolMismatch(detail: "expected \(expected), got \(got)")
+            // A hang mid-pairing (the host silently answered something the client wasn't waiting
+            // for, then never followed up) used to surface here as `.generic(code: "internal")` —
+            // see this file's report for the exact reproduction. `.channelClosed` specifically is
+            // reachable that way, so it gets the same readable copy as any other "never got
+            // through" outcome instead of the bare wire-code fallback below.
+            case .channelClosed: return .connectionFailed(hostName: hostName)
             default: return .generic(code: core.wireCode?.rawValue ?? "internal")
             }
         }
         return .pairingHostProofInvalid
     }
 
-    /// See `mapPairingError`'s doc comment — same (a)/(b) distinction, but for a reconnect to an
-    /// already-trusted host: a TLS failure here means the Mac's certificate no longer matches what
-    /// this device has on file (identity reset/reinstalled), not a mismatched QR.
+    /// See `mapPairingError`'s doc comment for the same "pick the most specific candidate" logic,
+    /// but for a reconnect to an already-trusted host — three distinct copy-worthy outcomes instead
+    /// of one shared `.tlsVerificationFailed`: the Mac refusing us (`.hostRefusedUntrusted`), our
+    /// own pin rejecting the Mac's regenerated identity (`.hostIdentityChanged`), and our own client
+    /// identity failing to sign (`.tlsHandshakeFailed`). `hostUnreachable` is reserved for true
+    /// TCP-level failures (`.unreachable`/`.closedBeforeReady`/our own watchdog `.timedOut`) — never
+    /// for a TLS-level rejection, which used to collapse into the same "Couldn't reach" copy.
     nonisolated static func mapConnectError(_ error: Error, hostName: String, attempts: [AddressAttemptResult]) -> AppError {
-        guard let transportError = error as? TransportError else { return .connectionFailed(hostName: hostName) }
-        switch transportError {
+        guard let transportFailure = error as? TransportFailure else { return .connectionFailed(hostName: hostName) }
+        switch mostSpecificFailure(transportFailure, attempts: attempts) {
         case .localNetworkDenied: return .localNetworkDenied
-        case .tlsHandshakeFailed: return .tlsVerificationFailed(hostName: hostName)
-        default:
-            if attempts.contains(where: { $0.isTLSFailure }) { return .tlsVerificationFailed(hostName: hostName) }
+        case .peerCertificateMismatch:
+            // Reconnect to an already-trusted Mac whose certificate no longer matches what's
+            // pinned — spec item 2's "This Mac's identity has changed" wording.
+            return .hostIdentityChanged
+        case .tlsAlertFromPeer:
+            // The Mac's own verify block rejected us — most often its pairing window is closed and
+            // it no longer recognizes this client certificate as trusted.
+            return .hostRefusedUntrusted
+        case .clientIdentityFailure(let description):
+            return .tlsHandshakeFailed(detail: description)
+        case .timedOut, .unreachable, .closedBeforeReady, .invalidPort:
             return attempts.isEmpty ? .connectionFailed(hostName: hostName) : .hostUnreachable(hostName: hostName)
+        }
+    }
+
+    /// spec item 4: pairing a URL whose host id already has a trust record with a *different*
+    /// fingerprint (the Mac's identity was regenerated) replaces that stale record instead of
+    /// leaving two entries for the same physical Mac. `static`/standalone so it's testable with a
+    /// real `KnownHostsStore` and no live `NWConnection` (see `ConnectionManagerTests`).
+    nonisolated static func replaceStaleRecord(forHostID hostID: Data, newFingerprint: Fingerprint, knownHosts: KnownHostsStore) async {
+        for record in await knownHosts.list() where record.fingerprint != newFingerprint {
+            guard await knownHosts.connectionInfo(fingerprint: record.fingerprint)?.hostID == hostID else { continue }
+            await knownHosts.remove(fingerprint: record.fingerprint)
         }
     }
 
@@ -872,6 +953,7 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
         case .rateLimited: return .rateLimited
         case .versionMismatch: return .versionAppOutdated
         case .macroBlockedByPolicy: return .macroBlocked
+        case .alreadyTrusted: return .pairingAlreadyTrusted
         default: return .generic(code: payload.code)
         }
     }

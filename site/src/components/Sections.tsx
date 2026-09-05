@@ -1,5 +1,5 @@
 import { Reveal } from "@/components/Reveal";
-import { faqs, features, securityPoints, steps } from "@/content";
+import { faqs, features, securityPillars, stats, steps } from "@/content";
 import { site } from "@/site.config";
 
 /** Stagger delay for the Nth sibling in a revealed group, capped per spec (~300ms). */
@@ -27,43 +27,95 @@ function ChevronIcon({ className }: { className?: string }) {
   );
 }
 
-export function Features() {
+/**
+ * The landing page's centerpiece: three full-width alternating "spotlight"
+ * rows (Touchpad, Air mouse, Keyboard) followed by a 3-up row of compact
+ * cards (Presenter, Macros, iPad). `features` is ordered so the first three
+ * entries are the spotlights and the rest are the compact cards.
+ */
+export function Spotlights() {
+  const spotlightFeatures = features.slice(0, 3);
+  const compactFeatures = features.slice(3);
+
   return (
     <section className="section" id="features" aria-labelledby="features-title">
       <div className="container--wide">
         <Reveal as="div" className="section__head">
-          <span className="eyebrow">Features</span>
+          <span className="eyebrow">What it does</span>
           <h2 className="h2" id="features-title">
-            Six ways to drive your Mac.{" "}
-            <span className="muted">Every one in the box.</span>
+            One phone. <span className="muted">Every way to drive your Mac.</span>
           </h2>
-          <p className="lede">
-            Every mode is in the box. Nothing is behind a subscription, an
-            account, or an upgrade prompt.
-          </p>
         </Reveal>
 
-        <div className="bento">
-          {features.map((feature, index) => (
+        {spotlightFeatures.map((feature, index) => (
+          <Reveal
+            as="article"
+            key={feature.id}
+            delay={stagger(index)}
+            className={
+              index % 2 === 1 ? "spotlight-row spotlight-row--reverse" : "spotlight-row"
+            }
+          >
+            <div className="spotlight-row__text">
+              <span className="eyebrow spotlight-row__eyebrow">{feature.title}</span>
+              <h3 className="spotlight-row__heading">{feature.headline}</h3>
+              <p className="lede">{feature.benefit}</p>
+            </div>
+            <div className="spotlight-row__illustration" aria-hidden="true">
+              {feature.illustration}
+            </div>
+          </Reveal>
+        ))}
+
+        <div className="tile-row">
+          {compactFeatures.map((feature, index) => (
             <Reveal
               as="article"
               key={feature.id}
-              delay={stagger(index)}
-              className={
-                feature.illustration ? "tile tile--wide" : "tile"
-              }
+              delay={stagger(spotlightFeatures.length + index)}
+              className="tile tile--outline"
             >
               <div className="tile__glyph">{feature.icon}</div>
-              <h3>{feature.title}</h3>
-              <p>{feature.body}</p>
-              {feature.illustration && (
-                <div className="tile__illustration" aria-hidden="true">
-                  {feature.illustration}
-                </div>
-              )}
+              <h3>{feature.headline}</h3>
+              <p>{feature.benefit}</p>
             </Reveal>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+/** Full-bleed black band: four proof points as giant tabular numbers. */
+export function Stats() {
+  return (
+    <section
+      className="section band--dark"
+      id="numbers"
+      aria-labelledby="numbers-title"
+    >
+      <div className="container--wide">
+        {/* Visually the numbers speak for themselves — this heading exists
+            for the accessibility tree and the h1 -> h2 -> h3 outline, not as
+            on-page copy. */}
+        <h2 className="visually-hidden" id="numbers-title">
+          Air Control by the numbers
+        </h2>
+
+        <div className="stats-grid">
+          {stats.map((stat, index) => (
+            <Reveal as="div" key={stat.caption} delay={stagger(index)}>
+              <p className="stat-item__value">{stat.value}</p>
+              <p className="stat-item__caption">{stat.caption}</p>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal as="p" className="small stats-note" delay={stagger(stats.length)}>
+          Latency is a goal the project measures itself against, not a
+          guarantee — your router and distance get a vote. The app ships a
+          latency HUD so you can see the real number on your own network.
+        </Reveal>
       </div>
     </section>
   );
@@ -82,10 +134,6 @@ export function HowItWorks() {
           <h2 className="h2" id="how-it-works-title">
             Three steps. <span className="muted">Once.</span>
           </h2>
-          <p className="lede">
-            After the first pairing there is nothing to do: open the app and
-            the cursor moves.
-          </p>
         </Reveal>
 
         <ol className="steps">
@@ -99,36 +147,15 @@ export function HowItWorks() {
             </Reveal>
           ))}
         </ol>
-
-        <Reveal as="div" className="tile stat" delay={stagger(steps.length)}>
-          <div className="stat__lead">
-            <p className="stat__value">&lt; 20&nbsp;ms</p>
-            <p className="stat__caption">
-              End-to-end motion latency, design target on 5&nbsp;GHz Wi‑Fi —
-              the point where a remote pointer stops feeling remote.
-            </p>
-          </div>
-          <p className="stat__note">
-            That&rsquo;s a goal the project measures itself against, not a
-            guarantee: your router, your channel and your distance from it all
-            get a vote. The app ships a latency HUD so you can see the real
-            number on your own network.
-          </p>
-        </Reveal>
       </div>
     </section>
   );
 }
 
 export function Security() {
-  const [left, right] = [
-    securityPoints.slice(0, Math.ceil(securityPoints.length / 2)),
-    securityPoints.slice(Math.ceil(securityPoints.length / 2)),
-  ];
-
   return (
     <section
-      className="section band--dark"
+      className="section section--tint"
       id="security"
       aria-labelledby="security-title"
     >
@@ -145,24 +172,18 @@ export function Security() {
           </p>
         </Reveal>
 
-        <div className="security__grid">
-          {[left, right].map((column, columnIndex) => (
-            <div className="grouped" key={columnIndex}>
-              {column.map((point, index) => (
-                <Reveal
-                  as="div"
-                  className="grouped__row security__row"
-                  key={point.title}
-                  delay={stagger(columnIndex * left.length + index)}
-                >
-                  <span className="security__glyph">{point.icon}</span>
-                  <div>
-                    <h3>{point.title}</h3>
-                    <p>{point.body}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
+        <div className="pillar-row">
+          {securityPillars.map((pillar, index) => (
+            <Reveal
+              as="div"
+              key={pillar.title}
+              delay={stagger(index)}
+              className="tile tile--outline pillar"
+            >
+              <span className="pillar__glyph">{pillar.icon}</span>
+              <h3>{pillar.title}</h3>
+              <p>{pillar.body}</p>
+            </Reveal>
           ))}
         </div>
 
@@ -215,9 +236,9 @@ export function OpenSource() {
             </h2>
             <p className="lede">
               Both apps and the shared protocol package are native Swift, MIT
-              licensed, and public. Clone the repository and you can compile
-              the exact thing you are running — and the protocol spec is
-              written down so you can build your own client against it.
+              licensed, and public. Clone the repo, compile what you&rsquo;re
+              running, or build your own client against the documented wire
+              protocol.
             </p>
             <div className="actions">
               <a
@@ -235,6 +256,17 @@ export function OpenSource() {
                 Contribute
               </a>
             </div>
+            <p className="small">
+              <code className="opensource__brew">{site.homebrew.command}</code>
+              {!site.homebrew.available && (
+                <>
+                  {" "}
+                  <span className="opensource__brew-note">
+                    — Homebrew cask, not published yet; use the buttons above.
+                  </span>
+                </>
+              )}
+            </p>
           </div>
 
           <dl className="grouped facts">
@@ -255,10 +287,6 @@ export function OpenSource() {
               <dd>
                 {site.minimumOS.ios} · {site.minimumOS.macos}
               </dd>
-            </div>
-            <div className="grouped__row">
-              <dt>Telemetry</dt>
-              <dd>None collected</dd>
             </div>
             <div className="grouped__row">
               <dt>Issues</dt>
@@ -312,10 +340,10 @@ export function Faq() {
 
 export function FinalCta() {
   return (
-    <section className="section cta" id="cta" aria-labelledby="cta-title">
+    <section className="section cta section--tint" id="cta" aria-labelledby="cta-title">
       <div className="container">
         <Reveal as="div" className="cta__inner">
-          <h2 className="h2" id="cta-title">
+          <h2 className="display" id="cta-title">
             Ready <span className="muted">when you are.</span>
           </h2>
           <p className="lede">Free, open source, and yours to inspect.</p>

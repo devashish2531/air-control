@@ -331,12 +331,20 @@ private struct PairingDebugLabel: View {
         let manager = environment.connection as? ConnectionManager
         let progress = manager.map { String(describing: $0.pairingProgress) } ?? "no ConnectionManager"
         let state = String(describing: environment.connection.connectionState)
-        Text("debug.pairing=\(progress) state=\(state)")
+        // How this launch's own client identity was resolved (reused / stale-replaced / minted /
+        // ephemeral) plus each candidate address's outcome: without these, a handshake that stalls
+        // rather than fails is indistinguishable on-device from "the Mac wasn't reachable".
+        let identity = ConnectionFeature.identityTrace
+        let attempts = manager.map { manager in
+            manager.lastConnectionAttempts.map { "\($0.address):\($0.outcome)" }.joined(separator: ";")
+        } ?? ""
+        let summary = "debug.pairing=\(progress) state=\(state) identity=\(identity) attempts=[\(attempts)]"
+        Text(summary)
             .font(.system(size: 6))
             .foregroundStyle(.secondary)
             .opacity(0.02)
             .accessibilityIdentifier("debug.pairingProgress")
-            .accessibilityLabel("debug.pairing=\(progress) state=\(state)")
+            .accessibilityLabel(summary)
             .allowsHitTesting(false)
     }
 }

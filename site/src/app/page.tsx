@@ -1,11 +1,12 @@
 import { Hero } from "@/components/Hero";
 import {
   Faq,
-  Features,
   FinalCta,
   HowItWorks,
   OpenSource,
   Security,
+  Spotlights,
+  Stats,
 } from "@/components/Sections";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -55,7 +56,8 @@ export default function Home() {
 
       <main id="main">
         <Hero />
-        <Features />
+        <Spotlights />
+        <Stats />
         <HowItWorks />
         <Security />
         <OpenSource />

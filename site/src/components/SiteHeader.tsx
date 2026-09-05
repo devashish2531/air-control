@@ -76,13 +76,13 @@ export function SiteHeader() {
       <div className="container header__inner">
         <a className="brand" href="#top">
           <img
-            src={asset("/icon-ios.png")}
+            src={asset("/icon-ios-64.png")}
             alt=""
             width={22}
             height={22}
             decoding="async"
           />
-          {site.name}
+          <span className="brand__label">{site.name}</span>
         </a>
 
         <nav className="nav" aria-label="Primary">
@@ -103,7 +103,7 @@ export function SiteHeader() {
           >
             Download
           </a>
-          <a href={site.links.github} rel="noreferrer noopener">
+          <a className="nav__github" href={site.links.github} rel="noreferrer noopener">
             GitHub
           </a>
 
@@ -151,6 +151,15 @@ export function SiteHeader() {
               </a>
             </li>
           ))}
+          <li>
+            <a
+              href={site.links.github}
+              rel="noreferrer noopener"
+              onClick={() => setOpen(false)}
+            >
+              GitHub
+            </a>
+          </li>
         </ul>
       </div>
     </header>

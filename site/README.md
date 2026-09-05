@@ -11,9 +11,10 @@ say "Air Mouse".
 | | |
 | --- | --- |
 | Framework | Next.js 16 (App Router, TypeScript), `output: 'export'` — no server runtime |
-| Styling | One hand-written stylesheet, `src/app/globals.css`. No Tailwind, no CSS-in-JS |
+| Styling | Three hand-written stylesheets — `globals.css` (tokens, reset, typography, shared primitives, header/footer chrome), `hero.css` (Hero/HeroDevice), `sections.css` (Features/HowItWorks/Security/OpenSource/Faq/FinalCta) — joined by `@import` at the top of `globals.css`. No Tailwind, no CSS-in-JS |
 | Fonts / CDNs | None. System font stack, no external requests of any kind |
 | Analytics | None |
+| JavaScript | Two small client components (`SiteHeader` for scroll/menu state, `Reveal` for scroll-triggered reveals) — no other JS of the page's own. `prefers-reduced-motion`, `prefers-reduced-transparency` and `prefers-contrast` are all honored |
 | Hosting | GitHub Pages, via `.github/workflows/site.yml` |
 
 Full background, deploy steps and the custom-domain switch:
@@ -81,18 +82,20 @@ site/
 ├── public/                 copied verbatim into out/
 │   ├── .nojekyll           tells GitHub Pages not to run Jekyll
 │   ├── appcast.xml         Sparkle feed placeholder, served at /appcast.xml
-│   ├── icon-ios.png        384px, transparent corners
-│   ├── icon-mac.png        384px, transparent corners
+│   ├── icon-ios.png        384px master, transparent corners
+│   ├── icon-ios-64.png     64px, sips-downsized — what actually renders (16-28px)
+│   ├── icon-mac.png        384px master, transparent corners
+│   ├── icon-mac-64.png     64px, sips-downsized — what actually renders (16-28px)
 │   └── og.png              1200x630 Open Graph card
 ├── scripts/
-│   ├── make-assets.sh      regenerates every PNG above from design/icons/
+│   ├── make-assets.sh      regenerates every PNG above from design/icons/, then sips's the -64 variants and the favicon down
 │   └── make-assets.swift   CoreGraphics/CoreText; macOS + Xcode only
 └── src/
     ├── site.config.ts      every user-visible URL and name, in one place
     ├── content.tsx         features, steps, security points, FAQ
     ├── lib/urls.ts         basePath-aware asset() / absolute()
-    ├── app/                layout.tsx, page.tsx, globals.css, robots.ts, sitemap.ts
-    └── components/         SiteHeader, Hero, Sections, SiteFooter
+    ├── app/                layout.tsx, page.tsx, globals.css + hero.css + sections.css, robots.ts, sitemap.ts
+    └── components/         SiteHeader, Hero, HeroDevice, Sections, SiteFooter, Reveal
 ```
 
 ## Editing content

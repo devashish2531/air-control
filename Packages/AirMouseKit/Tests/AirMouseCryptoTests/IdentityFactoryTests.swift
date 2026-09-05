@@ -42,14 +42,27 @@ import Foundation
 /// etc.); per this module's task brief ("mark keychain-dependent tests to skip gracefully if the
 /// keychain is unavailable"), these tests catch any `IdentityFactoryError` and treat it as an
 /// environment-not-supported skip rather than a failure, after best-effort cleanup.
-@Suite struct IdentityFactoryKeychainTests {
+///
+/// This lives inside `IdentityTierTests.swift`'s `IdentityTierRoundTripTests` suite (not its own
+/// `@Suite` here) so it shares that suite's `.serialized` trait: every one of these tests mutates the
+/// same real login Keychain, and Swift Testing's default parallel execution let this test race
+/// `IdentityTierRoundTripTests`'s tests — observed empirically as a spurious `canSign` timeout and a
+/// "deleteIdentity did not actually remove our own identity" failure, on *both* sides of the race —
+/// when the two suites ran in different (parallel) suites.
+extension IdentityTierRoundTripTests {
     @Test func persistedIdentityRoundTrip() throws {
         let label = "AirMouseCryptoTests.identity.\(UUID().uuidString)"
         defer { try? IdentityFactory.deleteIdentity(label: label) }
 
         do {
             let identity = try IdentityFactory.makeIdentity(
-                commonName: "AirMouse Host keychain-test",
+                // Unique per run, not a fixed string: Keychain Services overrides a *certificate*
+                // item's stored `kSecAttrLabel` to the certificate's own subject common name (see
+                // `IdentityTierTests.swift`'s identical fix/comment), so `deleteIdentity(label:)`'s
+                // certificate-class query — which searches by `label` — only matches the certificate
+                // this run created if the common name contains that same `label`. A fixed common name
+                // here previously leaked one orphaned certificate item per test run.
+                commonName: "AirMouse Host keychain-test \(label)",
                 label: label,
                 preferSecureEnclave: false
             )

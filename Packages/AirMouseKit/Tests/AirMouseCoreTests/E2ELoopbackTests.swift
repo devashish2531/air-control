@@ -194,6 +194,242 @@ func withTestTimeout<T: Sendable>(
         }
     }
 
+    // MARK: - Known peer, re-pairing (spec decision: HostSessionStateMachine's
+    // `.tlsAccepted(.known)`/`.helloReceivedPairingTrue` case)
+
+    /// Builds one connected host/client pair, parameterized by `peerKnowledge` and an optional
+    /// pairing window — the two axes the re-pairing fix actually depends on (unlike
+    /// `makeFixture()`, which is always an unknown-peer first-time pairing).
+    private static func makeSessionPair(
+        clock: ManualClock,
+        hostFingerprint: Fingerprint,
+        clientFingerprint: Fingerprint,
+        hostID: Data,
+        peerKnowledge: HostPeerKnowledge,
+        pairingWindow: PairingWindow?,
+        sharedExporterSecret: Data?
+    ) async -> (host: HostSession, client: ClientSession) {
+        let (clientControl, hostControl) = await InMemoryTransportPair.makeControlPair(
+            clientFingerprint: clientFingerprint,
+            hostFingerprint: hostFingerprint,
+            sharedExporterSecret: sharedExporterSecret
+        )
+        let identity = HostSession.HostIdentity(
+            hostID: hostID, name: "Test Mac", model: "Mac15,6", os: "macOS 15.0",
+            helperVersion: "1.0", fingerprint: hostFingerprint
+        )
+        let hostState = HostState(
+            paused: false, accessibility: true, naturalScroll: false, displays: [],
+            inputSource: InputSource(id: "com.apple.keylayout.US", ansi: true),
+            scriptsAllowed: false, sessionCount: 0
+        )
+        let host = HostSession(
+            control: hostControl, clock: clock, identity: identity, peerKnowledge: peerKnowledge,
+            pairingWindow: pairingWindow, hostState: hostState, udpPort: 47800
+        )
+        await host.start()
+        let client = ClientSession(
+            control: clientControl,
+            datagramProvider: { _ in InMemoryDatagramChannel() },
+            clock: clock,
+            localFingerprint: clientFingerprint,
+            device: Hello.Device(name: "Test iPhone", model: "iPhone16,1", os: "iOS 18.0", app: "1.0")
+        )
+        return (host, client)
+    }
+
+    /// Reproduces the reported bug's setup end to end: a device pairs, is forgotten by nothing (it
+    /// stays trusted), and re-scans a fresh pairing QR later. Asserts both that re-pairing
+    /// succeeds (rather than hanging until the host's watchdog closes the connection) and that a
+    /// trust store driven the way `SessionManager.recordAuthenticated` drives it — add on first
+    /// pairing, update (never a second `add`) on every later one — ends up with exactly one
+    /// record for this client identity.
+    @Test func rePairingATrustedClientSucceedsWithOneTrustStoreRecord() async throws {
+        try await withTestTimeout(seconds: 20) {
+        let trustStore = InMemoryTrustStore()
+        let clock = ManualClock(start: 1_700_000_000)
+        let hostFingerprint = stubFingerprint(0xAA)
+        let clientFingerprint = stubFingerprint(0xBB)
+        let sharedExporter = Data(repeating: 0xCC, count: 32)
+        let hostID = Data(repeating: 0x01, count: 16)
+
+        // First pairing: unknown peer, proves against an open window.
+        var window1 = PairingWindow()
+        let secret1 = try window1.open(now: Date(timeIntervalSince1970: clock.now()))
+        let (host1, client1) = await Self.makeSessionPair(
+            clock: clock, hostFingerprint: hostFingerprint, clientFingerprint: clientFingerprint,
+            hostID: hostID, peerKnowledge: .unknown, pairingWindow: window1, sharedExporterSecret: sharedExporter
+        )
+        var hostEvents1 = host1.events.makeAsyncIterator()
+        let url1 = try PairingURL(
+            version: ProtocolConstants.protocolVersion, hostID: hostID, hostName: "Test Mac",
+            addresses: ["127.0.0.1"], tcpPort: 47800, fingerprint: Data(hostFingerprint.bytes), secret: Data(secret1.bytes)
+        )
+        _ = try await client1.pair(url: url1)
+        guard let authenticated1 = await Self.nextEvent(from: &hostEvents1, matching: {
+            if case .clientAuthenticated = $0 { return true }
+            return false
+        }), case .clientAuthenticated(let device1, let viaPairingFlow1) = authenticated1 else {
+            Issue.record("expected a clientAuthenticated event from the first pairing")
+            return
+        }
+        #expect(viaPairingFlow1 == true)
+        await trustStore.add(TrustedDeviceRecord(
+            fingerprint: clientFingerprint, name: device1.name, model: device1.model,
+            osVersion: "unknown", firstPaired: Date(), lastSeen: Date()
+        ))
+        #expect(await trustStore.list().count == 1)
+        await client1.close()
+        await host1.close()
+
+        // Second pairing: same client identity, now known to the host (the bug's exact
+        // reproduction) — a brand new QR/window, exactly as if "Pair new device" were re-shown.
+        var window2 = PairingWindow()
+        let secret2 = try window2.open(now: Date(timeIntervalSince1970: clock.now()))
+        let (host2, client2) = await Self.makeSessionPair(
+            clock: clock, hostFingerprint: hostFingerprint, clientFingerprint: clientFingerprint,
+            hostID: hostID, peerKnowledge: .known, pairingWindow: window2, sharedExporterSecret: sharedExporter
+        )
+        var hostEvents2 = host2.events.makeAsyncIterator()
+        let url2 = try PairingURL(
+            version: ProtocolConstants.protocolVersion, hostID: hostID, hostName: "Test Mac",
+            addresses: ["127.0.0.1"], tcpPort: 47800, fingerprint: Data(hostFingerprint.bytes), secret: Data(secret2.bytes)
+        )
+        let info2 = try await client2.pair(url: url2) // must not hang/throw (this is the reported bug).
+        #expect(info2.protocolVersion == ProtocolConstants.protocolVersion)
+
+        guard let authenticated2 = await Self.nextEvent(from: &hostEvents2, matching: {
+            if case .clientAuthenticated = $0 { return true }
+            return false
+        }), case .clientAuthenticated(_, let viaPairingFlow2) = authenticated2 else {
+            Issue.record("expected a clientAuthenticated event from the second pairing")
+            return
+        }
+        #expect(viaPairingFlow2 == true) // re-pairing a known peer still runs the full proof flow.
+        #expect(await host2.currentState == .authenticated)
+
+        // `SessionManager.recordAuthenticated`'s known-peer branch: update, never a duplicate add.
+        if var record = await trustStore.lookup(fingerprint: clientFingerprint) {
+            record.lastSeen = Date()
+            await trustStore.update(record)
+        } else {
+            Issue.record("expected the first pairing's record to still be present")
+        }
+        #expect(await trustStore.list().count == 1)
+        }
+    }
+
+    /// A known peer's ordinary trusted reconnect (`hello { pairing: false }`) must keep working
+    /// unchanged — even now that `SessionManager` always hands `HostSession` a pairing-window
+    /// snapshot (needed so a *re-pairing* known peer has one to prove against), a plain reconnect
+    /// must never touch it.
+    @Test func knownPeerPlainReconnectStillAuthenticatesDirectly() async throws {
+        try await withTestTimeout(seconds: 20) {
+        let clock = ManualClock(start: 1_700_000_000)
+        let hostFingerprint = stubFingerprint(0xAA)
+        let clientFingerprint = stubFingerprint(0xBB)
+        var window = PairingWindow()
+        _ = try window.open(now: Date(timeIntervalSince1970: clock.now())) // open, but unrelated to this reconnect.
+        let (host, client) = await Self.makeSessionPair(
+            clock: clock, hostFingerprint: hostFingerprint, clientFingerprint: clientFingerprint,
+            hostID: Data(repeating: 0x02, count: 16), peerKnowledge: .known, pairingWindow: window,
+            sharedExporterSecret: nil
+        )
+        var hostEventIterator = host.events.makeAsyncIterator()
+
+        let info = try await client.connect()
+        #expect(info.protocolVersion == ProtocolConstants.protocolVersion)
+
+        guard let authenticated = await Self.nextEvent(from: &hostEventIterator, matching: {
+            if case .clientAuthenticated = $0 { return true }
+            return false
+        }), case .clientAuthenticated(_, let viaPairingFlow) = authenticated else {
+            Issue.record("expected a clientAuthenticated event")
+            return
+        }
+        #expect(viaPairingFlow == false) // a plain trusted reconnect never touches the pairing window.
+        #expect(await host.currentState == .authenticated)
+        }
+    }
+
+    /// Client-side defense (spec decision, see `ClientSession.firstPairingReply`): a host that
+    /// answers a pairing `hello` with a bare `helloAck` — never `pairChallenge` — must still
+    /// complete `pair(url:)` successfully instead of hanging on a reply that will never come.
+    /// Drives a hand-built "fake host" instead of a real `HostSession`, since a real one (after
+    /// this fix) always sends this exact reply for the scenario that produces it — this test is
+    /// specifically about the client's own robustness to that reply, independent of any one host
+    /// implementation.
+    @Test func clientAcceptsHelloAckInPlaceOfPairChallenge() async throws {
+        try await withTestTimeout(seconds: 20) {
+        let clock = ManualClock(start: 1_700_000_000)
+        let hostFingerprint = stubFingerprint(0xAA)
+        let clientFingerprint = stubFingerprint(0xBB)
+        let (clientControl, fakeHostControl) = await InMemoryTransportPair.makeControlPair(
+            clientFingerprint: clientFingerprint,
+            hostFingerprint: hostFingerprint,
+            sharedExporterSecret: nil
+        )
+        let hostID = Data(repeating: 0x03, count: 16)
+        let url = try PairingURL(
+            version: ProtocolConstants.protocolVersion, hostID: hostID, hostName: "Test Mac",
+            addresses: ["127.0.0.1"], tcpPort: 47800, fingerprint: Data(hostFingerprint.bytes),
+            secret: Data(repeating: 0x09, count: 16)
+        )
+        let client = ClientSession(
+            control: clientControl,
+            datagramProvider: { _ in InMemoryDatagramChannel() },
+            clock: clock,
+            localFingerprint: clientFingerprint,
+            device: Hello.Device(name: "Test iPhone", model: "iPhone16,1", os: "iOS 18.0", app: "1.0")
+        )
+
+        final class EventCapture: @unchecked Sendable {
+            var events: [ClientEvent] = []
+        }
+        let capture = EventCapture()
+        let captureTask = Task {
+            for await event in client.events { capture.events.append(event) }
+        }
+        defer { captureTask.cancel() }
+
+        async let pairResult = client.pair(url: url)
+
+        // Drive the fake host side by hand: drain the client's `hello`, then answer with a bare
+        // `helloAck` + `sessionKey` — never `pairChallenge` — exactly the spec-decision shortcut a
+        // real `HostSession` takes for an already-trusted peer (`HostSessionStateMachine`'s
+        // `.tlsAccepted(.known)`/`.helloReceivedPairingTrue` case).
+        var iterator = fakeHostControl.incoming.makeAsyncIterator()
+        _ = try await iterator.next() // the `hello` frame; its contents don't matter for this test.
+
+        let ack = HelloAck(
+            protocol: ProtocolConstants.protocolVersion,
+            capabilities: [],
+            host: .init(name: "Test Mac", model: "Mac15,6", os: "macOS 15.0", helper: "1.0", id: B64UData(hostID)),
+            udpPort: 47800, heartbeatMs: 500, sessionTimeoutMs: 6000, maxTextBytes: 16000, sessionCount: 0
+        )
+        let ackEnvelope = Envelope(v: ProtocolConstants.protocolVersion, i: 0, message: .helloAck(ack))
+        try await fakeHostControl.send(FrameEncoder.encode(kind: .json, body: WireCoding.encodeEnvelope(ackEnvelope)))
+
+        let sessionSecret = try SessionSecret.generate()
+        let rawSecret = sessionSecret.key.withUnsafeBytes { Data($0) }
+        let keyEnvelope = Envelope(v: ProtocolConstants.protocolVersion, i: 1, message: .sessionKey(
+            SessionKeyMessage(sessionID: 42, secret: B64UData(rawSecret), validForMs: 60000)
+        ))
+        try await fakeHostControl.send(FrameEncoder.encode(kind: .json, body: WireCoding.encodeEnvelope(keyEnvelope)))
+
+        let info = try await pairResult
+        #expect(info.protocolVersion == ProtocolConstants.protocolVersion)
+        #expect(info.udpPort == 47800)
+
+        await Self.waitUntil {
+            capture.events.contains { if case .paired = $0 { return true }; return false }
+                && capture.events.contains { if case .connected = $0 { return true }; return false }
+        }
+        #expect(capture.events.contains { if case .paired = $0 { return true }; return false })
+        #expect(capture.events.contains { if case .connected = $0 { return true }; return false })
+        }
+    }
+
     // MARK: - Motion: 200 datagrams, counter monotonicity, replay rejection
 
     @Test func twoHundredMotionDatagramsDeliveredWithMonotonicCounters() async throws {

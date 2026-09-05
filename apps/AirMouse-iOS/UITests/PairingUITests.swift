@@ -11,6 +11,11 @@ final class PairingUITests: XCTestCase {
         }
         let app = XCUIApplication()
         app.launchEnvironment["AIRMOUSE_PAIR_URL"] = url
+        // Forward every AIRMOUSE_* diagnostic switch the runner received (TEST_RUNNER_AIRMOUSE_* on the
+        // xcodebuild command line) so device runs can flip DEBUG behaviour without a rebuild.
+        for (key, value) in ProcessInfo.processInfo.environment where key.hasPrefix("AIRMOUSE_") {
+            app.launchEnvironment[key] = value
+        }
         // Accept the Local Network / camera system alerts if they appear.
         addUIInterruptionMonitor(withDescription: "System permission alert") { alert in
             for label in ["Allow", "OK", "Allow While Using App"] {
@@ -29,6 +34,11 @@ final class PairingUITests: XCTestCase {
             RunLoop.current.run(until: Date().addingTimeInterval(1))
         }
         let diagnostics = app.staticTexts.allElementsBoundByIndex.prefix(40).map(\.label).joined(separator: " | ")
+        // Echoed on success too: `debug.pairingProgress` carries how the client identity was resolved
+        // (reused / stale-replaced / minted / ephemeral) and each candidate's outcome, which is the
+        // only way to tell a *passing* run's identity path apart on-device (no OS log access here).
+        let debug = app.staticTexts["debug.pairingProgress"].firstMatch
+        print("DEBUGLABEL: \(debug.exists ? debug.label : "(no debug label)")")
         XCTAssertTrue(connected.exists, "Did not reach Connected within 45 s. Visible texts: \(diagnostics)")
     }
 }
@@ -53,6 +63,7 @@ extension PairingUITests {
         }
         let debug = app.staticTexts["debug.pairingProgress"].firstMatch
         let detail = debug.exists ? debug.label : "(no debug label)"
+        print("DEBUGLABEL: \(detail)")
         XCTAssertTrue(connected.exists, "Trusted reconnect did not reach Connected within 30 s. \(detail)")
     }
 }

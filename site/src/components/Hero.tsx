@@ -24,7 +24,7 @@ export function Hero() {
         </p>
 
         <h1 className="display hero__title hero__in" style={inDelay(80)}>
-          Your iPhone. Now a trackpad for your Mac.
+          Your iPhone. <span className="grad-text">Now a trackpad for your Mac.</span>
         </h1>
 
         <p className="lede hero__lede hero__in" style={inDelay(160)}>
@@ -59,19 +59,11 @@ export function Hero() {
 
         <div className="hero__meta hero__in" style={inDelay(320)}>
           <p className="small hero__requirements">{requirements}</p>
-
-          <div className="hero__brew">
-            <code className="hero__brew-code">{site.homebrew.command}</code>
-            {!site.homebrew.available && (
-              <p className="small hero__brew-note">
-                Homebrew cask — not published yet; use the download button
-                above.
-              </p>
-            )}
-          </div>
         </div>
 
-        <HeroDevice />
+        <div className="hero__stage">
+          <HeroDevice />
+        </div>
       </div>
     </section>
   );

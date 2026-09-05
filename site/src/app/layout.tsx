@@ -54,12 +54,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // The page is designed for both; `prefers-color-scheme` does the rest.
-  colorScheme: "light dark",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
-  ],
+  // Apple product pages stay light regardless of OS setting — this site does
+  // too. The only dark surface is `.band--dark`, a local token override.
+  colorScheme: "light",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
