@@ -17,8 +17,11 @@ const basePath = rawBasePath.replace(/\/+$/, "");
 const nextConfig: NextConfig = {
   // Fully static: `next build` emits `out/` with no server runtime at all.
   output: "export",
-  // Directory-style URLs, so GitHub Pages serves `out/foo/index.html` for `/foo/`.
-  trailingSlash: true,
+  // No trailing slashes: production is https://www.devashish.cc/air-control,
+  // served through the portfolio's Vercel rewrite, and that host normalises
+  // trailing slashes away. Metadata URLs (canonical, Open Graph, sitemap) must
+  // match that form. The single page still exports as `out/index.html`.
+  trailingSlash: false,
   // The static export has no image optimizer.
   images: { unoptimized: true },
   basePath: basePath || undefined,

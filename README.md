@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://devashish2531.github.io/air-control/">Website</a> ·
+  <a href="https://www.devashish.cc/air-control">Website</a> ·
   <a href="https://github.com/devashish2531/air-control/releases/latest">Download for Mac</a> ·
   <a href="https://github.com/devashish2531/air-control/issues/new?title=iOS+waitlist&body=Please+let+me+know+when+the+Air+Control+iPhone+app+is+available+for+testing.">iPhone waitlist</a> ·
   <a href="docs/protocol.md">Protocol</a> ·

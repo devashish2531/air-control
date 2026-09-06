@@ -1,7 +1,7 @@
 # Air Control — landing page
 
 The public marketing site for the project, at
-<https://devashish2531.github.io/air-control/>.
+<https://www.devashish.cc/air-control>.
 
 **The public product name is "Air Control".** The apps, bundle identifiers and the
 rest of `docs/` still say "Air Mouse" internally and will be renamed in a later

@@ -20,5 +20,9 @@ export function absolute(path: `/${string}`): string {
   return `${site.origin}${asset(path)}`;
 }
 
-/** The site's canonical URL, with the trailing slash `trailingSlash: true` produces. */
-export const canonicalUrl = `${site.origin}${basePath}/`;
+/**
+ * The site's canonical URL. No trailing slash: production is served at
+ * www.devashish.cc/air-control through the portfolio's rewrite, and that host
+ * normalises trailing slashes away, so the canonical must match that form.
+ */
+export const canonicalUrl = `${site.origin}${basePath}`;

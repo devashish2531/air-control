@@ -13,7 +13,7 @@ const GITHUB_REPO = "https://github.com/devashish2531/air-control";
  * so `ORIGIN` is the single thing to change when a custom domain is added
  * (see docs/07-landing-page.md).
  */
-const ORIGIN = "https://devashish2531.github.io";
+const ORIGIN = "https://www.devashish.cc";
 
 /**
  * Same basePath computation `src/lib/urls.ts` uses for `canonicalUrl`
@@ -74,6 +74,6 @@ export const site = {
    * the GitHub issue link above is too long to QR-encode cleanly.
    */
   qr: {
-    target: `${ORIGIN}${QR_BASE_PATH}/#get-iphone`,
+    target: `${ORIGIN}${QR_BASE_PATH}#get-iphone`,
   },
 } as const;
