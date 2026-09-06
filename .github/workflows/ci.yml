@@ -41,7 +41,7 @@ jobs:
           xcodebuild -version
 
       - name: Cache SwiftPM
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             Packages/AirControlKit/.build
@@ -75,7 +75,7 @@ jobs:
           xcodebuild -version
 
       - name: Cache SwiftPM
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             Packages/AirControlKit/.build
@@ -116,7 +116,7 @@ jobs:
           xcodebuild -version
 
       - name: Cache SwiftPM
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             Packages/AirControlKit/.build
