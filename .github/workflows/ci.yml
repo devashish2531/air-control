@@ -27,7 +27,7 @@ jobs:
     name: kit (swift build/test)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Select Xcode (.xcode-version)
         run: |
@@ -61,7 +61,7 @@ jobs:
     name: ios (xcodegen + xcodebuild test)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Select Xcode (.xcode-version)
         run: |
@@ -102,7 +102,7 @@ jobs:
     name: mac (xcodegen + xcodebuild test incl. loopback integration)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Select Xcode (.xcode-version)
         run: |
@@ -143,7 +143,7 @@ jobs:
     name: lint (non-blocking for now — plan §6 will promote this to required)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install SwiftLint + SwiftFormat
         run: brew install swiftlint swiftformat
