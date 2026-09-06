@@ -1,0 +1,69 @@
+import XCTest
+
+/// On-device pairing regression. Run with the pairing URL from the Mac helper (`--print-pair-url`):
+///   AIRCONTROL_PAIR_URL='aircontrol://pair?...' xcodebuild test ... -only-testing:AirControlUITests/PairingUITests
+/// The test runner forwards the variable to the app, whose DEBUG launch hook routes it through PairingRouting.
+final class PairingUITests: XCTestCase {
+    @MainActor
+    func testPairFromLaunchURLReachesConnected() throws {
+        guard let url = ProcessInfo.processInfo.environment["AIRCONTROL_PAIR_URL"], !url.isEmpty else {
+            throw XCTSkip("AIRCONTROL_PAIR_URL not set; skipping on-device pairing test")
+        }
+        let app = XCUIApplication()
+        app.launchEnvironment["AIRCONTROL_PAIR_URL"] = url
+        // Forward every AIRCONTROL_* diagnostic switch the runner received (TEST_RUNNER_AIRCONTROL_* on the
+        // xcodebuild command line) so device runs can flip DEBUG behaviour without a rebuild.
+        for (key, value) in ProcessInfo.processInfo.environment where key.hasPrefix("AIRCONTROL_") {
+            app.launchEnvironment[key] = value
+        }
+        // Accept the Local Network / camera system alerts if they appear.
+        addUIInterruptionMonitor(withDescription: "System permission alert") { alert in
+            for label in ["Allow", "OK", "Allow While Using App"] {
+                let button = alert.buttons[label]
+                if button.exists { button.tap(); return true }
+            }
+            return false
+        }
+        app.launch()
+        app.tap() // trigger any pending interruption monitor
+
+        let connected = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Connected' AND NOT label CONTAINS[c] 'Not connected'")).firstMatch
+        let deadline = Date().addingTimeInterval(45)
+        while Date() < deadline, !connected.exists {
+            app.tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1))
+        }
+        let diagnostics = app.staticTexts.allElementsBoundByIndex.prefix(40).map(\.label).joined(separator: " | ")
+        // Echoed on success too: `debug.pairingProgress` carries how the client identity was resolved
+        // (reused / stale-replaced / minted / ephemeral) and each candidate's outcome, which is the
+        // only way to tell a *passing* run's identity path apart on-device (no OS log access here).
+        let debug = app.staticTexts["debug.pairingProgress"].firstMatch
+        print("DEBUGLABEL: \(debug.exists ? debug.label : "(no debug label)")")
+        XCTAssertTrue(connected.exists, "Did not reach Connected within 45 s. Visible texts: \(diagnostics)")
+    }
+}
+
+extension PairingUITests {
+    /// After a successful pairing, a plain launch must auto-connect to the remembered Mac (spec §3.3):
+    /// discovery (or last-known addresses) → trusted mTLS reconnect → "Connected" pill, within 30 s.
+    /// Handles the iOS Local Network permission alert, which appears the first time Bonjour is used.
+    @MainActor
+    func testTrustedReconnectReachesConnected() throws {
+        let app = XCUIApplication()
+        addUIInterruptionMonitor(withDescription: "Local Network alert") { alert in
+            for label in ["Allow", "OK"] where alert.buttons[label].exists { alert.buttons[label].tap(); return true }
+            return false
+        }
+        app.launch()
+        let connected = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Connected' AND NOT label CONTAINS[c] 'Not connected'")).firstMatch
+        let deadline = Date().addingTimeInterval(30)
+        while Date() < deadline, !connected.exists {
+            app.tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1))
+        }
+        let debug = app.staticTexts["debug.pairingProgress"].firstMatch
+        let detail = debug.exists ? debug.label : "(no debug label)"
+        print("DEBUGLABEL: \(detail)")
+        XCTAssertTrue(connected.exists, "Trusted reconnect did not reach Connected within 30 s. \(detail)")
+    }
+}

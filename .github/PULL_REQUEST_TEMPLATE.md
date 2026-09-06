@@ -27,6 +27,6 @@
 ---
 
 <!--
-Reviewer note: changes under `Packages/AirMouseKit/Sources/AirMouseCrypto`, `docs/protocol.md`,
+Reviewer note: changes under `Packages/AirControlKit/Sources/AirControlCrypto`, `docs/protocol.md`,
 or `.github/workflows/**` require a CODEOWNERS review (arch §9.2).
 -->

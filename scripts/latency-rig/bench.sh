@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/latency-rig/bench.sh — runs `airmouse-cli bench` against a real, already-paired Mac over
+# scripts/latency-rig/bench.sh — runs `aircontrol-cli bench` against a real, already-paired Mac over
 # Wi-Fi and appends one CSV row per run, for tracking the PRD/spec §8.1 latency metric
 # (NFR-PERF-001: RTT p50 ≤ 12ms, p95 ≤ 20ms) over time. See README.md in this directory for the full
 # procedure (ground truth camera rig, HUD correlation, jitter, reconnect).
@@ -9,12 +9,12 @@
 #       [--fingerprint <hex>] [--out results.csv] [--label "living-room-5ghz"]
 #
 # Prerequisites: the Mac helper is running and this machine has already paired with it once
-# (`airmouse-cli pair <airmouse://pair?...>` — scan/copy the URL from the helper's pairing window).
+# (`aircontrol-cli pair <aircontrol://pair?...>` — scan/copy the URL from the helper's pairing window).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-KIT_DIR="$REPO_ROOT/Packages/AirMouseKit"
+KIT_DIR="$REPO_ROOT/Packages/AirControlKit"
 
 HOST=""
 PORT="47800"
@@ -35,14 +35,14 @@ while [[ $# -gt 0 ]]; do
     --label) LABEL="$2"; shift 2 ;;
     -h|--help)
       cat <<'USAGE'
-bench.sh — run `airmouse-cli bench` against a real Mac over Wi-Fi and record one CSV row.
+bench.sh — run `aircontrol-cli bench` against a real Mac over Wi-Fi and record one CSV row.
 
 Usage:
   bench.sh --host <ip> [--port 47800] [--seconds 10] [--rate 120] \
             [--fingerprint <hex>] [--out results.csv] [--label <name>]
 
 Prerequisites: the Mac helper is running and this machine has already paired with it once
-(`airmouse-cli pair <airmouse://pair?...>`). See README.md in this directory for the full procedure.
+(`aircontrol-cli pair <aircontrol://pair?...>`). See README.md in this directory for the full procedure.
 USAGE
       exit 0
       ;;
@@ -63,10 +63,10 @@ if [[ -n "$FINGERPRINT" ]]; then
   FP_ARGS=(--fingerprint "$FINGERPRINT")
 fi
 
-echo "Building airmouse-cli (release, for a representative measurement)…" >&2
-(cd "$KIT_DIR" && swift build -c release --scratch-path .build/latency-rig --product airmouse-cli) >&2
+echo "Building aircontrol-cli (release, for a representative measurement)…" >&2
+(cd "$KIT_DIR" && swift build -c release --scratch-path .build/latency-rig --product aircontrol-cli) >&2
 
-BIN="$KIT_DIR/.build/latency-rig/release/airmouse-cli"
+BIN="$KIT_DIR/.build/latency-rig/release/aircontrol-cli"
 
 echo "Running: $BIN bench --host $HOST --port $PORT --seconds $SECONDS_ARG --rate $RATE --json" >&2
 JSON_OUT="$("$BIN" bench --host "$HOST" --port "$PORT" --seconds "$SECONDS_ARG" --rate "$RATE" "${FP_ARGS[@]}" --json)"

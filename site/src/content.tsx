@@ -34,7 +34,7 @@ export type Feature = {
 };
 
 /**
- * Card strip order (spec A, DESIGN-SPEC-v3.md): Touchpad, Air mouse,
+ * Card strip order (spec A, DESIGN-SPEC-v3.md): Touchpad, Air pointer,
  * Keyboard, Presenter & media remote, Macros, iPad layout — paired with
  * surfaces --card-blue, --card-violet, --card-peach, --card-black,
  * --card-mint, --card-gray in that same order. Keep this order if reshuffled.
@@ -118,7 +118,7 @@ function TouchpadIllustration() {
  * A tilted phone with dashed rays converging on a cursor arrow — the air
  * mouse's "point the phone, the pointer follows" idea in three lines.
  */
-function AirMouseIllustration() {
+function AirControlIllustration() {
   return (
     <svg
       viewBox="0 0 280 140"
@@ -382,8 +382,8 @@ export const features: Feature[] = [
     compat: "iPhone, iPad",
   },
   {
-    id: "air-mouse",
-    title: "Air mouse",
+    id: "air-pointer",
+    title: "Air pointer",
     headline: "Point the phone. The cursor follows.",
     benefit:
       "Gyroscope and accelerometer fusion with drift correction and a clutch button that holds the pointer still while you gesture.",
@@ -395,7 +395,7 @@ export const features: Feature[] = [
         <circle cx="12" cy="12" r="3.2" />
       </Glyph>
     ),
-    illustration: <AirMouseIllustration />,
+    illustration: <AirControlIllustration />,
     card: "violet",
     compat: "iPhone, iPad",
   },

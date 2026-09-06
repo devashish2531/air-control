@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Air Mouse has no telemetry — this is how the project sees real-world latency numbers.
+        Air Control has no telemetry — this is how the project sees real-world latency numbers.
         Open the in-app Latency HUD (Diagnostics) and copy the p50/p95 it shows.
   - type: input
     id: phone-model
@@ -69,7 +69,7 @@ body:
       label: Mode
       options:
         - Touchpad
-        - Gyro air-mouse
+        - Gyro air-pointer
         - Both
     validations:
       required: true

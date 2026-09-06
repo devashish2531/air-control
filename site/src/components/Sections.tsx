@@ -114,7 +114,7 @@ function FeatureCard({ feature }: { feature: Feature }) {
  * The landing page's centerpiece: a horizontal strip of six tall portrait
  * cards that scroll sideways with prev/next buttons, Apple's apple.com/apps
  * "Health & Fitness" strip style (spec A). `features` is already ordered
- * Touchpad, Air mouse, Keyboard, Presenter & media remote, Macros, iPad
+ * Touchpad, Air pointer, Keyboard, Presenter & media remote, Macros, iPad
  * layout — see the ordering note on `features` in content.tsx. The whole
  * strip reveals once (no per-card stagger — a scroll container makes
  * staggering odd).

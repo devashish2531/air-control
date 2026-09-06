@@ -1,7 +1,7 @@
-# Air Mouse CODEOWNERS — arch §9.2: at least one review required for changes under these paths.
+# Air Control CODEOWNERS — arch §9.2: at least one review required for changes under these paths.
 # @OWNER is a placeholder — the maintainer must replace it with their actual GitHub handle(s)
 # before branch protection is turned on.
 
-Packages/AirMouseKit/Sources/AirMouseCrypto/  @OWNER
+Packages/AirControlKit/Sources/AirControlCrypto/  @OWNER
 docs/protocol.md                              @OWNER
 .github/workflows/                            @OWNER

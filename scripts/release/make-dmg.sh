@@ -28,7 +28,7 @@ mkdir -p "$(dirname "$dmg_path")"
 rm -f "$dmg_path"
 
 app_name="$(basename "$app_path" .app)"
-volume_name="Air Mouse"
+volume_name="Air Control"
 
 echo "Creating DMG at $dmg_path from $app_path"
 create-dmg \

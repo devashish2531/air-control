@@ -4,9 +4,7 @@ The public marketing site for the project, at
 <https://www.devashish.cc/air-control>.
 
 **The public product name is "Air Control".** The apps, bundle identifiers and the
-rest of `docs/` still say "Air Mouse" internally and will be renamed in a later
-pass (`docs/00-decisions.md`, Addendum F1). Nothing rendered by this site should
-say "Air Mouse".
+rest of `docs/` now use this name consistently (`docs/00-decisions.md`, Addendum F1).
 
 | | |
 | --- | --- |
@@ -130,7 +128,7 @@ CI never runs it, because the PNGs are committed.
 Reads the 1206×2622 device masters from `design/screenshots/` (not shipped —
 outside `public/`) and, with macOS `sips`, writes `<slug>-<mode>-480.png` and
 `<slug>-<mode>-960.png` into `public/screenshots/` for each of the six screens
-(`touchpad`, `air-mouse`, `keyboard`, `remote`, `macros`, `settings`) in both
+(`touchpad`, `air-pointer`, `keyboard`, `remote`, `macros`, `settings`) in both
 `light` and `dark` mode — 24 files, used by the gallery section's `srcset`.
 
 ## Deploying

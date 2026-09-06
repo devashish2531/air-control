@@ -1,4 +1,4 @@
-# Air Mouse — System Architecture (v1)
+# Air Control — System Architecture (v1)
 
 | Field | Value |
 |---|---|
@@ -13,12 +13,12 @@
 
 | Spec §2.1 / §6.1 name | This document | Why |
 |---|---|---|
-| Package `AirMouseProtocol` | Package **`AirMouseKit`** | The package now also hosts platform-agnostic session logic and a CLI; "Protocol" becomes one target's name |
-| Target `AirMouseWire` | **`AirMouseProtocol`** (framing, envelope, messages, `MotionPayload`, `QRPayload`, TXT model, error codes, keycode table, macro models) + **`AirMouseCrypto`** (`MotionCrypto`, `SessionKeys`, `ReplayWindow`, `PairingProof`, `Fingerprint`, `IdentityFactory`) | Crypto isolated for audit and fuzzing; Protocol has no CryptoKit or Security dependency |
-| Target `AirMouseInputCore` | **`AirMouseFilters`** | Same contents (One-Euro, gyro mapper, acceleration, scroll gain, gesture recognizer, display clamp, momentum) |
-| Target `AirMouseMacroModel` | folded into **`AirMouseProtocol`** (`Macro`, `MacroAction`, `MacroValidator`, `MacroDocument`) | `macroList` carries these on the wire; one fewer target to explain |
-| — (new) | **`AirMouseCore`** | Client connection state machine, host session state machine, heartbeat/RTT, probe/fallback controller, address selection, backoff, trust records, settings layering — all transport-agnostic and testable with `swift test` |
-| One `AirMouse.xcodeproj` with buildable folders | Two XcodeGen-generated projects under `apps/` | See §2.3 and ADR-001 |
+| Package `AirControlProtocol` | Package **`AirControlKit`** | The package now also hosts platform-agnostic session logic and a CLI; "Protocol" becomes one target's name |
+| Target `AirControlWire` | **`AirControlProtocol`** (framing, envelope, messages, `MotionPayload`, `QRPayload`, TXT model, error codes, keycode table, macro models) + **`AirControlCrypto`** (`MotionCrypto`, `SessionKeys`, `ReplayWindow`, `PairingProof`, `Fingerprint`, `IdentityFactory`) | Crypto isolated for audit and fuzzing; Protocol has no CryptoKit or Security dependency |
+| Target `AirControlInputCore` | **`AirControlFilters`** | Same contents (One-Euro, gyro mapper, acceleration, scroll gain, gesture recognizer, display clamp, momentum) |
+| Target `AirControlMacroModel` | folded into **`AirControlProtocol`** (`Macro`, `MacroAction`, `MacroValidator`, `MacroDocument`) | `macroList` carries these on the wire; one fewer target to explain |
+| — (new) | **`AirControlCore`** | Client connection state machine, host session state machine, heartbeat/RTT, probe/fallback controller, address selection, backoff, trust records, settings layering — all transport-agnostic and testable with `swift test` |
+| One `AirControl.xcodeproj` with buildable folders | Two XcodeGen-generated projects under `apps/` | See §2.3 and ADR-001 |
 
 ---
 
@@ -27,10 +27,10 @@
 | # | Goal | Source | Architectural consequence |
 |---|---|---|---|
 | G1 | **Trackpad-grade latency**: p50 ≤ 12 ms, p95 ≤ 20 ms sample → `CGEvent.post` | NFR-PERF-001, spec §8.1 | Binary 44-byte UDP datagrams; one datagram per input frame; zero main-thread hops on the motion path on either side; a single high-priority serial executor per side owns the hot path; in-flight cap of 2; no `Codable`, no `String`, no logging (except signposts) on that path |
-| G2 | **Secure by default, no plaintext mode** | NFR-SEC-001…012, spec §7 | mTLS 1.3 with pinned self-signed P-256 identities; per-datagram ChaCha20-Poly1305 with HKDF-derived per-direction keys and an RFC 6479 replay window; all crypto in one auditable target (`AirMouseCrypto`); decoders fuzzed in CI; deny-by-default trust; scripts gated three ways |
-| G3 | **Open source, contributor friendly** | NFR-OSS-001…007, persona Ines | Text-only project definitions (XcodeGen `project.yml`), `swift test` runs everything in the package with no signing, a loopback harness so CI never needs Accessibility, `airmouse-cli` to exercise the Mac without a phone, no secrets on PR builds |
+| G2 | **Secure by default, no plaintext mode** | NFR-SEC-001…012, spec §7 | mTLS 1.3 with pinned self-signed P-256 identities; per-datagram ChaCha20-Poly1305 with HKDF-derived per-direction keys and an RFC 6479 replay window; all crypto in one auditable target (`AirControlCrypto`); decoders fuzzed in CI; deny-by-default trust; scripts gated three ways |
+| G3 | **Open source, contributor friendly** | NFR-OSS-001…007, persona Ines | Text-only project definitions (XcodeGen `project.yml`), `swift test` runs everything in the package with no signing, a loopback harness so CI never needs Accessibility, `aircontrol-cli` to exercise the Mac without a phone, no secrets on PR builds |
 | G4 | **OS floor iOS 18 / macOS 15** | Decision, Addendum A4 | `NWConnection`/`NWListener`/`NWBrowser` callback APIs only; `@Observable`, `MenuBarExtra`, `SMAppService`, String Catalogs are all available; iOS 26-only APIs (`NetworkConnection`, `InlineArray` runtime) are forbidden by a lint rule |
-| G5 | **Swift 6 strict concurrency** | Decision (stack), Xcode 26.6 toolchain | `swift-tools-version: 6.0`, language mode 6, `-strict-concurrency=complete` everywhere; every public type in `AirMouseKit` is `Sendable` with no `@unchecked`; mutable state lives in actors; real-time work runs on actors with custom `DispatchSerialQueue` executors so isolation is compiler-checked |
+| G5 | **Swift 6 strict concurrency** | Decision (stack), Xcode 26.6 toolchain | `swift-tools-version: 6.0`, language mode 6, `-strict-concurrency=complete` everywhere; every public type in `AirControlKit` is `Sendable` with no `@unchecked`; mutable state lives in actors; real-time work runs on actors with custom `DispatchSerialQueue` executors so isolation is compiler-checked |
 | G6 | **Never leave the Mac in a bad state** | NFR-REL-002, FR-MB-009, spec §5.3.11 | `releaseAll()` is a single function on the injector, invoked from every exit path plus a 60 s watchdog; held-input state has exactly one owner |
 | G7 | **Privacy: nothing leaves the LAN, nothing typed is stored** | NFR-PRIV-*, NFR-SEC-010 | No telemetry SDKs; OSLog with privacy annotations; diagnostics are local files; typed text exists only in transient buffers |
 | G8 | **Accessibility permission only** | Addendum A5 | No `CGEvent.tapCreate`, no `IOHIDManager`, no Screen Recording anywhere; enforced by a SwiftLint custom rule so a contributor cannot add an event tap by accident |
@@ -47,7 +47,7 @@
 ### 2.1 Tree
 
 ```
-air-mouse/
+air-control/
 ├── .github/
 │   ├── ISSUE_TEMPLATE/                 bug.yml, feature.yml, latency-report.yml, config.yml
 │   ├── PULL_REQUEST_TEMPLATE.md
@@ -59,57 +59,57 @@ air-mouse/
 │       └── release.yml                tag v*: notarize Mac, appcast, GitHub Release, cask PR; iOS → TestFlight
 ├── .xcode-version                     26.6
 ├── .swiftlint.yml  .swiftformat  .editorconfig  .gitignore  .gitattributes
-├── Package.swift                      → thin manifest re-exporting Packages/AirMouseKit (so `swift test` at root works)
+├── Package.swift                      → thin manifest re-exporting Packages/AirControlKit (so `swift test` at root works)
 ├── Packages/
-│   └── AirMouseKit/
+│   └── AirControlKit/
 │       ├── Package.swift
 │       ├── Sources/
-│       │   ├── AirMouseProtocol/      Framing/, Messages/, Motion/, Discovery/, Macros/, Keycodes/, Errors/
-│       │   ├── AirMouseCrypto/        MotionCrypto.swift, SessionKeys.swift, ReplayWindow.swift, PairingProof.swift,
+│       │   ├── AirControlProtocol/      Framing/, Messages/, Motion/, Discovery/, Macros/, Keycodes/, Errors/
+│       │   ├── AirControlCrypto/        MotionCrypto.swift, SessionKeys.swift, ReplayWindow.swift, PairingProof.swift,
 │       │   │                          Fingerprint.swift, Identity/ (IdentityFactory, CertificateBuilder)
-│       │   ├── AirMouseFilters/       OneEuroFilter, GyroMapper, AccelerationCurve, ScrollGain, GestureRecognizer/,
+│       │   ├── AirControlFilters/       OneEuroFilter, GyroMapper, AccelerationCurve, ScrollGain, GestureRecognizer/,
 │       │   │                          DisplayClamp, MomentumSynthesizer, Clock.swift
-│       │   ├── AirMouseCore/          Client/ (ConnectionStateMachine, AddressSelector, Backoff, ProbeController,
+│       │   ├── AirControlCore/          Client/ (ConnectionStateMachine, AddressSelector, Backoff, ProbeController,
 │       │   │                          HeartbeatClock), Host/ (HostSessionStateMachine, RateLimiter, HeldInputLedger),
 │       │   │                          Transport/ (protocols only), Trust/ (records), Settings/ (layering), Diagnostics/
-│       │   └── airmouse-cli/          main.swift + Commands/ (pair, connect, move, click, type, bench, replay)
+│       │   └── aircontrol-cli/          main.swift + Commands/ (pair, connect, move, click, type, bench, replay)
 │       ├── Tests/
-│       │   ├── AirMouseProtocolTests/ (+ Vectors/)
-│       │   ├── AirMouseCryptoTests/   (+ Vectors/)
-│       │   ├── AirMouseFiltersTests/  (+ Vectors/)
-│       │   └── AirMouseCoreTests/
+│       │   ├── AirControlProtocolTests/ (+ Vectors/)
+│       │   ├── AirControlCryptoTests/   (+ Vectors/)
+│       │   ├── AirControlFiltersTests/  (+ Vectors/)
+│       │   └── AirControlCoreTests/
 │       └── README.md
 ├── apps/
-│   ├── AirMouse-iOS/
-│   │   ├── project.yml                XcodeGen spec (→ AirMouse.xcodeproj, git-ignored)
+│   ├── AirControl-iOS/
+│   │   ├── project.yml                XcodeGen spec (→ AirControl.xcodeproj, git-ignored)
 │   │   ├── Sources/
-│   │   │   ├── App/                   AirMouseApp.swift, AppEnvironment.swift, RootTabView.swift
-│   │   │   ├── Features/              Onboarding/ Pairing/ Devices/ Touchpad/ AirMouse/ Keyboard/ Remote/ Macros/ Settings/ Diagnostics/
+│   │   │   ├── App/                   AirControlApp.swift, AppEnvironment.swift, RootTabView.swift
+│   │   │   ├── Features/              Onboarding/ Pairing/ Devices/ Touchpad/ AirControl/ Keyboard/ Remote/ Macros/ Settings/ Diagnostics/
 │   │   │   ├── Services/              ConnectionManager/, MotionPublisher/, GyroEngine/, KeyboardBridge/, HapticsService/,
 │   │   │   │                          KeychainStore/, DocumentStore/, TouchInput/ (TouchpadView UIKit bridge), NetworkTransport/
 │   │   │   ├── Support/               Logging.swift, ErrorPresentation.swift, Labs.swift
 │   │   │   └── Info.plist             (generated by XcodeGen from project.yml `info:`)
 │   │   ├── Resources/                 Assets.xcassets, Localizable.xcstrings, Sounds/
-│   │   ├── Tests/                     AirMouseTests (view-model + service tests with mocks)
-│   │   └── UITests/                   AirMouseUITests (onboarding smoke only)
-│   └── AirMouse-Mac/
-│       ├── project.yml                (→ AirMouseHelper.xcodeproj, git-ignored)
+│   │   ├── Tests/                     AirControlTests (view-model + service tests with mocks)
+│   │   └── UITests/                   AirControlUITests (onboarding smoke only)
+│   └── AirControl-Mac/
+│       ├── project.yml                (→ AirControlHelper.xcodeproj, git-ignored)
 │       ├── Sources/
-│       │   ├── App/                   AirMouseHelperApp.swift, MenuBarScene.swift, AppEnvironment.swift, LaunchArguments.swift
+│       │   ├── App/                   AirControlHelperApp.swift, MenuBarScene.swift, AppEnvironment.swift, LaunchArguments.swift
 │       │   ├── Features/              Onboarding/ Pairing/ TrustedDevices/ MacroEditor/ Diagnostics/ Preferences/
 │       │   ├── Services/              HostServer/, SessionManager/, PairingService/, TrustStore/, EventInjector/,
 │       │   │                          MomentumEngine/, KeycodeMapper/, MacroEngine/ (ScriptRunner), PermissionsService/,
 │       │   │                          UpdateService/, DisplayTopology/, HostStateObserver/
 │       │   ├── Support/               Logging.swift, Signposts.swift
-│       │   └── AirMouseHelper.entitlements
+│       │   └── AirControlHelper.entitlements
 │       ├── Resources/                 Assets.xcassets, Localizable.xcstrings
-│       ├── Tests/                     AirMouseHelperTests
-│       └── IntegrationTests/          AirMouseHelperIntegrationTests (drives --loopback)
+│       ├── Tests/                     AirControlHelperTests
+│       └── IntegrationTests/          AirControlHelperIntegrationTests (drives --loopback)
 ├── Config/
 │   ├── Base.xcconfig                  committed; `#include? "Local.xcconfig"`
 │   ├── Local.xcconfig.example         committed template
 │   └── Local.xcconfig                 git-ignored: DEVELOPMENT_TEAM, BUNDLE_ID_SUFFIX
-├── Formula/                           (project tap) Casks/air-mouse.rb  — R-14: start with `brew tap <owner>/airmouse`
+├── Formula/                           (project tap) Casks/air-control.rb  — R-14: start with `brew tap <owner>/aircontrol`
 ├── scripts/
 │   ├── bootstrap.sh                   brew bundle, xcodegen generate ×2, copy Local.xcconfig.example
 │   ├── gen-vectors.swift              regenerates Tests/*/Vectors/*.json (spec §6.4)
@@ -124,7 +124,7 @@ air-mouse/
 
 Generated `.xcodeproj` directories, `DerivedData`, `Config/Local.xcconfig`, `*.xcuserdata`, and `.build/` are git-ignored. Contributors run `scripts/bootstrap.sh` once; CI runs `xcodegen generate` in every job.
 
-### 2.2 `Packages/AirMouseKit/Package.swift`
+### 2.2 `Packages/AirControlKit/Package.swift`
 
 ```swift
 // swift-tools-version: 6.0
@@ -138,14 +138,14 @@ let strict: [SwiftSetting] = [
 ]
 
 let package = Package(
-    name: "AirMouseKit",
+    name: "AirControlKit",
     platforms: [.iOS(.v18), .macOS(.v15)],
     products: [
-        .library(name: "AirMouseProtocol", targets: ["AirMouseProtocol"]),
-        .library(name: "AirMouseCrypto",   targets: ["AirMouseCrypto"]),
-        .library(name: "AirMouseFilters",  targets: ["AirMouseFilters"]),
-        .library(name: "AirMouseCore",     targets: ["AirMouseCore"]),
-        .executable(name: "airmouse-cli",  targets: ["airmouse-cli"]),
+        .library(name: "AirControlProtocol", targets: ["AirControlProtocol"]),
+        .library(name: "AirControlCrypto",   targets: ["AirControlCrypto"]),
+        .library(name: "AirControlFilters",  targets: ["AirControlFilters"]),
+        .library(name: "AirControlCore",     targets: ["AirControlCore"]),
+        .executable(name: "aircontrol-cli",  targets: ["aircontrol-cli"]),
     ],
     dependencies: [
         // Apple-authored; the only third-party SwiftPM dependency in the kit (needed to mint self-signed X.509).
@@ -154,32 +154,32 @@ let package = Package(
     ],
     targets: [
         // Layer 0 — pure data. Foundation only. No CryptoKit, no Security, no Network.
-        .target(name: "AirMouseProtocol", swiftSettings: strict),
+        .target(name: "AirControlProtocol", swiftSettings: strict),
 
         // Layer 1a — crypto. Foundation + CryptoKit + Security (identity) + swift-certificates.
-        .target(name: "AirMouseCrypto",
-                dependencies: ["AirMouseProtocol",
+        .target(name: "AirControlCrypto",
+                dependencies: ["AirControlProtocol",
                                .product(name: "X509", package: "swift-certificates")],
                 swiftSettings: strict),
 
         // Layer 1b — numerics. Foundation + simd. Independent of Protocol on purpose.
-        .target(name: "AirMouseFilters", swiftSettings: strict),
+        .target(name: "AirControlFilters", swiftSettings: strict),
 
         // Layer 2 — platform-agnostic session logic. Still no Network.framework: transports are injected.
-        .target(name: "AirMouseCore",
-                dependencies: ["AirMouseProtocol", "AirMouseCrypto", "AirMouseFilters"],
+        .target(name: "AirControlCore",
+                dependencies: ["AirControlProtocol", "AirControlCrypto", "AirControlFilters"],
                 swiftSettings: strict),
 
         // Tooling — the one place in the package that imports Network.framework.
-        .executableTarget(name: "airmouse-cli",
-                          dependencies: ["AirMouseCore",
+        .executableTarget(name: "aircontrol-cli",
+                          dependencies: ["AirControlCore",
                                          .product(name: "ArgumentParser", package: "swift-argument-parser")],
                           swiftSettings: strict),
 
-        .testTarget(name: "AirMouseProtocolTests", dependencies: ["AirMouseProtocol"], resources: [.copy("Vectors")]),
-        .testTarget(name: "AirMouseCryptoTests",   dependencies: ["AirMouseCrypto"],   resources: [.copy("Vectors")]),
-        .testTarget(name: "AirMouseFiltersTests",  dependencies: ["AirMouseFilters"],  resources: [.copy("Vectors")]),
-        .testTarget(name: "AirMouseCoreTests",     dependencies: ["AirMouseCore"]),
+        .testTarget(name: "AirControlProtocolTests", dependencies: ["AirControlProtocol"], resources: [.copy("Vectors")]),
+        .testTarget(name: "AirControlCryptoTests",   dependencies: ["AirControlCrypto"],   resources: [.copy("Vectors")]),
+        .testTarget(name: "AirControlFiltersTests",  dependencies: ["AirControlFilters"],  resources: [.copy("Vectors")]),
+        .testTarget(name: "AirControlCoreTests",     dependencies: ["AirControlCore"]),
     ]
 )
 ```
@@ -197,14 +197,14 @@ The root `Package.swift` is a one-line manifest whose only target depends on the
 | Maintainer without Xcode open (this repo today) | Cannot edit the project meaningfully | Can | Can — `project.yml` is plain text |
 | Risk | Low | Tuist major versions churn; DSL breaking changes | XcodeGen lags new Xcode features by weeks; mitigated by pinning the version in `Brewfile` and committing generated projects on release tags if needed |
 
-Decision (ADR-001): **XcodeGen**, one `project.yml` per app, generated projects git-ignored. The research's buildable-folders argument is valid for file additions but does not cover the things that actually get reviewed in an open-source project — Info.plist keys, entitlements, signing settings, schemes — all of which live in `project.yml`. Both apps consume `AirMouseKit` as a local package by path.
+Decision (ADR-001): **XcodeGen**, one `project.yml` per app, generated projects git-ignored. The research's buildable-folders argument is valid for file additions but does not cover the things that actually get reviewed in an open-source project — Info.plist keys, entitlements, signing settings, schemes — all of which live in `project.yml`. Both apps consume `AirControlKit` as a local package by path.
 
-### 2.4 `apps/AirMouse-iOS/project.yml`
+### 2.4 `apps/AirControl-iOS/project.yml`
 
 ```yaml
-name: AirMouse
+name: AirControl
 options:
-  bundleIdPrefix: com.airmouse
+  bundleIdPrefix: com.aircontrol
   xcodeVersion: "26.6"
   deploymentTarget: { iOS: "18.0" }
   createIntermediateGroups: true
@@ -217,7 +217,7 @@ configFiles:                      # Base.xcconfig includes the git-ignored Local
   Debug:   ../../Config/Base.xcconfig
   Release: ../../Config/Base.xcconfig
 packages:
-  AirMouseKit: { path: ../../Packages/AirMouseKit }
+  AirControlKit: { path: ../../Packages/AirControlKit }
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -233,7 +233,7 @@ settings:
     Debug:   { SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG, ONLY_ACTIVE_ARCH: YES }
     Release: { SWIFT_COMPILATION_MODE: wholemodule }
 targets:
-  AirMouse:
+  AirControl:
     type: application
     platform: iOS
     supportedDestinations: [iOS, iPadOS]
@@ -241,19 +241,19 @@ targets:
       - path: Sources
       - path: Resources
     dependencies:
-      - package: AirMouseKit
-        product: AirMouseCore
+      - package: AirControlKit
+        product: AirControlCore
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.airmouse.app$(BUNDLE_ID_SUFFIX)
-        PRODUCT_NAME: Air Mouse
+        PRODUCT_BUNDLE_IDENTIFIER: com.aircontrol.app$(BUNDLE_ID_SUFFIX)
+        PRODUCT_NAME: Air Control
         TARGETED_DEVICE_FAMILY: "1,2"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: Air Mouse
+        CFBundleDisplayName: Air Control
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UIRequiresFullScreen: false                       # good multitasking citizen (spec §2.3)
@@ -261,47 +261,47 @@ targets:
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UIRequiredDeviceCapabilities: [arm64]
         ITSAppUsesNonExemptEncryption: false               # OS-provided TLS/CryptoKit; confirm export answer at M9
-        NSLocalNetworkUsageDescription: "Air Mouse finds and connects to your Mac on your local network. Nothing is sent over the internet."
-        NSBonjourServices: [_airmouse._tcp, _airmouse._udp]
+        NSLocalNetworkUsageDescription: "Air Control finds and connects to your Mac on your local network. Nothing is sent over the internet."
+        NSBonjourServices: [_aircontrol._tcp, _aircontrol._udp]
         NSCameraUsageDescription: "The camera is used only to scan the pairing QR code shown on your Mac."
-        NSMotionUsageDescription: "Motion sensors turn your iPhone into an air mouse: pointing the phone moves the Mac's cursor. Sensor data never leaves the device except as cursor movement."
+        NSMotionUsageDescription: "Motion sensors turn your iPhone into an air pointer: pointing the phone moves the Mac's cursor. Sensor data never leaves the device except as cursor movement."
         CFBundleURLTypes:
-          - CFBundleURLName: com.airmouse.pair
-            CFBundleURLSchemes: [airmouse]
+          - CFBundleURLName: com.aircontrol.pair
+            CFBundleURLSchemes: [aircontrol]
             CFBundleTypeRole: Viewer
         UIBackgroundModes: []                              # deliberately none (PRD C3)
     entitlements:
-      path: AirMouse.entitlements
+      path: AirControl.entitlements
       properties: {}                                       # no special entitlements needed (no multicast, no groups)
-  AirMouseTests:
+  AirControlTests:
     type: bundle.unit-test
     platform: iOS
     sources: [Tests]
-    dependencies: [{ target: AirMouse }]
-  AirMouseUITests:
+    dependencies: [{ target: AirControl }]
+  AirControlUITests:
     type: bundle.ui-testing
     platform: iOS
     sources: [UITests]
-    dependencies: [{ target: AirMouse }]
+    dependencies: [{ target: AirControl }]
 schemes:
-  AirMouse:
-    build: { targets: { AirMouse: all, AirMouseTests: [test], AirMouseUITests: [test] } }
+  AirControl:
+    build: { targets: { AirControl: all, AirControlTests: [test], AirControlUITests: [test] } }
     run:  { config: Debug }
     test:
       config: Debug
       gatherCoverageData: true
-      targets: [AirMouseTests, AirMouseUITests]
+      targets: [AirControlTests, AirControlUITests]
     archive: { config: Release }
 ```
 
 `NSMotionUsageDescription` is not strictly required for CoreMotion gyro/accelerometer (PRD NFR-PRIV-002) but is declared anyway: it costs nothing, protects against App Review's static scan for `CMMotionManager`, and satisfies the "explain sensor use" requirement.
 
-### 2.5 `apps/AirMouse-Mac/project.yml`
+### 2.5 `apps/AirControl-Mac/project.yml`
 
 ```yaml
-name: AirMouseHelper
+name: AirControlHelper
 options:
-  bundleIdPrefix: com.airmouse
+  bundleIdPrefix: com.aircontrol
   xcodeVersion: "26.6"
   deploymentTarget: { macOS: "15.0" }
   createIntermediateGroups: true
@@ -310,7 +310,7 @@ configFiles:
   Debug:   ../../Config/Base.xcconfig
   Release: ../../Config/Base.xcconfig
 packages:
-  AirMouseKit: { path: ../../Packages/AirMouseKit }
+  AirControlKit: { path: ../../Packages/AirControlKit }
   Sparkle: { url: https://github.com/sparkle-project/Sparkle, from: "2.6.4" }
 settings:
   base:
@@ -331,65 +331,65 @@ settings:
       OTHER_CODE_SIGN_FLAGS: "--timestamp"
       SWIFT_COMPILATION_MODE: wholemodule
 targets:
-  AirMouseHelper:
+  AirControlHelper:
     type: application
     platform: macOS
     sources: [{ path: Sources }, { path: Resources }]
     dependencies:
-      - package: AirMouseKit
-        product: AirMouseCore
+      - package: AirControlKit
+        product: AirControlCore
       - package: Sparkle
         product: Sparkle
         embed: true
         codeSign: true                                     # re-sign the framework with our identity (A8)
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.airmouse.helper$(BUNDLE_ID_SUFFIX)
-        PRODUCT_NAME: Air Mouse
+        PRODUCT_BUNDLE_IDENTIFIER: com.aircontrol.helper$(BUNDLE_ID_SUFFIX)
+        PRODUCT_NAME: Air Control
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: Air Mouse
+        CFBundleDisplayName: Air Control
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true                                   # menu-bar only (FR-MB-001)
         LSMinimumSystemVersion: "15.0"
         LSApplicationCategoryType: public.app-category.utilities
-        NSHumanReadableCopyright: "© 2026 Air Mouse contributors. MIT License."
-        NSLocalNetworkUsageDescription: "Air Mouse finds and connects to your Mac on your local network. Nothing is sent over the internet."
-        NSBonjourServices: [_airmouse._tcp, _airmouse._udp]
+        NSHumanReadableCopyright: "© 2026 Air Control contributors. MIT License."
+        NSLocalNetworkUsageDescription: "Air Control finds and connects to your Mac on your local network. Nothing is sent over the internet."
+        NSBonjourServices: [_aircontrol._tcp, _aircontrol._udp]
         NSAppleEventsUsageDescription: "Only used by macros you create on this Mac that run AppleScript. Off by default."
-        SUFeedURL: https://<owner>.github.io/air-mouse/appcast.xml
+        SUFeedURL: https://<owner>.github.io/air-control/appcast.xml
         SUPublicEDKey: "<base64 EdDSA public key — generated at M9-04>"
         SUEnableAutomaticChecks: false                      # opt-in (FR-MB-007)
         SUScheduledCheckInterval: 86400
         SUAutomaticallyUpdate: false
     entitlements:
-      path: Sources/AirMouseHelper.entitlements
+      path: Sources/AirControlHelper.entitlements
       properties:
         com.apple.security.automation.apple-events: true    # the only entitlement (spec §5.1.1)
-  AirMouseHelperTests:
+  AirControlHelperTests:
     type: bundle.unit-test
     platform: macOS
     sources: [Tests]
-    dependencies: [{ target: AirMouseHelper }]
-  AirMouseHelperIntegrationTests:
+    dependencies: [{ target: AirControlHelper }]
+  AirControlHelperIntegrationTests:
     type: bundle.unit-test
     platform: macOS
     sources: [IntegrationTests]
-    dependencies: [{ target: AirMouseHelper }]
+    dependencies: [{ target: AirControlHelper }]
     settings: { base: { TEST_HOST: "" } }                    # launches the built app with --loopback itself
 schemes:
-  AirMouseHelper:
-    build: { targets: { AirMouseHelper: all, AirMouseHelperTests: [test], AirMouseHelperIntegrationTests: [test] } }
+  AirControlHelper:
+    build: { targets: { AirControlHelper: all, AirControlHelperTests: [test], AirControlHelperIntegrationTests: [test] } }
     run:
       config: Debug
       commandLineArguments: { "--log-level debug": false, "--loopback": false, "--bench": false }
     test:
       config: Debug
       gatherCoverageData: true
-      targets: [AirMouseHelperTests, AirMouseHelperIntegrationTests]
+      targets: [AirControlHelperTests, AirControlHelperIntegrationTests]
     archive: { config: Release }
 ```
 
@@ -401,8 +401,8 @@ MARKETING_VERSION = 0.1.0
 CURRENT_PROJECT_VERSION = 1
 BUNDLE_ID_SUFFIX =
 DEVELOPMENT_TEAM =
-SWIFT_TREAT_WARNINGS_AS_ERRORS = $(AIRMOUSE_WARNINGS_AS_ERRORS)
-AIRMOUSE_WARNINGS_AS_ERRORS = NO
+SWIFT_TREAT_WARNINGS_AS_ERRORS = $(AIRCONTROL_WARNINGS_AS_ERRORS)
+AIRCONTROL_WARNINGS_AS_ERRORS = NO
 #include? "Local.xcconfig"
 
 // Config/Local.xcconfig.example — copy to Local.xcconfig (git-ignored)
@@ -410,42 +410,42 @@ DEVELOPMENT_TEAM = ABCDE12345          // your Apple Development team (free pers
 BUNDLE_ID_SUFFIX = .dev-yourname       // avoids TCC / Launch Services collisions with a release install
 ```
 
-CI sets `AIRMOUSE_WARNINGS_AS_ERRORS=YES` via `xcodebuild … AIRMOUSE_WARNINGS_AS_ERRORS=YES`.
+CI sets `AIRCONTROL_WARNINGS_AS_ERRORS=YES` via `xcodebuild … AIRCONTROL_WARNINGS_AS_ERRORS=YES`.
 
 ### 2.7 Other top-level files
 
 | File | Content architecture |
 |---|---|
 | `LICENSE` | MIT (Addendum A7) |
-| `CONTRIBUTING.md` | bootstrap runbook (plan §8), architecture map (this doc §3), "how to add a message type", "how to add a macro action kind" (touch `AirMouseProtocol/Macros`, `MacroEngine`, `MacroEditor` — never the transport), TCC troubleshooting (`tccutil reset Accessibility com.airmouse.helper.dev-*`), PR checklist |
+| `CONTRIBUTING.md` | bootstrap runbook (plan §8), architecture map (this doc §3), "how to add a message type", "how to add a macro action kind" (touch `AirControlProtocol/Macros`, `MacroEngine`, `MacroEditor` — never the transport), TCC troubleshooting (`tccutil reset Accessibility com.aircontrol.helper.dev-*`), PR checklist |
 | `SECURITY.md` | spec §7.7 policy; GitHub Security Advisories; 72 h ack, 90 d disclosure; supported versions |
 | `CODE_OF_CONDUCT.md` | Contributor Covenant 2.1 |
 | `CHANGELOG.md` | Keep-a-Changelog; separate "Protocol" heading per release |
-| `Formula/Casks/air-mouse.rb` | cask in the project tap; `sha256` updated by `release.yml` |
+| `Formula/Casks/air-control.rb` | cask in the project tap; `sha256` updated by `release.yml` |
 | `docs/protocol.md` | spec §3 + §6.4 vectors, extracted verbatim at M2 |
 
 ---
 
 ## 3. Module architecture
 
-### 3.1 Shared package `AirMouseKit`
+### 3.1 Shared package `AirControlKit`
 
 ```mermaid
 flowchart TB
   subgraph L0["Layer 0 — data (Foundation only)"]
-    P[AirMouseProtocol<br/>FrameCodec · Envelope · Message · MotionPayload<br/>QRPayload · TXTRecordModel · ErrorCode<br/>HIDKeycodeTable · Macro · MacroValidator]
+    P[AirControlProtocol<br/>FrameCodec · Envelope · Message · MotionPayload<br/>QRPayload · TXTRecordModel · ErrorCode<br/>HIDKeycodeTable · Macro · MacroValidator]
   end
   subgraph L1["Layer 1 — independent leaves"]
-    C[AirMouseCrypto<br/>MotionCrypto · SessionKeys · ReplayWindow<br/>PairingProof · Fingerprint · IdentityFactory]
-    F[AirMouseFilters<br/>OneEuroFilter · GyroMapper · AccelerationCurve<br/>ScrollGain · GestureRecognizer · DisplayClamp<br/>MomentumSynthesizer · Clock]
+    C[AirControlCrypto<br/>MotionCrypto · SessionKeys · ReplayWindow<br/>PairingProof · Fingerprint · IdentityFactory]
+    F[AirControlFilters<br/>OneEuroFilter · GyroMapper · AccelerationCurve<br/>ScrollGain · GestureRecognizer · DisplayClamp<br/>MomentumSynthesizer · Clock]
   end
   subgraph L2["Layer 2 — session logic (no Network.framework)"]
-    K[AirMouseCore<br/>ConnectionStateMachine · HostSessionStateMachine<br/>AddressSelector · Backoff · ProbeController<br/>HeartbeatClock · RateLimiter · HeldInputLedger<br/>TrustRecords · SettingsLayering · Transport protocols]
+    K[AirControlCore<br/>ConnectionStateMachine · HostSessionStateMachine<br/>AddressSelector · Backoff · ProbeController<br/>HeartbeatClock · RateLimiter · HeldInputLedger<br/>TrustRecords · SettingsLayering · Transport protocols]
   end
   subgraph Apps["Apps & tools (own Network / UIKit / AppKit)"]
-    I[AirMouse iOS]
-    M[AirMouseHelper macOS]
-    CLI[airmouse-cli]
+    I[AirControl iOS]
+    M[AirControlHelper macOS]
+    CLI[aircontrol-cli]
   end
   C --> P
   K --> P
@@ -460,21 +460,21 @@ flowchart TB
 
 **Layering rules** (enforced by target dependencies, so violations do not compile):
 
-1. `AirMouseProtocol` imports only `Foundation`. No CryptoKit, no Security, no Network, no simd. It is the thing a future Android/Windows port re-implements, so it must be describable on paper.
-2. `AirMouseCrypto` imports CryptoKit, Security and `X509`; it depends on `AirMouseProtocol` only for `MotionPayload` and the b64u helpers. All key material types are `Sendable` structs wrapping `SymmetricKey`/`Data`; none is `CustomStringConvertible` (so an accidental interpolation prints the type name, not bytes).
-3. `AirMouseFilters` imports `Foundation` and `simd` and nothing of ours. Pure functions and small value-type state machines with an injected `Clock` protocol (`now() -> Duration`), so every test is deterministic.
-4. `AirMouseCore` depends on all three and defines the **transport protocols** the apps implement with Network.framework: `ControlTransport` (`send(Frame)`, `AsyncStream<Frame>` inbound, `state`), `DatagramTransport` (`send(Data)`, `AsyncStream<Data>`), `ServiceBrowser`, `ServiceAdvertiser`. Core never imports `Network`; the apps and `airmouse-cli` provide `NWControlTransport`, `NWDatagramTransport`, `NWServiceBrowser`. This is what keeps the QUIC option open (ADR-003) and what makes `ConnectionStateMachine` testable with a scripted `MockTransport`.
-5. Apps depend on `AirMouseCore` and may import `AirMouseFilters` directly for UI-adjacent use (gesture recognizer in the touch view, acceleration table in the settings preview).
-6. Only `airmouse-cli` (an executable, not a library) imports `Network` inside the package.
+1. `AirControlProtocol` imports only `Foundation`. No CryptoKit, no Security, no Network, no simd. It is the thing a future Android/Windows port re-implements, so it must be describable on paper.
+2. `AirControlCrypto` imports CryptoKit, Security and `X509`; it depends on `AirControlProtocol` only for `MotionPayload` and the b64u helpers. All key material types are `Sendable` structs wrapping `SymmetricKey`/`Data`; none is `CustomStringConvertible` (so an accidental interpolation prints the type name, not bytes).
+3. `AirControlFilters` imports `Foundation` and `simd` and nothing of ours. Pure functions and small value-type state machines with an injected `Clock` protocol (`now() -> Duration`), so every test is deterministic.
+4. `AirControlCore` depends on all three and defines the **transport protocols** the apps implement with Network.framework: `ControlTransport` (`send(Frame)`, `AsyncStream<Frame>` inbound, `state`), `DatagramTransport` (`send(Data)`, `AsyncStream<Data>`), `ServiceBrowser`, `ServiceAdvertiser`. Core never imports `Network`; the apps and `aircontrol-cli` provide `NWControlTransport`, `NWDatagramTransport`, `NWServiceBrowser`. This is what keeps the QUIC option open (ADR-003) and what makes `ConnectionStateMachine` testable with a scripted `MockTransport`.
+5. Apps depend on `AirControlCore` and may import `AirControlFilters` directly for UI-adjacent use (gesture recognizer in the touch view, acceleration table in the settings preview).
+6. Only `aircontrol-cli` (an executable, not a library) imports `Network` inside the package.
 
 **Public API surface (selected, all `public` and `Sendable`)**
 
 | Target | Types |
 |---|---|
-| `AirMouseProtocol` | `ProtocolVersion`, `Frame`, `FrameKind`, `FrameCodec` (+ `FrameCodec.Decoder` with partial-buffer state), `Envelope`, `Message` (enum, spec §3.4.7), every payload struct of spec §3.4.5 (`Hello`, `HelloAck`, `SessionKeyMessage`, `Settings`, `Click`, `ScrollPhase`, `Modifiers`, `Key`, `Text`, `DeleteBackward`, `MediaKey`, `Volume`, `MacroInvoke`, `Heartbeat`, `Pong`, `HostState`, `MacroList`, `MacroResult`, `ProtocolError`, `Goodbye`, `PairChallenge`, `PairProof`, `PairConfirm`), `MotionPayload` (16 bytes; `pack(into:)`/`unpack(from:)`), `MotionFlags`, `MotionSource`, `QRPayload`, `TXTRecordModel`, `ErrorCode`, `Capability`, `HIDKeycodeTable`, `VirtualKey`, `Modifier`, `Macro`, `MacroAction`, `SequenceStep`, `MacroValidator`, `MacroDocument`, `Data.b64u` |
-| `AirMouseCrypto` | `Fingerprint` (32 bytes; `init(certificateDER:)`), `SessionSecret`, `SessionKeys` (`derive(secret:sessionID:) -> (c2h, h2c)`), `MotionCrypto` (`seal(_:sessionID:counter:key:into:)`, `open(_:keys:window:) -> MotionPayload?` + `OpenFailure` side channel), `ReplayWindow`, `PairingProof` (`binding`, `clientProof`, `hostProof`, `verify` constant-time), `IdentityFactory` (`makeIdentity(commonName:) async throws -> SecIdentity`, `loadIdentity(label:)`), `TrustedCertificateStore` protocol (Keychain-backed implementations live in the apps) |
-| `AirMouseFilters` | `Clock`, `OneEuroFilter`, `GyroMapper` (+ `Orientation`, `BiasEstimator`, `StillnessDetector`), `AccelerationCurve`, `ScrollGain`, `GestureRecognizer` (+ `TouchSample`, `GestureEvent`, `GestureConfig`), `DisplayClamp` (+ `DisplayRect`), `MomentumSynthesizer` |
-| `AirMouseCore` | `ConnectionStateMachine` (spec §4.5.1, pure reducer: `(State, Event) -> (State, [Effect])`), `AddressSelector` (spec §3.3.2), `Backoff`, `ProbeController` (spec §3.5.8), `HeartbeatClock`/`RTTEstimator` (spec §8.2 maths), `HostSessionStateMachine` (pending → unauthenticated → authenticated → stale → closed), `RateLimiter` (token bucket, per-IP handshake limiter), `HeldInputLedger` (what `releaseAll()` must undo), `TrustedHostRecord`, `TrustedDeviceRecord`, `KnownAddress`, `SettingsSnapshot`/`SettingsPatch`/`EffectiveSettings`, `ControlTransport`, `DatagramTransport`, `ServiceBrowser`, `ServiceAdvertiser`, `DiagnosticsCounters` |
+| `AirControlProtocol` | `ProtocolVersion`, `Frame`, `FrameKind`, `FrameCodec` (+ `FrameCodec.Decoder` with partial-buffer state), `Envelope`, `Message` (enum, spec §3.4.7), every payload struct of spec §3.4.5 (`Hello`, `HelloAck`, `SessionKeyMessage`, `Settings`, `Click`, `ScrollPhase`, `Modifiers`, `Key`, `Text`, `DeleteBackward`, `MediaKey`, `Volume`, `MacroInvoke`, `Heartbeat`, `Pong`, `HostState`, `MacroList`, `MacroResult`, `ProtocolError`, `Goodbye`, `PairChallenge`, `PairProof`, `PairConfirm`), `MotionPayload` (16 bytes; `pack(into:)`/`unpack(from:)`), `MotionFlags`, `MotionSource`, `QRPayload`, `TXTRecordModel`, `ErrorCode`, `Capability`, `HIDKeycodeTable`, `VirtualKey`, `Modifier`, `Macro`, `MacroAction`, `SequenceStep`, `MacroValidator`, `MacroDocument`, `Data.b64u` |
+| `AirControlCrypto` | `Fingerprint` (32 bytes; `init(certificateDER:)`), `SessionSecret`, `SessionKeys` (`derive(secret:sessionID:) -> (c2h, h2c)`), `MotionCrypto` (`seal(_:sessionID:counter:key:into:)`, `open(_:keys:window:) -> MotionPayload?` + `OpenFailure` side channel), `ReplayWindow`, `PairingProof` (`binding`, `clientProof`, `hostProof`, `verify` constant-time), `IdentityFactory` (`makeIdentity(commonName:) async throws -> SecIdentity`, `loadIdentity(label:)`), `TrustedCertificateStore` protocol (Keychain-backed implementations live in the apps) |
+| `AirControlFilters` | `Clock`, `OneEuroFilter`, `GyroMapper` (+ `Orientation`, `BiasEstimator`, `StillnessDetector`), `AccelerationCurve`, `ScrollGain`, `GestureRecognizer` (+ `TouchSample`, `GestureEvent`, `GestureConfig`), `DisplayClamp` (+ `DisplayRect`), `MomentumSynthesizer` |
+| `AirControlCore` | `ConnectionStateMachine` (spec §4.5.1, pure reducer: `(State, Event) -> (State, [Effect])`), `AddressSelector` (spec §3.3.2), `Backoff`, `ProbeController` (spec §3.5.8), `HeartbeatClock`/`RTTEstimator` (spec §8.2 maths), `HostSessionStateMachine` (pending → unauthenticated → authenticated → stale → closed), `RateLimiter` (token bucket, per-IP handshake limiter), `HeldInputLedger` (what `releaseAll()` must undo), `TrustedHostRecord`, `TrustedDeviceRecord`, `KnownAddress`, `SettingsSnapshot`/`SettingsPatch`/`EffectiveSettings`, `ControlTransport`, `DatagramTransport`, `ServiceBrowser`, `ServiceAdvertiser`, `DiagnosticsCounters` |
 
 **Sendable / actor boundaries inside the kit.** The kit contains **no actors**. Everything is value types plus a few `final class` reducers that are `Sendable` because they are immutable after init. State machines are pure reducers returning effects; the apps own the actors that run them. This keeps the kit free of executor assumptions so the Mac can run `HostSessionStateMachine` on its `net` executor and the CLI can run it on a plain task, and it keeps `swift test` fast (no scheduling).
 
@@ -534,7 +534,7 @@ flowchart LR
 | **Pairing** | `DataScannerViewController` / `AVCaptureSession` fallback wrapper; QR URL parsing via `QRPayload`; pairing sheet states; paste-link field; drives `ConnectionManager.pair(with:)` | §4.1.2, §3.2 |
 | **Devices** | trusted hosts + browse results; connect / forget; empty-state guidance after 5 s; E-LOCALNET handling | §4.1.3, §4.5.5 |
 | **Touchpad** | hosts `TouchpadView`; mode ribbon; modifier strip; click buttons; sensitivity quick-slider; idle dim; tutorial overlay | §4.1.4, §4.2 |
-| **AirMouse (Gyro)** | clutch (hold/toggle), click areas, recenter (double-tap / shake), calibration card; owns `GyroEngine` lifecycle (starts on appear, stops on disappear) | §4.1.5, §4.3 |
+| **AirControl (Gyro)** | clutch (hold/toggle), click areas, recenter (double-tap / shake), calibration card; owns `GyroEngine` lifecycle (starts on appear, stops on disappear) | §4.1.5, §4.3 |
 | **Keyboard** | live/commit modes, trail label, extended key bar, modifier row, shortcut palette, secure entry; owns `KeyboardBridge` | §4.1.6, §4.4 |
 | **Remote** | Presenter/Media segments, app-aware profiles from `hostState.frontmostApp`, timer with haptics, volume slider (≤ 20 Hz coalesced), launcher row | §4.1.7 |
 | **Macros** | paged grid, confirmation alert, result toasts, cached list per host | §4.1.8 |
@@ -543,17 +543,17 @@ flowchart LR
 
 **Services**
 
-- **`ConnectionManager` (actor).** Owns `NWServiceBrowser`, one `NWControlTransport`, the `ConnectionStateMachine`, heartbeat timer, RTT ring, settings push, macro cache refresh, trusted-record updates. Its executor is a `DispatchSerialQueue(label: "com.airmouse.app.net")`; the same queue is passed to every `NWConnection.start(queue:)` and `NWBrowser.start(queue:)`, so Network.framework callbacks arrive already on the actor's executor and are entered with `assumeIsolated` — no hop and no data race. It publishes `AsyncStream<ConnectionState>` and `AsyncStream<HostState>` for view models (which observe on the main actor). Background/foreground transitions (`scenePhase`) are forwarded by `AirMouseApp`.
-- **`MotionPublisher` (actor).** Executor: `DispatchSerialQueue(label: "com.airmouse.app.motion", qos: .userInteractive)`. Holds the current `SessionKeys`, `counter`, two preallocated 44-byte send buffers, an in-flight counter (cap 2), the pending accumulator (spec §3.5.7), the `ProbeController`, and the UDP `NWDatagramTransport` started on the same queue. Input: `MotionSample` values from the touch view (main → motion, one hop) and from `GyroEngine` (CoreMotion's `OperationQueue.underlyingQueue` is the motion queue, so zero hops). When `ProbeController` says *fallback*, the publisher hands 16-byte payloads to `ConnectionManager` for `kind = 0x02` frames at ≤ 60 fps instead of sealing them.
+- **`ConnectionManager` (actor).** Owns `NWServiceBrowser`, one `NWControlTransport`, the `ConnectionStateMachine`, heartbeat timer, RTT ring, settings push, macro cache refresh, trusted-record updates. Its executor is a `DispatchSerialQueue(label: "com.aircontrol.app.net")`; the same queue is passed to every `NWConnection.start(queue:)` and `NWBrowser.start(queue:)`, so Network.framework callbacks arrive already on the actor's executor and are entered with `assumeIsolated` — no hop and no data race. It publishes `AsyncStream<ConnectionState>` and `AsyncStream<HostState>` for view models (which observe on the main actor). Background/foreground transitions (`scenePhase`) are forwarded by `AirControlApp`.
+- **`MotionPublisher` (actor).** Executor: `DispatchSerialQueue(label: "com.aircontrol.app.motion", qos: .userInteractive)`. Holds the current `SessionKeys`, `counter`, two preallocated 44-byte send buffers, an in-flight counter (cap 2), the pending accumulator (spec §3.5.7), the `ProbeController`, and the UDP `NWDatagramTransport` started on the same queue. Input: `MotionSample` values from the touch view (main → motion, one hop) and from `GyroEngine` (CoreMotion's `OperationQueue.underlyingQueue` is the motion queue, so zero hops). When `ProbeController` says *fallback*, the publisher hands 16-byte payloads to `ConnectionManager` for `kind = 0x02` frames at ≤ 60 fps instead of sealing them.
 - **`TouchInputView` (UIKit bridge).** `TouchpadView: UIView` in a `UIViewRepresentable`, `isMultipleTouchEnabled`, coalesced touches, palm rejection; owns a `GestureRecognizer` instance (main actor) configured from `EffectiveSettings`; emits `GestureEvent`s: motion deltas → `MotionPublisher`, clicks/scroll phases/keys/modifiers → `ConnectionManager`. It is also the single `UIAccessibilityElement` for the surface.
 - **`GyroEngine`.** Thin CoreMotion wrapper that runs `GyroMapper` (dead zone, bias estimator, One-Euro, orientation) and emits `MotionSample(source: .gyro)`; suppressed unless the clutch is engaged; stops updates when the tab is not visible.
 - **`KeyboardBridge`.** The 1 × 1 pt `UITextView` host with the sentinel-diff algorithm (spec §4.4.2), IME marked-text guard, `pressesBegan` hardware passthrough with `HIDKeycodeTable`, `UIKeyCommand`s with `wantsPriorityOverSystemBehavior`.
 - **`HapticsService`.** Pre-`prepare()`d generators; visual-pulse fallback when `supportsHaptics == false`; respects the Feedback settings.
-- **`KeychainStore`.** Client identity (`IdentityFactory`, Secure Enclave when available, `ThisDeviceOnly`), trusted host certificates (`kSecClassCertificate`, label `AirMouse Trusted Host <hostID>`); implements `TrustedCertificateStore`.
+- **`KeychainStore`.** Client identity (`IdentityFactory`, Secure Enclave when available, `ThisDeviceOnly`), trusted host certificates (`kSecClassCertificate`, label `AirControl Trusted Host <hostID>`); implements `TrustedCertificateStore`.
 - **`DocumentStore` (actor).** Atomic JSON documents in Application Support with schema versions and migrations (§6).
 - **`SettingsStore`.** `UserDefaults`-backed `@Observable` snapshot with `am.` keys; produces `EffectiveSettings` by layering the per-host patch.
 
-**Dependency injection.** `AppEnvironment` is a plain `struct` of protocol-typed dependencies (`any ConnectionControlling`, `any MotionPublishing`, `any SettingsProviding`, `any HapticsProviding`, `any KeychainStoring`, …) built once in `AirMouseApp` and injected through the SwiftUI environment (`@Environment(\.appEnvironment)`). View models are constructed by the views from the environment. Every protocol has a `Mock*` implementation in `Tests/Support` and a `Preview*` implementation in `Sources/Support/Previews` (e.g. `PreviewConnection` that simulates Connected with fake RTT), so every screen has a working `#Preview` without a network. No third-party DI framework.
+**Dependency injection.** `AppEnvironment` is a plain `struct` of protocol-typed dependencies (`any ConnectionControlling`, `any MotionPublishing`, `any SettingsProviding`, `any HapticsProviding`, `any KeychainStoring`, …) built once in `AirControlApp` and injected through the SwiftUI environment (`@Environment(\.appEnvironment)`). View models are constructed by the views from the environment. Every protocol has a `Mock*` implementation in `Tests/Support` and a `Preview*` implementation in `Sources/Support/Previews` (e.g. `PreviewConnection` that simulates Connected with fake RTT), so every screen has a working `#Preview` without a network. No third-party DI framework.
 
 ### 3.3 Mac helper
 
@@ -610,11 +610,11 @@ flowchart LR
 
 | Component | Isolation | Responsibilities | Spec |
 |---|---|---|---|
-| **`MenuBarExtra` app** | main | `MenuBarExtra("Air Mouse", systemImage:)` `.menu` style; icon state from `SessionManager` snapshots; windows opened via `openWindow`; `Settings` scene for Preferences; falls back to `NSStatusItem` + `NSPopover` only if `.menu` style focus quirks bite (kept behind one `MenuHost` protocol) | §5.1.2, §5.1.3 |
+| **`MenuBarExtra` app** | main | `MenuBarExtra("Air Control", systemImage:)` `.menu` style; icon state from `SessionManager` snapshots; windows opened via `openWindow`; `Settings` scene for Preferences; falls back to `NSStatusItem` + `NSPopover` only if `.menu` style focus quirks bite (kept behind one `MenuHost` protocol) | §5.1.2, §5.1.3 |
 | **`HostServer` (actor)** | `net` `DispatchSerialQueue` executor | `NWListener` with TLS options (min 1.3, local identity, peer auth required, verify block consulting `TrustStore` and `PairingService.isWindowOpen`), Bonjour `NWListener.Service` with the TXT of spec §3.1.2, `serviceRegistrationUpdateHandler`, connection cap (6), per-IP handshake limiter before accept, wake/sleep restart, port-busy fallback (ephemeral for both, advertised in TXT/QR) | §3.1, §3.2.1, §5.1.5 |
 | **`SessionManager`** | same executor as `HostServer` (an `actor` sharing the queue) | One `ControlSession` per TCP connection running `HostSessionStateMachine`; `FrameCodec.Decoder` per session; JSON decode; `hello`/`helloAck` negotiation; issues `sessionKey` (random 32 B + u32 ID, rotation at 4 h / 2³¹); heartbeat/pong with host timestamps; stale (2 s) → `releaseAll` + drop motion; close (6 s); token-bucket per session; routes input messages to `EventInjector`, macros to `MacroEngine`; broadcasts `hostState`, `macroList` | §3.3, §3.4, §3.5.5, §5.3.9 |
 | **`PairingService`** | `net` executor | Secret lifecycle (60 s, regenerate while window open, 3 attempts, invalidate on close), `PairChallenge` nonce, exporter via `sec_protocol_metadata_create_secret` (contingency "pair-binding-certs"), proof verification through `PairingProof`, persists the client cert via `TrustStore`, produces the QR URL (`QRPayload`) with ordered interface addresses from `getifaddrs` | §3.1.3, §3.1.4, §3.2 |
-| **`TrustStore` (actor)** | own executor | `kSecClassCertificate` items labelled `AirMouse Trusted Client <clientID>` + `TrustedDevices.json`; certificate is source of truth; revoke → delete cert, mark record, notify `SessionManager` to `goodbye{revoked}` and close within 1 s; `allowScripts` per device; 20-device cap | §3.2.4, §5.6 |
+| **`TrustStore` (actor)** | own executor | `kSecClassCertificate` items labelled `AirControl Trusted Client <clientID>` + `TrustedDevices.json`; certificate is source of truth; revoke → delete cert, mark record, notify `SessionManager` to `goodbye{revoked}` and close within 1 s; `allowScripts` per device; 20-device cap | §3.2.4, §5.6 |
 | **`EventInjector` (actor)** | `inject` `DispatchSerialQueue(qos: .userInteractive)` executor — the **dedicated injection thread** | Sole owner of `virtualPos`, `remainder`, `heldButtons`, latched modifiers, repeating keys, text queue; `EventInjecting` protocol with `CGEventInjector` (production, one `CGEventSource(.hidSystemState)`, `localEventsSuppressionInterval = 0`) and `RecordingInjector` (tests); `releaseAll()`; per-session injection caps; Accessibility/paused gating | §5.3 |
 | **`MotionPipeline`** | runs on the `inject` executor (struct owned by the actor) | UDP receive → 44-byte check → `sessionID` lookup → `MotionCrypto.open` → `ReplayWindow` → 8-datagram stale window → probe echo (`flags.echo`, on the H2C key) or → `AccelerationCurve` (touch/pointer only) → `DisplayClamp` → post. Receives on the `inject` queue directly so decrypt and post happen on one thread with zero hops | §3.5, §5.3.2 |
 | **`MomentumEngine`** | `inject` executor | 60 Hz `DispatchSourceTimer` (leeway 1 ms) running `MomentumSynthesizer`; posts momentum-phase scroll events; cancelled by new scroll deltas, `scrollPhase{cancel}`, session end, pause; implicit-end timer (120 ms) | §3.6.3 |
@@ -624,7 +624,7 @@ flowchart LR
 | **`PermissionsService`** | main | `AXIsProcessTrustedWithOptions`, deep links, polling (2 s onboarding / 10 s runtime), `SMAppService` registration, firewall state probe, `hostState.accessibility` updates; on loss → `EventInjector.releaseAll()` | §5.2 |
 | **`HostStateObserver`** | main | `NSWorkspace.didActivateApplicationNotification` (≤ 500 ms), `didChangeScreenParametersNotification` → `DisplayTopology` refresh, input source change, `com.apple.swipescrolldirection`; publishes `HostState` snapshots to `SessionManager` and `EventInjector` | §5.3.8, §5.7.3 |
 | **`UpdateService`** | main | Sparkle 2 `SPUStandardUpdaterController`, opt-in, 24 h; Caskroom detection hides Sparkle UI and shows the `brew upgrade` hint | §5.7.2 |
-| **`Logging`** | nonisolated | `Logger(subsystem: "com.airmouse.helper", category:)` per module; `os_signpost` intervals `udp.receive→inject.post`; redaction helpers | §5.7.3 |
+| **`Logging`** | nonisolated | `Logger(subsystem: "com.aircontrol.helper", category:)` per module; `os_signpost` intervals `udp.receive→inject.post`; redaction helpers | §5.7.3 |
 
 **Why `EventInjector` is not on the main thread.** (1) The main thread runs the AppKit/SwiftUI run loop; `CGEvent.post` is a synchronous Mach IPC to WindowServer taking 0.5–2 ms, and doing it 120× per second on the main thread would steal 6–25 % of every UI frame. (2) The reverse also holds: any main-thread work — opening the menu, rendering the QR window, a SwiftUI layout pass — would add 10–100 ms of jitter to injection; worse, while an `NSMenu` is open the main run loop is in a modal tracking mode and dispatch-to-main blocks entirely, so the cursor would freeze whenever the user clicks the menu-bar icon. (3) Injection needs a single writer for the pointer state; making that writer a dedicated `.userInteractive` executor gives it scheduling priority above default UI work and lets the compiler enforce isolation (it is an actor). (4) UDP receive can be scheduled on the very same queue, so decrypt → accelerate → post happens on one thread with no hop; the main thread is never in the path.
 
@@ -647,7 +647,7 @@ sequenceDiagram
   participant MB as Mac UI (main)
   U->>MB: Menu › Pair new device…
   MB->>PR: openWindow() → secret S, expiry 60 s
-  PR-->>MB: QR URL airmouse://pair?… (addresses ordered, fp, s)
+  PR-->>MB: QR URL aircontrol://pair?… (addresses ordered, fp, s)
   U->>iOS: Scan QR
   iOS->>CM: pair(QRPayload)
   CM->>KS: loadOrCreateIdentity() [first pairing: SecKeyCreateRandomKey + self-signed cert]
@@ -665,7 +665,7 @@ sequenceDiagram
   PR-->>HS: consumed S
   HS-->>CM: pairConfirm{hostProof}
   CM->>CM: verify hostProof
-  CM->>KS: store hostCert (label AirMouse Trusted Host hostID)
+  CM->>KS: store hostCert (label AirControl Trusted Host hostID)
   HS-->>CM: helloAck, sessionKey, hostState, macroList
   CM->>HS: settings
   CM-->>iOS: state = Connected
@@ -841,12 +841,12 @@ Session-scoped work is structured under a per-session `Task` tree in `Connection
 
 | Item | Side | Class / attributes | Notes |
 |---|---|---|---|
-| Client identity private key | iOS | `kSecClassKey`, P-256, `kSecAttrTokenIDSecureEnclave` when available, `kSecAttrIsPermanent`, `kSecAttrApplicationTag = com.airmouse.app.identity`, `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, no iCloud sync | never exported; "Reset identity" deletes and regenerates (all hosts must re-pair) |
-| Client identity certificate | iOS | `kSecClassCertificate`, label `AirMouse Client Identity` | paired with the key by public-key hash → `SecIdentity` |
-| Trusted host certificates | iOS | `kSecClassCertificate`, label `AirMouse Trusted Host <hostID b64u>` | one per host; deleted on Forget |
+| Client identity private key | iOS | `kSecClassKey`, P-256, `kSecAttrTokenIDSecureEnclave` when available, `kSecAttrIsPermanent`, `kSecAttrApplicationTag = com.aircontrol.app.identity`, `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, no iCloud sync | never exported; "Reset identity" deletes and regenerates (all hosts must re-pair) |
+| Client identity certificate | iOS | `kSecClassCertificate`, label `AirControl Client Identity` | paired with the key by public-key hash → `SecIdentity` |
+| Trusted host certificates | iOS | `kSecClassCertificate`, label `AirControl Trusted Host <hostID b64u>` | one per host; deleted on Forget |
 | Host identity private key | macOS | `kSecClassKey`, P-256, login Keychain, non-exportable (`kSecAttrIsExtractable = false`), `kSecAttrAccessibleAfterFirstUnlock` | created on first launch |
-| Host identity certificate | macOS | `kSecClassCertificate`, label `AirMouse Host Identity` | |
-| Trusted client certificates | macOS | `kSecClassCertificate`, label `AirMouse Trusted Client <clientID b64u>` | deleted on Revoke |
+| Host identity certificate | macOS | `kSecClassCertificate`, label `AirControl Host Identity` | |
+| Trusted client certificates | macOS | `kSecClassCertificate`, label `AirControl Trusted Client <clientID b64u>` | deleted on Revoke |
 | Nothing else | — | pairing secret, session keys, typed text are memory-only | spec §7.3 |
 
 Bundle-ID suffixes (`.dev-yourname`) automatically give each developer build its own Keychain access scope, so a debug helper and a release helper on one Mac do not share trust.
@@ -873,16 +873,16 @@ Sparkle keeps its own `SU*` defaults.
 
 | Document | Path | Schema id | Writer |
 |---|---|---|---|
-| Trusted hosts (client) | `Application Support/AirMouse/TrustedHosts.json` | `trusted-hosts/1` | `DocumentStore` |
-| Macro cache (client) | `Application Support/AirMouse/Macros/<hostID>.json` | `macros/1` (same as host) | `DocumentStore` |
+| Trusted hosts (client) | `Application Support/AirControl/TrustedHosts.json` | `trusted-hosts/1` | `DocumentStore` |
+| Macro cache (client) | `Application Support/AirControl/Macros/<hostID>.json` | `macros/1` (same as host) | `DocumentStore` |
 | Settings export (client) | user-chosen via Files | `settings-export/1` | Settings feature |
-| Trusted devices (host) | `~/Library/Application Support/AirMouseHelper/TrustedDevices.json` | `trusted-devices/1` | `TrustStore` |
-| Macros (host) | `~/Library/Application Support/AirMouseHelper/Macros.json` | `macros/1` | `MacroEngine` |
+| Trusted devices (host) | `~/Library/Application Support/AirControlHelper/TrustedDevices.json` | `trusted-devices/1` | `TrustStore` |
+| Macros (host) | `~/Library/Application Support/AirControlHelper/Macros.json` | `macros/1` | `MacroEngine` |
 | Diagnostics export | user-chosen via Save panel | `diagnostics/1` | Diagnostics window |
 
 Every document is `{ "schema": "<name>/<int>", ... }`, written atomically (`.atomic`, plus `.completeUntilFirstUserAuthentication` file protection on iOS), read through `DocumentStore.load(_:migrating:)`.
 
-**Migration policy.** Migrators are pure functions `(JSONObject, fromVersion) -> JSONObject` registered per schema name and applied in sequence; a document with a *newer* schema than the app knows is not loaded — it is copied to `<name>.json.bak-<timestamp>` and the user sees a one-line notice; a corrupt document is backed up the same way and replaced by defaults; the Keychain, not JSON, is the source of truth for trust, so a lost `TrustedHosts.json` degrades to "trusted but nameless" records that are rebuilt from the certificate CN on next connect (`AirMouse Host <hostID>`). Schema bumps are listed in `CHANGELOG.md` under "Storage".
+**Migration policy.** Migrators are pure functions `(JSONObject, fromVersion) -> JSONObject` registered per schema name and applied in sequence; a document with a *newer* schema than the app knows is not loaded — it is copied to `<name>.json.bak-<timestamp>` and the user sees a one-line notice; a corrupt document is backed up the same way and replaced by defaults; the Keychain, not JSON, is the source of truth for trust, so a lost `TrustedHosts.json` degrades to "trusted but nameless" records that are rebuilt from the certificate CN on next connect (`AirControl Host <hostID>`). Schema bumps are listed in `CHANGELOG.md` under "Storage".
 
 ---
 
@@ -890,11 +890,11 @@ Every document is `{ "schema": "<name>/<int>", ... }`, written atomically (`.ato
 
 ### 7.1 Identity generation and `SecIdentity` strategy
 
-Security.framework has no public certificate-minting API, so identities are built in `AirMouseCrypto.IdentityFactory`:
+Security.framework has no public certificate-minting API, so identities are built in `AirControlCrypto.IdentityFactory`:
 
 **Path A (preferred, both platforms).**
 1. `SecKeyCreateRandomKey` — P-256, `kSecAttrIsPermanent = true`, on iOS with `kSecAttrTokenIDSecureEnclave` and an access control of `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` (no user presence — TLS must work silently); on macOS in the login Keychain, non-extractable.
-2. Export the public key (`SecKeyCopyExternalRepresentation`, X9.63) and build a `TBSCertificate` with swift-certificates: v3, random 16-byte serial, CN `AirMouse Host <hostID>` / `AirMouse Client <clientID>`, validity 10 years, EKU serverAuth + clientAuth, `ecdsa-with-SHA256`.
+2. Export the public key (`SecKeyCopyExternalRepresentation`, X9.63) and build a `TBSCertificate` with swift-certificates: v3, random 16-byte serial, CN `AirControl Host <hostID>` / `AirControl Client <clientID>`, validity 10 years, EKU serverAuth + clientAuth, `ecdsa-with-SHA256`.
 3. DER-serialize the TBS, sign it with `SecKeyCreateSignature(key, .ecdsaSignatureMessageX962SHA256, tbs)` (returns DER `ECDSA-Sig-Value`, which is what X.509 expects), and assemble the outer `Certificate` SEQUENCE with swift-asn1.
 4. `SecCertificateCreateWithData` → `SecItemAdd` (with label). Because the private key is permanent in the Keychain and its public-key hash matches the certificate, `SecItemCopyMatching(kSecClassIdentity, kSecAttrLabel)` returns the `SecIdentity`, which becomes `sec_identity_create(...)` for TLS.
 
@@ -905,7 +905,7 @@ Both paths are selected at runtime by `IdentityFactory` and covered by an on-dev
 ### 7.2 TLS configuration and verify blocks
 
 ```swift
-// AirMouse-Mac/Services/HostServer/TLSConfiguration.swift (host side; client mirrors it)
+// AirControl-Mac/Services/HostServer/TLSConfiguration.swift (host side; client mirrors it)
 let tls = NWProtocolTLS.Options()
 let o = tls.securityProtocolOptions
 sec_protocol_options_set_min_tls_protocol_version(o, .TLSv13)
@@ -924,7 +924,7 @@ sec_protocol_options_set_verify_block(o, { _, trust, complete in
 }, netQueue)
 ```
 
-Client side: same minimum version; `sec_protocol_options_set_challenge_block` supplies the client identity on `CertificateRequest`; verify block accepts iff `fp == pinnedFP` (from the QR during pairing, from the Keychain afterwards); SNI/hostname validation disabled by never setting a server name. The exporter for the pairing proof is `sec_protocol_metadata_create_secret(metadata, label.count, "EXPORTER-airmouse-pairing-v1", 32)` read from the connection's `NWProtocolTLS.Metadata` once `.ready`; if unavailable on either side (spike R-1), both advertise `pair-binding-certs` and use 32 zero bytes (spec §3.2.3 contingency).
+Client side: same minimum version; `sec_protocol_options_set_challenge_block` supplies the client identity on `CertificateRequest`; verify block accepts iff `fp == pinnedFP` (from the QR during pairing, from the Keychain afterwards); SNI/hostname validation disabled by never setting a server name. The exporter for the pairing proof is `sec_protocol_metadata_create_secret(metadata, label.count, "EXPORTER-aircontrol-pairing-v1", 32)` read from the connection's `NWProtocolTLS.Metadata` once `.ready`; if unavailable on either side (spike R-1), both advertise `pair-binding-certs` and use 32 zero bytes (spec §3.2.3 contingency).
 
 ### 7.3 Key hierarchy
 
@@ -935,8 +935,8 @@ flowchart TB
   QR[Pairing secret S 16 B<br/>QR only, 60 s, memory] --> PP[PairingProof HMAC-SHA256<br/>0x01/0x02 ‖ exporter ‖ nonce ‖ FPs ‖ hostID]
   TLS -- exporter 32 B --> PP
   TLS -- sessionKey msg --> SS[Session secret 32 B + sessionID u32<br/>random per TCP connection, rotate 4 h / 2^31]
-  SS --> HK1[HKDF-SHA256 salt=sessionID info=airmouse-udp-c2h-v1] --> KC[kC2H]
-  SS --> HK2[HKDF-SHA256 info=airmouse-udp-h2c-v1] --> KH[kH2C]
+  SS --> HK1[HKDF-SHA256 salt=sessionID info=aircontrol-udp-c2h-v1] --> KC[kC2H]
+  SS --> HK2[HKDF-SHA256 info=aircontrol-udp-h2c-v1] --> KH[kH2C]
   KC --> AEAD[ChaCha20-Poly1305 per datagram<br/>nonce = 0x00000000 ‖ counter u64 LE · AAD = header]
   KH --> AEAD
   ED[Sparkle EdDSA key<br/>offline, release env only] --> AC[appcast signatures]
@@ -948,7 +948,7 @@ flowchart TB
 | Threat (spec §7.1) | Mitigation | Module that implements it | Test |
 |---|---|---|---|
 | T1 passive sniffing | TLS 1.3 AEAD; ChaChaPoly datagrams | `HostServer`/`ConnectionManager` TLS options; `MotionCrypto` | 10.5 cipher audit |
-| T2 inject/replay motion or clicks | per-datagram AEAD + `ReplayWindow`; clicks/keys only on TLS | `MotionPipeline`, `AirMouseCrypto` | replay vector; bit-flip test |
+| T2 inject/replay motion or clicks | per-datagram AEAD + `ReplayWindow`; clicks/keys only on TLS | `MotionPipeline`, `AirControlCrypto` | replay vector; bit-flip test |
 | T3 evil-twin Bonjour host | FP pinned from QR/Keychain; TXT never trusted | client verify block, `Devices` (badge from `id` only) | E-PAIR-FP integration test |
 | T4 unknown phone connects | mTLS + trust store; unknown → reject unless window open, then `pair*` only | host verify block, `HostSessionStateMachine` | integration: non-pair message while unauthenticated closes |
 | T5 replayed QR | 60 s, single use, 3 attempts, exporter-bound proof | `PairingService`, `PairingProof` | reuse/expiry tests |
@@ -957,7 +957,7 @@ flowchart TB
 | T8 stolen Mac Keychain/list | non-exportable key; list holds public certs only | `IdentityFactory`, `TrustStore` | attribute assertion test |
 | T9 compromised phone runs scripts | 3-way gating; Mac-defined macros only; subprocess, minimal env, timeouts | `MacroEngine`, `ScriptRunner` | gating matrix test |
 | T10 handshake flood | 5/min/IP pre-TLS; 6-connection cap; 3 proof attempts | `HostServer.RateLimiter`, `PairingService` | limiter unit tests |
-| T11 datagram flood | length check → sessionID lookup → AEAD; 250/s cap | `MotionPipeline` | 10 k pps flood with `airmouse-cli` |
+| T11 datagram flood | length check → sessionID lookup → AEAD; 250/s cap | `MotionPipeline` | 10 k pps flood with `aircontrol-cli` |
 | T12 malformed frames | 256 KiB cap, JSON depth ≤ 8, fuzzed decoders, no unsafe in decode | `FrameCodec`, `Envelope` | nightly fuzz |
 | T13 stuck inputs | stale → `releaseAll`, 60 s watchdog, sleep/quit/permission-loss paths | `EventInjector`, `HeldInputLedger` | loopback test |
 | T14 update tampering | Sparkle EdDSA over HTTPS; notarized; cask SHA-256 | `UpdateService`, `release.yml` | appcast tamper test |
@@ -966,12 +966,12 @@ flowchart TB
 
 ### 7.5 Secure logging rules
 
-- Subsystems `com.airmouse.app`, `com.airmouse.helper`, `com.airmouse.kit`; categories `net`, `tls`, `pairing`, `session`, `inject`, `macro`, `store`, `ui`, `motion`.
+- Subsystems `com.aircontrol.app`, `com.aircontrol.helper`, `com.aircontrol.kit`; categories `net`, `tls`, `pairing`, `session`, `inject`, `macro`, `store`, `ui`, `motion`.
 - `SensitiveBytes` / `SessionSecret` / `PairingSecret` types have no `description`; interpolating them is a compile error (`CustomStringConvertible` deliberately not implemented and a `@available(*, unavailable)` `description`).
 - Peer identifiers use `privacy: .private`; FP prefixes (8 hex) are `.public`; IPs are masked to /24 above `.debug`.
 - Never logged: typed text, `key.char`, secrets, session keys, private keys, full certificates, script stdout.
 - `.debug` per-message traces are compiled out of Release (`#if DEBUG`).
-- Lint: custom SwiftLint rules forbid `print(` outside `airmouse-cli`, forbid `CGEvent.tapCreate`/`CGEventTapCreate`/`IOHIDManager`, and flag `Logger` calls whose interpolation contains identifiers matching `/secret|key|text|password/i` without a privacy annotation.
+- Lint: custom SwiftLint rules forbid `print(` outside `aircontrol-cli`, forbid `CGEvent.tapCreate`/`CGEventTapCreate`/`IOHIDManager`, and flag `Logger` calls whose interpolation contains identifiers matching `/secret|key|text|password/i` without a privacy annotation.
 - Diagnostics export = counters and timings only, validated by a unit test that serialises a synthetic session and asserts no string field longer than 64 chars.
 
 ---
@@ -988,7 +988,7 @@ flowchart TB
 
 **Accessibility.** Rules of spec §4.8.1 are architectural in two places: `TouchpadView` is one `UIAccessibilityElement` with direct-touch trait and the Z-escape; every haptic has a visual pulse alternative via `HapticsService.feedback(_:)` which decides based on hardware and settings. The Mac windows use SwiftUI tables and standard controls so full keyboard access works by default; the QR window exposes the pairing link as an accessibility value.
 
-**Error taxonomy.** `AirMouseCore.AirMouseError` is an enum with associated data: `.transport(TransportFailure)`, `.protocol(ErrorCode, message)`, `.pairing(PairingFailure)`, `.auth(.untrusted | .revoked)`, `.version(min, max, side)`, `.localNetworkDenied`, `.cameraDenied`, `.rateLimited`, `.host(.noAccessibility | .paused)`, `.macro(MacroResultCode)`, `.store(StoreFailure)`, `.internal(String)`. Each case maps to exactly one E-* id in `ErrorPresentation` (iOS) or `HelperErrorPresentation` (Mac); unmapped peer `error.code`s fall back to "Connection problem / <code>". Errors are values, never thrown across actor boundaries as `any Error` (they are `Sendable` enums), and the wire `error` message is developer-facing English only.
+**Error taxonomy.** `AirControlCore.AirControlError` is an enum with associated data: `.transport(TransportFailure)`, `.protocol(ErrorCode, message)`, `.pairing(PairingFailure)`, `.auth(.untrusted | .revoked)`, `.version(min, max, side)`, `.localNetworkDenied`, `.cameraDenied`, `.rateLimited`, `.host(.noAccessibility | .paused)`, `.macro(MacroResultCode)`, `.store(StoreFailure)`, `.internal(String)`. Each case maps to exactly one E-* id in `ErrorPresentation` (iOS) or `HelperErrorPresentation` (Mac); unmapped peer `error.code`s fall back to "Connection problem / <code>". Errors are values, never thrown across actor boundaries as `any Error` (they are `Sendable` enums), and the wire `error` message is developer-facing English only.
 
 ---
 
@@ -1000,12 +1000,12 @@ flowchart TB
 flowchart LR
   subgraph PR["ci.yml — pull_request (forks: no secrets) · push main"]
     A[checkout · select Xcode 26.6 from .xcode-version] --> B[kit: swift build -c debug · swift test --parallel]
-    A --> C[ios: xcodegen generate · xcodebuild test -scheme AirMouse -destination iPhone 16 sim CODE_SIGNING_ALLOWED=NO]
-    A --> D[mac: xcodegen generate · xcodebuild test -scheme AirMouseHelper CODE_SIGN_IDENTITY=- incl. --loopback integration]
+    A --> C[ios: xcodegen generate · xcodebuild test -scheme AirControl -destination iPhone 16 sim CODE_SIGNING_ALLOWED=NO]
+    A --> D[mac: xcodegen generate · xcodebuild test -scheme AirControlHelper CODE_SIGN_IDENTITY=- incl. --loopback integration]
     A --> E[lint: swiftlint --strict · swiftformat --lint · check-xcstrings.sh · xcodegen dump diff]
   end
   subgraph Nightly["nightly.yml — schedule"]
-    N1[fuzz: swift test with AIRMOUSE_FUZZ_ITERATIONS=1000000]
+    N1[fuzz: swift test with AIRCONTROL_FUZZ_ITERATIONS=1000000]
     N2[soak-smoke: --loopback 30 min, memory delta]
   end
   subgraph Rel["release.yml — push tag v* · environment: release (required reviewer)"]
@@ -1023,7 +1023,7 @@ Runners: `macos-26` (GitHub-hosted) with Xcode selected by `xcodes select $(cat 
 
 ### 9.2 Branch protection and PR checks
 
-`main` is protected: PRs required; required checks `kit`, `ios`, `mac`, `lint`; linear history (squash merge); at least one review for changes under `Packages/AirMouseKit/Sources/AirMouseCrypto`, `docs/protocol.md`, `.github/workflows` (CODEOWNERS = maintainer); Dependabot for SwiftPM and Actions; signed tags for releases. The PR template asks for the spec section touched, screenshots for UI, and a "protocol change? → bump `docs/protocol.md` CHANGELOG" checkbox.
+`main` is protected: PRs required; required checks `kit`, `ios`, `mac`, `lint`; linear history (squash merge); at least one review for changes under `Packages/AirControlKit/Sources/AirControlCrypto`, `docs/protocol.md`, `.github/workflows` (CODEOWNERS = maintainer); Dependabot for SwiftPM and Actions; signed tags for releases. The PR template asks for the spec section touched, screenshots for UI, and a "protocol change? → bump `docs/protocol.md` CHANGELOG" checkbox.
 
 ### 9.3 Secrets and the fork-PR problem
 
@@ -1037,9 +1037,9 @@ Runners: `macos-26` (GitHub-hosted) with Xcode selected by `xcodes select $(cat 
 
 | Artefact | Produced by | Consumed by |
 |---|---|---|
-| `AirMouse-<ver>.dmg` (universal, notarized, stapled) + `.sha256` | `release.yml` | GitHub Release, cask `sha256`, Sparkle appcast `enclosure` |
+| `AirControl-<ver>.dmg` (universal, notarized, stapled) + `.sha256` | `release.yml` | GitHub Release, cask `sha256`, Sparkle appcast `enclosure` |
 | `appcast.xml` (EdDSA-signed) | `generate_appcast` | Sparkle `SUFeedURL` on GitHub Pages (HTTPS) |
-| `Formula/Casks/air-mouse.rb` bump PR | `bump-cask.sh` via `gh` | `brew install --cask <owner>/airmouse/air-mouse` (project tap first; homebrew-cask after notability, R-14) |
+| `Formula/Casks/air-control.rb` bump PR | `bump-cask.sh` via `gh` | `brew install --cask <owner>/aircontrol/air-control` (project tap first; homebrew-cask after notability, R-14) |
 | iOS `.ipa` upload | `xcodebuild -exportArchive` with `destination: upload` and `-authenticationKeyPath/-authenticationKeyID/-authenticationKeyIssuerID` (fastlane optional, not required) | TestFlight → App Store submission is manual |
 | `CHANGELOG.md` excerpt | release notes | GitHub Release body |
 
@@ -1052,7 +1052,7 @@ Versioning: apps use SemVer in `Config/Base.xcconfig` (`MARKETING_VERSION`), bum
 ```mermaid
 flowchart TB
   U[Unit — swift test<br/>vectors · reducers · filters · codecs · fuzz] --> I[Integration — macOS XCTest<br/>real client transport ↔ helper --loopback<br/>RecordingInjector asserts events]
-  I --> P[Performance — airmouse-cli bench ↔ helper --bench<br/>xctrace signposts · camera ground truth]
+  I --> P[Performance — aircontrol-cli bench ↔ helper --bench<br/>xctrace signposts · camera ground truth]
   U --> A[App unit — iOS/macOS XCTest<br/>view models with Mock* services]
   A --> UI[UI smoke — onboarding only]
   P --> M[Manual test plan spec §10.3 per milestone]
@@ -1060,13 +1060,13 @@ flowchart TB
 
 | Level | What | Where | Runs |
 |---|---|---|---|
-| **Unit (kit)** | spec §10.1 matrix: `FrameCodec` split delivery + fuzz, every `Message` round trip, `MotionPayload`, `MotionCrypto`/`SessionKeys`, `ReplayWindow` (incl. 10⁶ random vs set oracle), `PairingProof`, `QRPayload`, `OneEuroFilter` golden + lag, `GyroMapper` grips, `AccelerationCurve`/`ScrollGain` tables, `GestureRecognizer` every transition with injected clock, `DisplayClamp` fixtures, `MomentumSynthesizer`, `MacroValidator`, `ConnectionStateMachine` every edge with scripted `MockTransport`, `HostSessionStateMachine` stale/close/revoke/rotation, `RateLimiter`, `ProbeController` enter/exit rules | `Packages/AirMouseKit/Tests` | every PR (`swift test`), nightly with `AIRMOUSE_FUZZ_ITERATIONS=1000000` |
+| **Unit (kit)** | spec §10.1 matrix: `FrameCodec` split delivery + fuzz, every `Message` round trip, `MotionPayload`, `MotionCrypto`/`SessionKeys`, `ReplayWindow` (incl. 10⁶ random vs set oracle), `PairingProof`, `QRPayload`, `OneEuroFilter` golden + lag, `GyroMapper` grips, `AccelerationCurve`/`ScrollGain` tables, `GestureRecognizer` every transition with injected clock, `DisplayClamp` fixtures, `MomentumSynthesizer`, `MacroValidator`, `ConnectionStateMachine` every edge with scripted `MockTransport`, `HostSessionStateMachine` stale/close/revoke/rotation, `RateLimiter`, `ProbeController` enter/exit rules | `Packages/AirControlKit/Tests` | every PR (`swift test`), nightly with `AIRCONTROL_FUZZ_ITERATIONS=1000000` |
 | **Golden vectors** | spec §6.4 JSON vectors generated by `scripts/gen-vectors.swift`; CI asserts byte-exact decode → re-encode | `Tests/*/Vectors` | every PR |
-| **Loopback integration** | helper launched with `--loopback --port 0 --identity test [--pairing-secret <b64u>]`; `RecordingInjector` logs would-be events; a local JSON control socket exposes the log and counters; `AirMouseHelperIntegrationTests` drives the *real* `NWControlTransport`/`NWDatagramTransport` (shared source between the iOS app and the CLI) and asserts: pairing success/failure paths, reconnect with re-key, motion → moves with correct acceleration/remainders, clicks with `clickState`, scroll phases + momentum ticks, text pacing, media NX keys, macro gating matrix, `releaseAll` on stale/revoke/pause | `apps/AirMouse-Mac/IntegrationTests` | every PR (`mac` job) |
-| **`airmouse-cli`** | SwiftPM executable speaking the full protocol: `pair --url <airmouse://…>` (stores a test identity in `~/.airmouse-cli/`), `connect --host <name or addr>`, `move --dx --dy --hz 120 --seconds 10`, `scroll`, `click --button left --count 2`, `type "text"`, `key cmd+shift+4`, `macro list` / `macro run <id>`, `bench --hz 120 --seconds 10` (probe RTT p50/p95/p99, loss), `replay <gesture-script.json>` (deterministic motion traces for regression), `flood --pps 10000` (T11 CPU check). Used by contributors without an iPhone, by the perf rig, and by the manual test plan | `Sources/airmouse-cli` | on demand; `bench` in nightly against `--loopback` for trend only |
+| **Loopback integration** | helper launched with `--loopback --port 0 --identity test [--pairing-secret <b64u>]`; `RecordingInjector` logs would-be events; a local JSON control socket exposes the log and counters; `AirControlHelperIntegrationTests` drives the *real* `NWControlTransport`/`NWDatagramTransport` (shared source between the iOS app and the CLI) and asserts: pairing success/failure paths, reconnect with re-key, motion → moves with correct acceleration/remainders, clicks with `clickState`, scroll phases + momentum ticks, text pacing, media NX keys, macro gating matrix, `releaseAll` on stale/revoke/pause | `apps/AirControl-Mac/IntegrationTests` | every PR (`mac` job) |
+| **`aircontrol-cli`** | SwiftPM executable speaking the full protocol: `pair --url <aircontrol://…>` (stores a test identity in `~/.aircontrol-cli/`), `connect --host <name or addr>`, `move --dx --dy --hz 120 --seconds 10`, `scroll`, `click --button left --count 2`, `type "text"`, `key cmd+shift+4`, `macro list` / `macro run <id>`, `bench --hz 120 --seconds 10` (probe RTT p50/p95/p99, loss), `replay <gesture-script.json>` (deterministic motion traces for regression), `flood --pps 10000` (T11 CPU check). Used by contributors without an iPhone, by the perf rig, and by the manual test plan | `Sources/aircontrol-cli` | on demand; `bench` in nightly against `--loopback` for trend only |
 | **App unit** | view models with `Mock*` services; `KeyboardBridge` sentinel-diff and IME guard with a scripted `UITextView`; `TouchpadView` sample → `GestureRecognizer` wiring; `HapticsService` fallback; `KeychainStore` on simulator (Path B); Mac: `KeycodeMapper` for US/Dvorak/German layouts, `MacroEngine` import merge, `PairingService` secret lifecycle | `apps/*/Tests` | every PR |
-| **UI tests** | onboarding smoke only (3 pages → pre-prompt → scanner placeholder) | `apps/AirMouse-iOS/UITests` | every PR |
-| **Performance rig** | (1) `airmouse-cli bench` vs `--bench` for RTT; (2) `xctrace` with the checked-in template measuring `udp.receive→inject.post` and inter-event jitter (p95 ≤ 12 ms); (3) camera ground truth per spec §10.4 with `scripts/latency-rig/annotate.py`; (4) reconnect script toggling the AP 100×; (5) 72 h soak with `leaks`/`footprint` snapshots | `scripts/latency-rig` | performance gate before M4 exit and before each release |
+| **UI tests** | onboarding smoke only (3 pages → pre-prompt → scanner placeholder) | `apps/AirControl-iOS/UITests` | every PR |
+| **Performance rig** | (1) `aircontrol-cli bench` vs `--bench` for RTT; (2) `xctrace` with the checked-in template measuring `udp.receive→inject.post` and inter-event jitter (p95 ≤ 12 ms); (3) camera ground truth per spec §10.4 with `scripts/latency-rig/annotate.py`; (4) reconnect script toggling the AP 100×; (5) 72 h soak with `leaks`/`footprint` snapshots | `scripts/latency-rig` | performance gate before M4 exit and before each release |
 | **Security checklist** | spec §10.5 executed manually before M9; the automatable parts (TLS 1.2 rejected, replay, bit-flip, flood, gating) are integration tests | — | M3 exit, M9 gate |
 
 Rule: no test anywhere posts a real `CGEvent`; `CGEventInjector` is exercised only by humans in the manual plan.
@@ -1077,9 +1077,9 @@ Rule: no test anywhere posts a real `CGEvent`; `CGEventInjector` is exercised on
 
 | ADR | Decision | Context | Consequences |
 |---|---|---|---|
-| **ADR-001** XcodeGen + `AirMouseKit` split | Two `project.yml` files, generated projects git-ignored; one package with `AirMouseProtocol`/`Crypto`/`Filters`/`Core` targets and a CLI | Open-source reviewability of plist/entitlement/signing changes; maintainer machine has Xcode but the project must be editable as text; spec §2.1 named a single package with three targets | `brew install xcodegen` is a contributor prerequisite; spec §2.1/§2.4/§6.1 to be amended to the new names; crypto is independently auditable |
+| **ADR-001** XcodeGen + `AirControlKit` split | Two `project.yml` files, generated projects git-ignored; one package with `AirControlProtocol`/`Crypto`/`Filters`/`Core` targets and a CLI | Open-source reviewability of plist/entitlement/signing changes; maintainer machine has Xcode but the project must be editable as text; spec §2.1 named a single package with three targets | `brew install xcodegen` is a contributor prerequisite; spec §2.1/§2.4/§6.1 to be amended to the new names; crypto is independently auditable |
 | **ADR-002** TCP + mTLS 1.3 control, UDP + app-layer ChaChaPoly motion | Addendum A1/A2; TLS-PSK is 1.2-only on Apple platforms; DTLS undocumented | Two sockets, two ports (47800/47800); `sessionKey` delivered over TLS; HKDF per direction; replay window; TCP fallback for motion | Simple, auditable, testable in `swift test`; two-socket bookkeeping; key rotation logic needed |
-| **ADR-003** No QUIC in v1; transport behind protocols | Addendum A3; datagram flow thinly documented; interop debugging hard | `ControlTransport`/`DatagramTransport` protocols in `AirMouseCore`; apps provide NW implementations | QUIC becomes an additive v2 transport with a capability flag; slight indirection cost (none on the hot path — the protocol witness is resolved once) |
+| **ADR-003** No QUIC in v1; transport behind protocols | Addendum A3; datagram flow thinly documented; interop debugging hard | `ControlTransport`/`DatagramTransport` protocols in `AirControlCore`; apps provide NW implementations | QUIC becomes an additive v2 transport with a capability flag; slight indirection cost (none on the hot path — the protocol witness is resolved once) |
 | **ADR-004** JSON `Codable` envelope for control | spec §3.4.3: < 200 msg/s, debuggable, no schema toolchain | `Envelope` custom `Codable` maps `t`/`p`; unknown `t` → `.unknown`; sorted keys, ints for dates | Trivial contributor onboarding; ~120 B messages; must never be used on the motion path |
 | **ADR-005** Fixed 16-byte little-endian motion payload | spec §3.5.2: fixed-point i16 deltas at 1/8 pt, flags, source, samples, µs timestamp | `MotionPayload.pack/unpack` into fixed buffers; 44-byte datagram exactly | Zero-allocation hot path; layout frozen within a protocol major; ±4095 pt per datagram is ample |
 | **ADR-006** `EventInjector` on a dedicated `.userInteractive` serial executor | §3.3 rationale: main-thread stalls and modal menu tracking would freeze the cursor; single-writer pointer state | Actor with `DispatchSerialQueue` executor; UDP received on the same queue; `releaseAll()` there | Zero hops on the Mac; compiler-checked isolation; Diagnostics reads snapshots not state |
@@ -1114,10 +1114,10 @@ Two identifiers are in use upstream: **R-01…R-20** are the PRD risk register (
 | **R-11** QUIC datagram flow | v2 transport | Deferred (backlog) | — | ADR-003 indirection |
 | **R-12** TCC stability of the dev loop with stable identity + bundle-ID suffix | M0/M2 developer experience | M1-08 | Whether `Local.xcconfig` + suffix suffices or a `scripts/tcc-reset.sh` is needed | `tccutil reset` documented |
 | **New A** Swift 6 strict concurrency vs Network.framework closures (`Sendable` annotations vary by SDK) | all NW wrappers | M2 (first wrapper) | Whether `assumeIsolated` pattern compiles cleanly on Xcode 26.6 | Wrap callbacks in `@Sendable` closures that only capture the actor |
-| **New B** swift-certificates compile time / binary size in the kit | CI time, app size | M1-01 measures | Keep in `AirMouseCrypto` or move identity minting to an `AirMouseIdentity` target | Target split is a one-line change |
+| **New B** swift-certificates compile time / binary size in the kit | CI time, app size | M1-01 measures | Keep in `AirControlCrypto` or move identity minting to an `AirControlIdentity` target | Target split is a one-line change |
 | **New C** `MenuBarExtra(.menu)` focus/dismissal quirks for the QR window | Mac UI | M2 | Keep SwiftUI or switch to `NSStatusItem` + `NSPopover` behind `MenuHost` | Protocol seam exists |
 | **New D** Universal-binary build time on CI; Sparkle re-signing under hardened runtime | release.yml | M9-01 dry run | Whether to build Intel only on tags | `ARCHS` is a setting |
-| **R-09** (PRD) name collision "Air Mouse" | bundle IDs, tap name, App Store | M9 trademark check; bundle IDs use `com.airmouse.*` as codename | Final name before repo goes public | Rename touches `project.yml` ×2, cask, docs |
+| **R-09** (PRD) name collision "Air Control" | bundle IDs, tap name, App Store | M9 trademark check; bundle IDs use `com.aircontrol.*` as codename | Final name before repo goes public | Rename touches `project.yml` ×2, cask, docs |
 | **R-08** (PRD) App Store review of a remote-control app | iOS release | M9 reviewer notes + demo video + TestFlight Mac build link | — | One rejection cycle budgeted in plan §7 |
 
 Everything above is scheduled in `05-plan.md` M1 unless noted; no M2+ work depends on an un-run spike except where a designed fallback exists.

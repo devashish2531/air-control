@@ -1,4 +1,4 @@
-// IconTool.swift — app-icon generator for Air Mouse.
+// IconTool.swift — app-icon generator for Air Control.
 //
 // Turns a square piece of source artwork that already carries its own rounded-rect
 // shape (with white or transparent corners) into:

@@ -17,8 +17,8 @@ export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Develope
 IOS_SOURCE="$ROOT/design/icons/ios-icon-source.png"
 IOS_DARK_SOURCE="$ROOT/design/icons/ios-icon-source-dark.png"
 MAC_SOURCE="$ROOT/design/icons/mac-icon-source.png"
-IOS_SET="$ROOT/apps/AirMouse-iOS/Resources/Assets.xcassets/AppIcon.appiconset"
-MAC_SET="$ROOT/apps/AirMouse-Mac/Resources/Assets.xcassets/AppIcon.appiconset"
+IOS_SET="$ROOT/apps/AirControl-iOS/Resources/Assets.xcassets/AppIcon.appiconset"
+MAC_SET="$ROOT/apps/AirControl-Mac/Resources/Assets.xcassets/AppIcon.appiconset"
 TOOL_SOURCE="$ROOT/scripts/icon-tools/IconTool.swift"
 DRAW_SOURCE="$ROOT/scripts/icon-tools/IconDraw.swift"
 
@@ -178,10 +178,10 @@ ios_alpha="$(sips -g hasAlpha "$IOS_SET/AppIcon-1024.png" | awk '/hasAlpha/ {pri
 [[ "$ios_alpha" == "no" ]] || { echo "gen-icons: iOS icon still has an alpha channel" >&2; exit 1; }
 
 # The macOS set must survive an icns round trip — that is what Finder/Dock consume.
-ICONSET="$WORK/AirMouse.iconset"
+ICONSET="$WORK/AirControl.iconset"
 mkdir -p "$ICONSET"
 cp "$MAC_SET"/icon_*.png "$ICONSET/"
-iconutil -c icns -o "$WORK/AirMouse.icns" "$ICONSET"
-echo "    icns round trip OK ($(du -h "$WORK/AirMouse.icns" | cut -f1))"
+iconutil -c icns -o "$WORK/AirControl.icns" "$ICONSET"
+echo "    icns round trip OK ($(du -h "$WORK/AirControl.icns" | cut -f1))"
 
 echo "==> done"

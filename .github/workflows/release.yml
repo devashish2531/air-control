@@ -1,4 +1,4 @@
-# Air Mouse release — arch §9.1 "Rel" lane, §9.3 secrets model, §9.4 artefacts.
+# Air Control release — arch §9.1 "Rel" lane, §9.3 secrets model, §9.4 artefacts.
 #
 # Fork-PR secrets model (arch §9.3): `pull_request` runs from forks get NO secrets and a
 # read-only GITHUB_TOKEN — this workflow only triggers on tag pushes, which forks cannot do
@@ -73,12 +73,12 @@ jobs:
         run: |
           make gen
           xcodebuild -quiet \
-            -project apps/AirMouse-Mac/AirMouseHelper.xcodeproj \
-            -scheme AirMouseHelper \
+            -project apps/AirControl-Mac/AirControlHelper.xcodeproj \
+            -scheme AirControlHelper \
             -configuration Release \
             -destination 'generic/platform=macOS' \
-            -archivePath "$RUNNER_TEMP/AirMouseHelper.xcarchive" \
-            AIRMOUSE_WARNINGS_AS_ERRORS=YES \
+            -archivePath "$RUNNER_TEMP/AirControlHelper.xcarchive" \
+            AIRCONTROL_WARNINGS_AS_ERRORS=YES \
             archive
 
       - name: Export Developer ID app
@@ -94,7 +94,7 @@ jobs:
           </plist>
           EOF
           xcodebuild -quiet -exportArchive \
-            -archivePath "$RUNNER_TEMP/AirMouseHelper.xcarchive" \
+            -archivePath "$RUNNER_TEMP/AirControlHelper.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -exportPath "$RUNNER_TEMP/export"
 
@@ -104,15 +104,15 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
-          scripts/release/notarize.sh "$RUNNER_TEMP/export/AirMouseHelper.app"
+          scripts/release/notarize.sh "$RUNNER_TEMP/export/AirControlHelper.app"
 
       - name: make-dmg.sh
         run: |
-          scripts/release/make-dmg.sh "$RUNNER_TEMP/export/AirMouseHelper.app" "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg"
+          scripts/release/make-dmg.sh "$RUNNER_TEMP/export/AirControlHelper.app" "$RUNNER_TEMP/dist/AirControl-${VERSION#v}.dmg"
 
       - name: sha256sum
         run: |
-          shasum -a 256 "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg" | tee "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg.sha256"
+          shasum -a 256 "$RUNNER_TEMP/dist/AirControl-${VERSION#v}.dmg" | tee "$RUNNER_TEMP/dist/AirControl-${VERSION#v}.dmg.sha256"
 
       - name: appcast.sh (Sparkle, EdDSA-signed)
         env:
@@ -126,17 +126,17 @@ jobs:
         run: |
           notes="$(awk '/^## \[Unreleased\]/{flag=1;next}/^## \[/{flag=0}flag' CHANGELOG.md || true)"
           gh release create "$VERSION" \
-            "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg" \
-            "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg.sha256" \
+            "$RUNNER_TEMP/dist/AirControl-${VERSION#v}.dmg" \
+            "$RUNNER_TEMP/dist/AirControl-${VERSION#v}.dmg.sha256" \
             "$RUNNER_TEMP/dist/appcast.xml" \
-            --title "Air Mouse $VERSION" \
+            --title "Air Control $VERSION" \
             --notes "${notes:-See CHANGELOG.md.}"
 
       - name: bump-cask.sh → PR to homebrew tap
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
-          scripts/release/bump-cask.sh "$VERSION" "$RUNNER_TEMP/dist/AirMouse-${VERSION#v}.dmg.sha256"
+          scripts/release/bump-cask.sh "$VERSION" "$RUNNER_TEMP/dist/AirControl-${VERSION#v}.dmg.sha256"
 
   ios-testflight:
     name: iOS archive + TestFlight upload
@@ -173,12 +173,12 @@ jobs:
         run: |
           make gen
           xcodebuild -quiet \
-            -project apps/AirMouse-iOS/AirMouse.xcodeproj \
-            -scheme AirMouse \
+            -project apps/AirControl-iOS/AirControl.xcodeproj \
+            -scheme AirControl \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/AirMouse.xcarchive" \
-            AIRMOUSE_WARNINGS_AS_ERRORS=YES \
+            -archivePath "$RUNNER_TEMP/AirControl.xcarchive" \
+            AIRCONTROL_WARNINGS_AS_ERRORS=YES \
             archive
 
       - name: Export + upload to TestFlight
@@ -198,7 +198,7 @@ jobs:
           </plist>
           EOF
           xcodebuild -quiet -exportArchive \
-            -archivePath "$RUNNER_TEMP/AirMouse.xcarchive" \
+            -archivePath "$RUNNER_TEMP/AirControl.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions-ios.plist" \
             -exportPath "$RUNNER_TEMP/export-ios" \
             -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8" \

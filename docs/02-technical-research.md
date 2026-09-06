@@ -1,4 +1,4 @@
-# Air Mouse — Technical Research & API Feasibility (2026-09-03)
+# Air Control — Technical Research & API Feasibility (2026-09-03)
 
 Companion to `00-decisions.md`. Constraints assumed throughout: SwiftUI iPhone/iPad client (iOS 18+), Swift menu-bar helper (macOS 15+), local Wi-Fi, Bonjour discovery, QR pairing + TLS, CGEvent injection, < 20 ms motion latency, open-source direct distribution.
 
@@ -110,12 +110,12 @@ macOS 26 caveat (likely; single source): a 2026 write-up reports that on Tahoe W
 TCC tracks three independent services: `kTCCServiceAccessibility`, `kTCCServicePostEvent`, `kTCCServiceListenEvent` (Input Monitoring).
 
 - **Posting** CGEvents requires PostEvent, which System Settings displays under **Privacy & Security ▸ Accessibility**. `CGPreflightPostEventAccess()` / `CGRequestPostEventAccess()` are the precise APIs; `AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true])` prompts for the same pane and is what most apps use.
-- **Listening** (CGEventTap `.listenOnly`, `IOHIDManager`) requires Input Monitoring. Air Mouse never installs an event tap, so **Input Monitoring is not required**. Keep it that way; asking for both scares users.
+- **Listening** (CGEventTap `.listenOnly`, `IOHIDManager`) requires Input Monitoring. Air Control never installs an event tap, so **Input Monitoring is not required**. Keep it that way; asking for both scares users.
 - No permission is needed to *read* the cursor position or to post events to your own process.
 - Prompting: call the request API from the onboarding screen, then deep-link with `x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`. There is no change notification; poll `AXIsProcessTrusted()` at 1 Hz while the onboarding view is visible (the undocumented distributed notification `com.apple.accessibility.api` also fires; treat as optional).
 - The `CFBundleExecutable` must be a real Mach-O (not a script) or TCC misattributes the grant (DTS-confirmed).
 
-**Dev workflow / unsigned builds (verified by DTS threads + field reports):** TCC keys the grant to the app's code-signing designated requirement. Ad-hoc signatures have a designated requirement based on the CDHash, which changes on every build, so the Accessibility toggle stays "on" in System Settings but stops working after each rebuild (or the tap goes silently inert). Fix: sign every debug build with a **stable identity** — Xcode automatic signing with any Apple Development certificate (the free personal team works) yields a designated requirement of the form `identifier "com.airmouse.helper" and anchor apple generic and certificate leaf[subject.OU] = TEAMID`, which is stable across builds. Put `DEVELOPMENT_TEAM` in a git-ignored `Local.xcconfig` so each contributor uses their own team. When things get wedged: `tccutil reset Accessibility com.airmouse.helper`. Do not keep multiple copies of the helper around (DerivedData + /Applications); Launch Services picks one and the macOS 15 Local Network prompt is known to misbehave with duplicates.
+**Dev workflow / unsigned builds (verified by DTS threads + field reports):** TCC keys the grant to the app's code-signing designated requirement. Ad-hoc signatures have a designated requirement based on the CDHash, which changes on every build, so the Accessibility toggle stays "on" in System Settings but stops working after each rebuild (or the tap goes silently inert). Fix: sign every debug build with a **stable identity** — Xcode automatic signing with any Apple Development certificate (the free personal team works) yields a designated requirement of the form `identifier "com.aircontrol.helper" and anchor apple generic and certificate leaf[subject.OU] = TEAMID`, which is stable across builds. Put `DEVELOPMENT_TEAM` in a git-ignored `Local.xcconfig` so each contributor uses their own team. When things get wedged: `tccutil reset Accessibility com.aircontrol.helper`. Do not keep multiple copies of the helper around (DerivedData + /Applications); Launch Services picks one and the macOS 15 Local Network prompt is known to misbehave with duplicates.
 
 ### A8. Sandbox, hardened runtime, distribution (likely for sandbox; verified for notarization)
 
@@ -131,7 +131,7 @@ TCC tracks three independent services: `kTCCServiceAccessibility`, `kTCCServiceP
 
 ### A10. Menu bar app (verified)
 
-`MenuBarExtra("Air Mouse", systemImage: "…") { … }.menuBarExtraStyle(.window)` (macOS 13+) for a popover-style panel that shows status, the QR code, and trusted devices. Set `LSUIElement = YES` so there is no Dock icon; add a `Settings` scene for preferences. Launch at login: `SMAppService.mainApp.register()` (macOS 13+); if `status == .requiresApproval`, call `SMAppService.openSystemSettingsLoginItems()`. Gotcha: `.window` style gives limited control over dismissal and has had focus quirks; if they bite, fall back to `NSStatusItem` + `NSPopover` hosting a SwiftUI view. Render the QR at high contrast in a dedicated window (not just the popover) so a phone camera can scan it from arm's length.
+`MenuBarExtra("Air Control", systemImage: "…") { … }.menuBarExtraStyle(.window)` (macOS 13+) for a popover-style panel that shows status, the QR code, and trusted devices. Set `LSUIElement = YES` so there is no Dock icon; add a `Settings` scene for preferences. Launch at login: `SMAppService.mainApp.register()` (macOS 13+); if `status == .requiresApproval`, call `SMAppService.openSystemSettingsLoginItems()`. Gotcha: `.window` style gives limited control over dismissal and has had focus quirks; if they bite, fall back to `NSStatusItem` + `NSPopover` hosting a SwiftUI view. Render the QR at high contrast in a dedicated window (not just the popover) so a phone camera can scan it from arm's length.
 
 ---
 
@@ -139,7 +139,7 @@ TCC tracks three independent services: `kTCCServiceAccessibility`, `kTCCServiceP
 
 ### B1. Network.framework, Bonjour advertise/browse (verified)
 
-Helper: `NWListener(using: tlsParams, on: .any)`, then `listener.service = NWListener.Service(name: hostName, type: "_airmouse._tcp", txtRecord: NWTXTRecord(["v": "1", "id": helperID]))`; observe `serviceRegistrationUpdateHandler` for the actual registered name. Phone: `NWBrowser(for: .bonjour(type: "_airmouse._tcp", domain: nil), using: params)`, and connect with `NWConnection(to: result.endpoint, using: params)` — Network.framework resolves the service endpoint for you, no separate resolve step. Set `parameters.includePeerToPeer = false`: peer-to-peer enables AWDL, whose channel hopping causes periodic 3–90 ms latency spikes on the LAN (verified 2025 research on AWDL stutter).
+Helper: `NWListener(using: tlsParams, on: .any)`, then `listener.service = NWListener.Service(name: hostName, type: "_aircontrol._tcp", txtRecord: NWTXTRecord(["v": "1", "id": helperID]))`; observe `serviceRegistrationUpdateHandler` for the actual registered name. Phone: `NWBrowser(for: .bonjour(type: "_aircontrol._tcp", domain: nil), using: params)`, and connect with `NWConnection(to: result.endpoint, using: params)` — Network.framework resolves the service endpoint for you, no separate resolve step. Set `parameters.includePeerToPeer = false`: peer-to-peer enables AWDL, whose channel hopping causes periodic 3–90 ms latency spikes on the LAN (verified 2025 research on AWDL stutter).
 
 The new Swift-concurrency `NetworkConnection`/`NetworkListener`/`NetworkBrowser` APIs are **iOS 26 / macOS 26 only** (WWDC25), so with an iOS 18 / macOS 15 floor we stay on `NWConnection`. Wrap `NWConnection` in an `AsyncStream`-based actor so a later migration is mechanical.
 
@@ -182,7 +182,7 @@ Assessment: attractive single-connection story (one handshake, streams for contr
 
 ### B5. iOS local network privacy (verified from TN3179, Feb 2026 revision)
 
-- Info.plist: `NSLocalNetworkUsageDescription` and `NSBonjourServices = ["_airmouse._tcp", "_airmouse._udp"]`. Browsing a type not listed fails. The multicast entitlement is **not** needed for Bonjour (mDNSResponder does the multicast). Put the keys in the app's Info.plist, not an extension's.
+- Info.plist: `NSLocalNetworkUsageDescription` and `NSBonjourServices = ["_aircontrol._tcp", "_aircontrol._udp"]`. Browsing a type not listed fails. The multicast entitlement is **not** needed for Bonjour (mDNSResponder does the multicast). Put the keys in the app's Info.plist, not an extension's.
 - Requires access: outgoing TCP to a local address, sending/connecting UDP unicast, all Bonjour operations (register, browse, resolve), resolving `.local` names. Does **not** require access: listening/accepting incoming TCP, receiving incoming UDP unicast.
 - Prompt timing: the alert appears on the first such operation, and "the system may deny the operation immediately, before the user has responded" — so retry after a short delay, and perform the first operation from the Connect screen, not at launch.
 - Detecting denial (no general status API, FB8711182): `NWBrowser` → `.waiting(.dns(code))` with `code == kDNSServiceErr_PolicyDenied` (-65570); `NWConnection` → `.waiting` with `connection.currentPath?.unsatisfiedReason == .localNetworkDenied`. Offer a button to `UIApplication.openSettingsURLString`. To re-trigger the alert deliberately, TN3179's trick is to `connect()` a UDP socket to a link-local IPv6 address (no traffic generated).
@@ -272,7 +272,7 @@ Gain ≈ 800–1500 px/rad, with a dead zone (|rate| < 0.02 rad/s → 0) and an 
 
 ### C5. QR scanning (verified)
 
-`DataScannerViewController(recognizedDataTypes: [.barcode(symbologies: [.qr])], isHighlightingEnabled: true)` (VisionKit, iOS 16+). It requires an A12+ device (2018 or later) — check `DataScannerViewController.isSupported && .isAvailable` at runtime, not just `#available`. Fallback: `AVCaptureSession` + `AVCaptureMetadataOutput` with `metadataObjectTypes = [.qr]` (works everywhere). `NSCameraUsageDescription` required; handle `.denied` with a Settings deep link and a **manual entry fallback** (short numeric pairing code + IP shown under the QR). Encode the QR as `airmouse://pair?d=<base64url(binary payload)>` and register the scheme + a Universal Link so the iOS Camera app can open the app directly.
+`DataScannerViewController(recognizedDataTypes: [.barcode(symbologies: [.qr])], isHighlightingEnabled: true)` (VisionKit, iOS 16+). It requires an A12+ device (2018 or later) — check `DataScannerViewController.isSupported && .isAvailable` at runtime, not just `#available`. Fallback: `AVCaptureSession` + `AVCaptureMetadataOutput` with `metadataObjectTypes = [.qr]` (works everywhere). `NSCameraUsageDescription` required; handle `.denied` with a Settings deep link and a **manual entry fallback** (short numeric pairing code + IP shown under the QR). Encode the QR as `aircontrol://pair?d=<base64url(binary payload)>` and register the scheme + a Universal Link so the iOS Camera app can open the app directly.
 
 ### C6. iPad (verified)
 
@@ -284,14 +284,14 @@ Layout from `horizontalSizeClass`/`verticalSizeClass` and the actual view size (
 
 ### D1. Protocol package (recommendation)
 
-`Packages/AirMouseProtocol` (SPM, platforms `.iOS(.v18), .macOS(.v15)`), depending only on Foundation + CryptoKit. Two wire formats:
+`Packages/AirControlProtocol` (SPM, platforms `.iOS(.v18), .macOS(.v15)`), depending only on Foundation + CryptoKit. Two wire formats:
 
 - **Motion datagram**: hand-packed, fixed-size, little-endian, no Codable. Layout (16 bytes): `u8 type/version`, `u8 buttons bitmask`, `u16 seq`, `u32 timestampµs (monotonic, wraps)`, `i16 dx`, `i16 dy`, `i16 scrollX`, `i16 scrollY` — deltas in 1/8-pixel fixed point (±4096 px per packet). Encrypted frame = 28-byte header/tag + 16 = 44 bytes.
 - **Control channel** (pairing, key exchange, clicks that must not be lost, keyboard text, macros sync, app list, clipboard): length-prefixed frames via `NWProtocolFramer` with a **JSON `Codable` envelope `{v, type, payload}`** in v1. Rates are < 100 msg/s, JSON is debuggable with `nc`/Wireshark, and there is no schema toolchain for contributors. Protobuf (`swift-protobuf`) only becomes worth it if non-Swift clients appear (Android, Windows helper); MessagePack saves bytes but not complexity. Encode timestamps and enums as ints; version every message.
 
 ### D2. Xcode layout (recommendation)
 
-One `AirMouse.xcodeproj` with two app targets (`AirMouse` iOS, `AirMouseHelper` macOS) and local packages `Packages/AirMouseProtocol` and `Packages/AirMouseCore` (filters, gesture engine, pure Swift, testable with `swift test`). Use Xcode 16 **buildable folders** (file-system-synchronized groups) so `project.pbxproj` no longer changes when files are added — this removes most of the merge-conflict argument for XcodeGen/Tuist. Tuist/XcodeGen add a required tool for every contributor and hide settings behind a DSL; not worth it for two targets. Signing: `Config/Base.xcconfig` committed, `Config/Local.xcconfig` git-ignored with `DEVELOPMENT_TEAM`, bundle-ID suffix per developer to avoid TCC/Launch Services collisions.
+One `AirControl.xcodeproj` with two app targets (`AirControl` iOS, `AirControlHelper` macOS) and local packages `Packages/AirControlProtocol` and `Packages/AirControlCore` (filters, gesture engine, pure Swift, testable with `swift test`). Use Xcode 16 **buildable folders** (file-system-synchronized groups) so `project.pbxproj` no longer changes when files are added — this removes most of the merge-conflict argument for XcodeGen/Tuist. Tuist/XcodeGen add a required tool for every contributor and hide settings behind a DSL; not worth it for two targets. Signing: `Config/Base.xcconfig` committed, `Config/Local.xcconfig` git-ignored with `DEVELOPMENT_TEAM`, bundle-ID suffix per developer to avoid TCC/Launch Services collisions.
 
 ### D3. Testing (recommendation)
 
@@ -308,13 +308,13 @@ Secrets in an open-source repo: `pull_request` runs from forks receive **no secr
 ### D5. Distribution (verified)
 
 - iOS: App Store/TestFlight requires the maintainer's paid Apple Developer account; a public TestFlight link is the best beta channel. Contributors run from Xcode with a free personal team (7-day provisioning, 3 apps). AltStore/SideStore sideloading works from the released IPA (7-day refresh, needs AltServer on a computer) and alternative marketplaces in the EU — mention, do not support officially.
-- macOS: notarized DMG/zip on GitHub Releases, `brew install --cask airmouse`, Sparkle 2 for in-app updates (appcast on GitHub Pages or Releases; EdDSA keys; HTTPS only — the Remote Mouse cleartext-update CVE is the cautionary tale).
+- macOS: notarized DMG/zip on GitHub Releases, `brew install --cask aircontrol`, Sparkle 2 for in-app updates (appcast on GitHub Pages or Releases; EdDSA keys; HTTPS only — the Remote Mouse cleartext-update CVE is the cautionary tale).
 
 ---
 
 ## E. Prior art
 
-| Product | Does well | Gets wrong | Lesson for Air Mouse |
+| Product | Does well | Gets wrong | Lesson for Air Control |
 |---|---|---|---|
 | Remote Mouse (Emote) | Polished trackpad, media/app remotes, huge install base | Free tier ads + subscription; 2021 "MouseTrap" CVE-2021-27569…27574: unauthenticated UDP RCE, replay auth bypass, cleartext HTTP updater; vendor did not respond to disclosure (verified) | Authenticate **every** datagram, replay window, signed HTTPS updates, security contact + policy in repo |
 | Mobile Mouse | Long-lived, low-latency reputation, per-app remotes, acceleration options | Paid/proprietary server; encryption story undocumented (uncertain) | Latency is a selling point users notice; offer acceleration/sensitivity presets |
@@ -322,7 +322,7 @@ Secrets in an open-source repo: `pull_request` runs from forks receive **no secr
 | KDE Connect / Valent | Open source, TLS with self-signed certs and pairing, plugin model, remote input | iOS client is limited; JSON over TCP is not trackpad-grade; discovery flaky on strict networks | Cert-pairing UX is proven and understood; motion needs UDP; ship manual-IP fallback |
 | Barrier → Input Leap → Deskflow | KVM sharing across computers, mDNS discovery, active upstream (Deskflow; Barrier and Input Leap are dead forks, verified) | TLS optional/off by default historically; 2021 auth/DoS CVEs; not a phone input solution | TLS is not optional; a clear single maintained upstream matters for OSS trust |
 | Apple iPhone Mirroring (macOS 15/iOS 18) | Seamless pairing via iCloud, excellent latency, zero setup | Opposite direction (Mac controls iPhone); requires same Apple ID | The bar for "it just works" pairing UX |
-| Apple Universal Control | Share Mac keyboard/trackpad with iPad, instant, low latency | iPad only, same Apple ID, no iPhone as input, no motion pointer | Air Mouse's niche: iPhone as input, any account, presenter/motion modes |
+| Apple Universal Control | Share Mac keyboard/trackpad with iPad, instant, low latency | iPad only, same Apple ID, no iPhone as input, no motion pointer | Air Control's niche: iPhone as input, any account, presenter/motion modes |
 
 ---
 
@@ -336,7 +336,7 @@ Secrets in an open-source repo: `pull_request` runs from forks receive **no secr
 6. Control channel: TCP with mutual TLS 1.3, self-signed P-256 identities (via `swift-certificates`), pinned by SHA-256 fingerprints exchanged during QR pairing. Do not use TLS-PSK (TLS 1.2 only on Apple platforms).
 7. Motion channel: plain UDP, 16-byte fixed little-endian packets encrypted with CryptoKit ChaChaPoly under a per-session key delivered over TLS, 64-bit counter nonce and sliding replay window; one datagram per input frame, never batched.
 8. QUIC datagrams exist in Network.framework but stay a v2 spike; keep transport behind a protocol.
-9. Declare `NSLocalNetworkUsageDescription` + `NSBonjourServices` (`_airmouse._tcp`, `_airmouse._udp`) on **both** apps (macOS 15 prompts too); detect denial via `kDNSServiceErr_PolicyDenied` and `.localNetworkDenied`; trigger the prompt from the Connect screen and retry once.
+9. Declare `NSLocalNetworkUsageDescription` + `NSBonjourServices` (`_aircontrol._tcp`, `_aircontrol._udp`) on **both** apps (macOS 15 prompts too); detect denial via `kDNSServiceErr_PolicyDenied` and `.localNetworkDenied`; trigger the prompt from the Connect screen and retry once.
 10. Embed all helper IP addresses + port + cert hash + one-time token in the QR so pairing never depends on mDNS; cache last-known addresses; `includePeerToPeer = false`.
 11. Foreground-only on iOS with `isIdleTimerDisabled`, a `pause` message on background (release held keys/buttons on the Mac), instant reconnect with the retained UDP session key; low-rate heartbeat to keep the Wi-Fi radio awake.
 12. Touch via a UIKit view with `coalescedTouches` (and cautious `predictedTouches`) under SwiftUI; a deterministic, unit-tested gesture state machine; no SwiftUI `DragGesture` for the trackpad.

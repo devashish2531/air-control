@@ -1,4 +1,4 @@
-# Air Mouse — Product Requirements Document (v1)
+# Air Control — Product Requirements Document (v1)
 
 | Field | Value |
 |---|---|
@@ -15,11 +15,11 @@ Anything in this document that is not settled in `00-decisions.md` is a recommen
 
 ## 1. Vision & goals
 
-Air Mouse turns the iPhone or iPad you already carry into a trackpad-grade pointer, an in-the-air remote, a keyboard, and a programmable button deck for a Mac — with nothing but the local Wi-Fi network between them. Existing remote-control apps feel laggy, treat security as an afterthought, hide the good features behind subscriptions, or route your keystrokes through someone's cloud. Air Mouse is the opposite on every axis: sub-20 ms motion latency that is indistinguishable from a physical trackpad, a cryptographic pairing model where every byte is encrypted end to end on your own network, zero accounts, zero telemetry by default, and a fully open-source codebase (native Swift/SwiftUI on both platforms, shared protocol package) that anyone can audit, build, and extend. The Mac side is a quiet menu-bar helper; the phone side is an app you can hand to a guest on the couch without explaining anything.
+Air Control turns the iPhone or iPad you already carry into a trackpad-grade pointer, an in-the-air remote, a keyboard, and a programmable button deck for a Mac — with nothing but the local Wi-Fi network between them. Existing remote-control apps feel laggy, treat security as an afterthought, hide the good features behind subscriptions, or route your keystrokes through someone's cloud. Air Control is the opposite on every axis: sub-20 ms motion latency that is indistinguishable from a physical trackpad, a cryptographic pairing model where every byte is encrypted end to end on your own network, zero accounts, zero telemetry by default, and a fully open-source codebase (native Swift/SwiftUI on both platforms, shared protocol package) that anyone can audit, build, and extend. The Mac side is a quiet menu-bar helper; the phone side is an app you can hand to a guest on the couch without explaining anything.
 
 ### 1.1 Goals for v1
 
-1. Ship a complete, polished input suite: touchpad, gyro air-mouse, keyboard, presenter/media remote, custom macro buttons, iPad-optimized layout.
+1. Ship a complete, polished input suite: touchpad, gyro air-pointer, keyboard, presenter/media remote, custom macro buttons, iPad-optimized layout.
 2. Make the first-run experience so short that "install, pair, move the cursor" is a single sitting with no manual.
 3. Establish a secure-by-default local protocol that the community can trust and reuse.
 4. Publish a contributor-friendly open-source project (permissive license, docs, CI, reproducible builds).
@@ -44,7 +44,7 @@ Telemetry is off by default (see NFR-SEC-010), so the metrics below are measured
 | Persona | Primary mode | Device | Network reality |
 |---|---|---|---|
 | Couch / HTPC user | Touchpad + media remote | iPhone | Consumer router, often 2.4 GHz, sometimes mesh |
-| Presenter | Gyro air-mouse + presenter buttons | iPhone | Hostile: conference Wi-Fi with client isolation, or a hotspot |
+| Presenter | Gyro air-pointer + presenter buttons | iPhone | Hostile: conference Wi-Fi with client isolation, or a hotspot |
 | Headless Mac mini developer | Keyboard + touchpad + macros | iPhone or iPad | Home/office LAN, Mac has no display or keyboard attached |
 | Accessibility user | Touchpad (large surface) + macros | iPad | Home LAN, needs stability above all |
 | Tinkerer / contributor | Everything | Both | Wants to fork, read the protocol, add a macro type |
@@ -143,7 +143,7 @@ Format: `ID — As a <persona>, I want <capability> so that <outcome>.` Each has
 **AM-TP-12 (P1)** — As a user, I want a quick modifier strip (⌘ ⌥ ⌃ ⇧) above the touchpad so that ⌘-click and ⇧-click work.
 - Given I hold ⌘ on the strip while tapping, Then the click carries the Command flag.
 
-### Epic GY — Gyro air-mouse mode
+### Epic GY — Gyro air-pointer mode
 
 **AM-GY-01 (P0)** — As Marcus, I want to point the phone like a laser pointer to move the cursor.
 - Given gyro mode is active and the clutch is engaged, When I rotate the phone about its yaw/pitch axes, Then the cursor moves proportionally to angular velocity with p95 latency ≤ 20 ms.
@@ -244,7 +244,7 @@ Format: `ID — As a <persona>, I want <capability> so that <outcome>.` Each has
 
 **AM-IP-02 (P0)** — As a user, I want iPad portrait to stack touchpad above a macro/keyboard drawer.
 
-**AM-IP-03 (P1)** — As Dana, I want a hardware keyboard attached to the iPad (Magic Keyboard, Bluetooth) to be passed through to the Mac, including modifiers and arrow keys, while Air Mouse is frontmost.
+**AM-IP-03 (P1)** — As Dana, I want a hardware keyboard attached to the iPad (Magic Keyboard, Bluetooth) to be passed through to the Mac, including modifiers and arrow keys, while Air Control is frontmost.
 - Given an external keyboard is connected and the "Passthrough" toggle is on, When I press ⌘C, Then the Mac receives ⌘C and the iPad does not perform its own copy.
 - Given a key iOS reserves (e.g., ⌘H, ⌘Tab, Globe), Then the app documents it as non-passable and the UI lists these exceptions.
 
@@ -333,9 +333,9 @@ Requirements are grouped by area; each traces to the stories above. "Host" = Mac
 
 ### 4.1 Discovery & pairing (FR-DP)
 
-- **FR-DP-001** The host SHALL advertise a Bonjour service `_airmouse._tcp` (control) and `_airmouse._udp` (motion) in the local domain with TXT records: protocol version, host display name, machine model, certificate fingerprint (SHA-256, truncated 16 bytes), and a random per-install host ID. **(recommended default)**: if the architecture selects a single QUIC transport, advertise only `_airmouse._udp` and drop the TCP record; the iOS `NSBonjourServices` list must then match.
+- **FR-DP-001** The host SHALL advertise a Bonjour service `_aircontrol._tcp` (control) and `_aircontrol._udp` (motion) in the local domain with TXT records: protocol version, host display name, machine model, certificate fingerprint (SHA-256, truncated 16 bytes), and a random per-install host ID. **(recommended default)**: if the architecture selects a single QUIC transport, advertise only `_aircontrol._udp` and drop the TCP record; the iOS `NSBonjourServices` list must then match.
 - **FR-DP-002** The client SHALL browse for these services while the Connect screen is visible or an auto-connect is pending, and SHALL stop browsing otherwise to conserve battery.
-- **FR-DP-003** The QR payload SHALL be a URL of the form `airmouse://pair?v=1&id=<hostID>&n=<name>&a=<addr1,addr2,…>&p=<port>&fp=<certFP>&s=<secret>` where `s` is a 128-bit random, base64url-encoded one-time secret. The URL scheme also enables pairing from a photo of the QR opened with the Camera app. Addresses SHALL be ordered: hotspot/bridge interfaces first, then Wi-Fi, then Ethernet; link-local IPv6 included.
+- **FR-DP-003** The QR payload SHALL be a URL of the form `aircontrol://pair?v=1&id=<hostID>&n=<name>&a=<addr1,addr2,…>&p=<port>&fp=<certFP>&s=<secret>` where `s` is a 128-bit random, base64url-encoded one-time secret. The URL scheme also enables pairing from a photo of the QR opened with the Camera app. Addresses SHALL be ordered: hotspot/bridge interfaces first, then Wi-Fi, then Ethernet; link-local IPv6 included.
 - **FR-DP-004** One-time secrets SHALL expire 60 s after display or on first successful use, whichever comes first, and SHALL be invalidated when the QR window closes. Failed attempts SHALL be rate-limited to 5 per minute per source IP.
 - **FR-DP-005** Pairing SHALL establish mutual TLS 1.3: the host presents a self-signed certificate (Ed25519 or P-256, 10-year validity, generated on first run, private key in the login Keychain); the client generates its own key pair and self-signed certificate on first pairing (private key in Secure Enclave where available). The client SHALL prove secret knowledge with an HMAC over a TLS exporter value (channel binding) so that the secret is never transmitted and cannot be replayed onto a different session.
 - **FR-DP-006** On success both sides SHALL persist the peer's certificate (pinned), display name, model, and pairing timestamp. Subsequent connections SHALL verify the peer certificate by exact match; no CA validation, no hostname validation.
@@ -388,7 +388,7 @@ Requirements are grouped by area; each traces to the stories above. "Host" = Mac
 - **FR-TP-019** Three-finger swipe shortcuts SHALL be sent as the standard keyboard shortcuts (⌃↑, ⌃↓, ⌃←, ⌃→) and SHALL be no-ops if the user has remapped them in macOS; the host MAY read the user's Mission Control shortcut settings in a later release.
 - **FR-TP-020** Haptics: light impact on tap recognition, medium on right-click, selection tick on drag-lock engage; all togglable.
 
-### 4.3 Gyro air-mouse mode (FR-GY)
+### 4.3 Gyro air-pointer mode (FR-GY)
 
 - **FR-GY-001** The client SHALL use CoreMotion device-motion updates at the maximum supported rate (100 Hz on current hardware) with the `xArbitraryCorrectedZVertical` reference frame so that sensor fusion already removes gravity and slow gyro bias.
 - **FR-GY-002** Pointer model: relative angular velocity → pixel delta. Per sample: Δx = −G × ω_yaw × Δt, Δy = −G × ω_pitch × Δt, where ω is the rotation rate expressed in a gravity-aligned frame (so rolling the wrist does not swap axes), Δt is the sample interval, and G is the gain in px per radian. Default G corresponds to 40° of rotation traversing a 1920 px display **(recommended default)**; sensitivity 1–10 scales G from 0.5× to 2.5×.
@@ -470,11 +470,11 @@ Action kinds: `keyCombo { modifiers: Set<Modifier>, keyCode: UInt16, keyLabel: S
 
 - **FR-MB-001** The helper SHALL be an `LSUIElement` (agent) app: menu-bar icon only, no Dock icon, no main window on launch after onboarding.
 - **FR-MB-002** Menu contents: status line, connected devices (with Disconnect), "Pair new device…", "Pause input" toggle, "Macros…", "Trusted Devices…", "Diagnostics…", "Settings…", "Check for updates…", "Quit".
-- **FR-MB-003** Permissions onboarding: detect `AXIsProcessTrusted()`; show explanation ("Air Mouse needs Accessibility to move the cursor and type on your behalf; it never reads your screen or your keystrokes"), button to open the Privacy & Security › Accessibility pane, and poll every 2 s. State SHALL survive relaunch and re-prompt if the permission is later revoked (e.g., after an app update changes the code signature).
+- **FR-MB-003** Permissions onboarding: detect `AXIsProcessTrusted()`; show explanation ("Air Control needs Accessibility to move the cursor and type on your behalf; it never reads your screen or your keystrokes"), button to open the Privacy & Security › Accessibility pane, and poll every 2 s. State SHALL survive relaunch and re-prompt if the permission is later revoked (e.g., after an app update changes the code signature).
 - **FR-MB-004** Launch at login via `SMAppService.mainApp` with a checkbox; default on, set during onboarding.
 - **FR-MB-005** Trusted Devices window: table of device name, model, iOS version, first paired, last seen, "Allow scripts" checkbox, Revoke button; rename device locally.
 - **FR-MB-006** "Pause input" SHALL drop all input from clients but keep sessions alive and inform clients so they show a "Paused on Mac" banner.
-- **FR-MB-007** Update check: opt-in, once per 24 h, GET to GitHub Releases API only; Homebrew-installed builds SHALL show `brew upgrade --cask air-mouse` instead of downloading.
+- **FR-MB-007** Update check: opt-in, once per 24 h, GET to GitHub Releases API only; Homebrew-installed builds SHALL show `brew upgrade --cask air-control` instead of downloading.
 - **FR-MB-008** Diagnostics window: live rate of motion datagrams, RTT histogram, drop/reorder counters, current cipher, peer certificate fingerprint, and "Export diagnostics…" (local file). No automatic upload.
 - **FR-MB-009** The helper SHALL release all held buttons/modifiers and stop injection on quit, sleep, and on Accessibility permission loss.
 - **FR-MB-010** The helper SHALL detect the macOS Application Firewall blocking incoming connections (connection attempts observed via Bonjour but no handshake completes) and offer guidance.
@@ -505,7 +505,7 @@ Action kinds: `keyCombo { modifiers: Set<Modifier>, keyCode: UInt16, keyLabel: S
 
 - **FR-OB-001** iOS first run: 3 pages (value proposition; install the Mac helper with a scannable QR to the GitHub Releases page and the Homebrew command; pre-permission explanation for Local Network), then camera for QR pairing.
 - **FR-OB-002** The Local Network system prompt SHALL be triggered only after the user taps Continue on the explanation page. Denial handling: a dedicated screen with a deep link to Settings and re-check on return.
-- **FR-OB-003** Camera permission is requested only when the QR scanner opens; denial offers a "paste pairing link" alternative (the `airmouse://` URL).
+- **FR-OB-003** Camera permission is requested only when the QR scanner opens; denial offers a "paste pairing link" alternative (the `aircontrol://` URL).
 - **FR-OB-004** Mac first run: single window with steps: Accessibility → Launch at login → Firewall note (if enabled) → Show QR. Completion is stored; the flow is re-enterable from the menu.
 - **FR-OB-005** First-connect gesture tutorial (touchpad): 5 steps (move, tap, two-finger tap, scroll, pinch), each verified by detecting the gesture; skippable; replay from Settings.
 - **FR-OB-006** Gyro first use: instruction card + 1 s still-hold calibration to seed the bias estimator.
@@ -561,8 +561,8 @@ Action kinds: `keyCombo { modifiers: Set<Modifier>, keyCode: UInt16, keyLabel: S
 ### 5.4 Privacy (NFR-PRIV)
 
 - **NFR-PRIV-001** App Privacy "nutrition label" answers **(recommended default)**: *Data Not Collected*. No identifiers, no usage data, no diagnostics collected by the developer. If the owner later adds opt-in diagnostics, this changes to "Diagnostics — not linked to you — optional".
-- **NFR-PRIV-002** iOS permission strings: `NSLocalNetworkUsageDescription` — "Air Mouse finds and connects to your Mac on your local network. Nothing is sent over the internet."; `NSCameraUsageDescription` — "The camera is used only to scan the pairing QR code shown on your Mac."; `NSMotionUsageDescription` is not required for CoreMotion gyro/accelerometer, but the app SHALL still explain the sensor use in Settings.
-- **NFR-PRIV-003** macOS Accessibility explanation (shown in onboarding and README): Accessibility is required because posting synthetic mouse and keyboard events with `CGEvent` is gated by this permission on macOS 10.14+. Air Mouse does **not** request Input Monitoring (it never observes local keystrokes; macro recording uses a local monitor only while the editor window is key), does **not** request Screen Recording, and does **not** read screen content.
+- **NFR-PRIV-002** iOS permission strings: `NSLocalNetworkUsageDescription` — "Air Control finds and connects to your Mac on your local network. Nothing is sent over the internet."; `NSCameraUsageDescription` — "The camera is used only to scan the pairing QR code shown on your Mac."; `NSMotionUsageDescription` is not required for CoreMotion gyro/accelerometer, but the app SHALL still explain the sensor use in Settings.
+- **NFR-PRIV-003** macOS Accessibility explanation (shown in onboarding and README): Accessibility is required because posting synthetic mouse and keyboard events with `CGEvent` is gated by this permission on macOS 10.14+. Air Control does **not** request Input Monitoring (it never observes local keystrokes; macro recording uses a local monitor only while the editor window is key), does **not** request Screen Recording, and does **not** read screen content.
 - **NFR-PRIV-004** Typed text SHALL never be persisted on either side beyond in-memory buffers required for delivery; the fading trail is off in Secure entry mode.
 - **NFR-PRIV-005** Diagnostics exports SHALL redact typed text and contain only timing/network counters.
 
@@ -586,7 +586,7 @@ Action kinds: `keyCombo { modifiers: Set<Modifier>, keyCode: UInt16, keyLabel: S
 
 - **NFR-OSS-001** License: **MIT (recommended default)**. Rationale: permissive as required, shortest and most familiar to the Swift/iOS community, minimal friction for contributors and for the App Store. Alternative: Apache-2.0 if the owner wants an explicit patent grant; the choice must be made before the first public commit.
 - **NFR-OSS-002** Repository essentials at launch: `README.md` (with 30-second demo GIF and install instructions), `LICENSE`, `CONTRIBUTING.md` (build steps, code style via SwiftFormat/SwiftLint configs, PR checklist, how to add a macro action type), `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), `SECURITY.md`, issue and PR templates, `docs/` with the protocol specification.
-- **NFR-OSS-003** Monorepo with three targets: `AirMouse-iOS`, `AirMouse-Mac`, and the shared `AirMouseProtocol` Swift package (wire format, Codable models, gesture math, tests) as decided.
+- **NFR-OSS-003** Monorepo with three targets: `AirControl-iOS`, `AirControl-Mac`, and the shared `AirControlProtocol` Swift package (wire format, Codable models, gesture math, tests) as decided.
 - **NFR-OSS-004** CI (GitHub Actions, macOS runners): build both apps, run unit tests for the protocol package (including fuzzing of decoders), SwiftLint, and a headless integration test that pairs a simulated client to the helper and asserts synthesized events on a virtual display. CI SHALL run on forks without secrets.
 - **NFR-OSS-005** Reproducible builds: pinned Xcode version via `.xcode-version`, no third-party binary dependencies, release builds produced by a tagged CI workflow; the Mac release is notarized and its SHA-256 published alongside the artifact and used in the Homebrew cask.
 - **NFR-OSS-006** Signing secrets live in GitHub Actions secrets owned by the project owner; contributors build unsigned for the simulator/local Mac.
@@ -611,7 +611,7 @@ Action kinds: `keyCombo { modifiers: Set<Modifier>, keyCode: UInt16, keyLabel: S
 | C1 | Minimum iOS 18 / iPadOS 18 / macOS 15 (decided) | Allows Swift 6 concurrency, String Catalogs, `SMAppService`, Network.framework QUIC datagrams, SwiftUI `@Observable`. Devices without gyroscope (some iPads) hide Gyro mode. |
 | C2 | iOS apps cannot act as a Bluetooth HID peripheral (decided) | No Bluetooth transport; both devices must share an IP network (Wi-Fi, or iPhone personal hotspot with the Mac joined to it). |
 | C3 | iOS background execution: sockets are suspended shortly after the app leaves the foreground; no background mode exists for "remote control" | The connection is intentionally foreground-only. The app disables the idle timer while connected, dims its own UI when idle, and relies on fast session resumption (≤ 1 s) when returning. The Mac helper treats a silent client as disconnected after 2 s and releases inputs. No lock-screen or Control Center controls in v1. |
-| C4 | iOS Local Network privacy prompt (iOS 14+) is shown on first Bonjour browse/local connection and can be denied | Pre-permission explanation screen (FR-OB-002); denial detection and Settings deep link; `NSLocalNetworkUsageDescription` and `NSBonjourServices` (`_airmouse._tcp`, `_airmouse._udp`) are mandatory in Info.plist or discovery silently fails. |
+| C4 | iOS Local Network privacy prompt (iOS 14+) is shown on first Bonjour browse/local connection and can be denied | Pre-permission explanation screen (FR-OB-002); denial detection and Settings deep link; `NSLocalNetworkUsageDescription` and `NSBonjourServices` (`_aircontrol._tcp`, `_aircontrol._udp`) are mandatory in Info.plist or discovery silently fails. |
 | C5 | macOS 15 also has a local network privacy prompt | Helper declares the same keys (NFR-MAC-004). |
 | C6 | `CGEvent` posting requires Accessibility permission; the permission is tied to the code signature | Onboarding (FR-MB-003); re-prompt after updates if the signature changes; document for Homebrew users. |
 | C7 | Trackpad-native gestures (magnify, rotate, swipe) cannot be synthesized with public APIs | Pinch and swipes are mapped to keyboard shortcuts (FR-TP-018/019); documented limitation. |
@@ -664,7 +664,7 @@ Likelihood/Impact: L = Low, M = Medium, H = High.
 
 | ID | Risk / question | Likelihood | Impact | Mitigation / decision needed |
 |---|---|---|---|---|
-| R-01 | **Gyro drift and jitter** make air-mouse feel unusable in long presentations | M | H | Velocity-based mapping (drift → slow creep, not offset), CoreMotion fused frame, stillness bias estimation, dead zone, one-euro smoothing, clutch + recenter; measure creep in lab (target 0 px at rest). |
+| R-01 | **Gyro drift and jitter** make air-pointer feel unusable in long presentations | M | H | Velocity-based mapping (drift → slow creep, not offset), CoreMotion fused frame, stillness bias estimation, dead zone, one-euro smoothing, clutch + recenter; measure creep in lab (target 0 px at rest). |
 | R-02 | **UDP blocked or heavily shaped** by some routers/enterprise Wi-Fi; multicast (mDNS) blocked; **AP/client isolation** | M | H | QR carries direct addresses; reliable-channel fallback for motion with "elevated latency" badge; hotspot guidance; document network requirements. |
 | R-03 | **iOS Local Network permission denied** or the prompt confuses users | M | H | Pre-permission explanation, deep link to Settings, detect denial; test the copy in usability sessions. |
 | R-04 | **Accessibility permission friction on macOS**: users do not find the toggle, or it resets after updates (signature change), or is greyed out under MDM | H | H | Guided onboarding with polling; stable Developer ID signing; documented MDM PPPC profile for managed Macs; menu-bar warning state. |
@@ -672,12 +672,12 @@ Likelihood/Impact: L = Low, M = Medium, H = High.
 | R-06 | **20 ms latency target not achievable** on 2.4 GHz or mesh networks | H | M | Target specified for 5 GHz; in-app latency indicator; coalescing and host prediction bounded at 16 ms; recommend 5 GHz in onboarding. |
 | R-07 | **Pinch/zoom and system gestures** cannot be synthesized natively; keyboard-shortcut mapping feels inconsistent across apps | H | M | Ship shortcut mapping with per-gesture toggles; document; investigate private gesture event fields as a non-default experimental option in a later release. |
 | R-08 | **App Store review** of a "remote control / keyboard" app: reviewer cannot test without the Mac helper; concerns about "hidden features" or running code | M | H | Provide reviewer notes with a demo video and a TestFlight-linked Mac build; keep all functionality visible; no code download; script macros execute only Mac-defined content. Budget one rejection cycle in the plan. |
-| R-09 | **Name collision**: "Air Mouse" is already used by several App Store apps and a hardware category; potential trademark conflict and App Store name rejection | H | H | **Recommend a trademark search (USPTO, EUIPO, WIPO) before public launch and pick a distinctive working name**; candidates: "Waft", "Glidepad", "Hover Remote" **(recommended: choose one before the repo goes public; keep "Air Mouse" as the internal codename)**. Also verify the App Store name availability early via App Store Connect. |
-| R-10 | **Bonjour service type naming**: `_airmouse` may already be registered/used by other apps, causing cross-talk | L | M | Register a distinct service type with IANA (e.g., `_airmouse-oss`) or namespace by host ID in TXT; ignore records without our protocol version tag. |
+| R-09 | **Name collision**: "Air Control" is already used by several App Store apps and a hardware category; potential trademark conflict and App Store name rejection | H | H | **Recommend a trademark search (USPTO, EUIPO, WIPO) before public launch and pick a distinctive working name**; candidates: "Waft", "Glidepad", "Hover Remote" **(recommended: choose one before the repo goes public; keep "Air Control" as the internal codename)**. Also verify the App Store name availability early via App Store Connect. |
+| R-10 | **Bonjour service type naming**: `_aircontrol` may already be registered/used by other apps, causing cross-talk | L | M | Register a distinct service type with IANA (e.g., `_aircontrol-oss`) or namespace by host ID in TXT; ignore records without our protocol version tag. |
 | R-11 | **Key-code translation across layouts** (Dvorak, non-US) produces wrong shortcuts | M | M | Translate via the host's current input source (FR-KB-010); Unicode path for text; automated tests with several layouts. |
 | R-12 | **Stuck inputs** if the host crashes mid-drag | L | H | Release-all on every exit path; watchdog thread; integration test. |
 | R-13 | **Battery drain** from 120 Hz touch + Wi-Fi + screen-on exceeds targets | M | M | Idle dim, stop motion sending when finger lifted, stop CoreMotion when not in gyro mode, coalesce when no movement; measure early. |
-| R-14 | **Homebrew cask acceptance** (homebrew-cask requires notability thresholds for new casks) | M | L | Start with a project tap (`brew tap owner/airmouse`); apply to homebrew-cask after adoption. |
+| R-14 | **Homebrew cask acceptance** (homebrew-cask requires notability thresholds for new casks) | M | L | Start with a project tap (`brew tap owner/aircontrol`); apply to homebrew-cask after adoption. |
 | R-15 | **Script macros as an attack vector** (a compromised phone runs shell commands on the Mac) | L | H | Off by default, per-device opt-in, confirmation on phone, macros only defined on the Mac, clear warnings; documented in the threat model. |
 | R-16 | **iPad hardware keyboard passthrough** cannot capture iOS-reserved keys and may conflict with system shortcuts | H | L | Document exceptions in-app; treat as best-effort (P1). |
 | R-17 | **Open question**: should the client be allowed to edit macros in v1? | — | M | Recommendation: no (host-only authoring) to keep the sync model one-directional and simple; revisit after launch. |
@@ -694,7 +694,7 @@ Likelihood/Impact: L = Low, M = Medium, H = High.
 | **Host / helper** | The macOS menu-bar application that advertises itself, accepts paired connections, and injects input via `CGEvent`. |
 | **Client** | The iPhone/iPad app. |
 | **Bonjour / mDNS / DNS-SD** | Apple's zero-configuration service discovery over multicast DNS; used to find the host on the LAN. |
-| **Service type** | The DNS-SD name of a service, e.g. `_airmouse._udp`; must be declared in `NSBonjourServices` on iOS. |
+| **Service type** | The DNS-SD name of a service, e.g. `_aircontrol._udp`; must be declared in `NSBonjourServices` on iOS. |
 | **Pairing** | One-time process establishing mutual trust between a client and host using a QR-delivered secret and certificate pinning. |
 | **One-time secret** | 128-bit random value embedded in the QR, valid 60 s, single use, proven via HMAC over a TLS exporter. |
 | **Certificate pinning** | Accepting a peer only if its certificate exactly matches one stored at pairing time; no certificate authorities involved. |
@@ -708,7 +708,7 @@ Likelihood/Impact: L = Low, M = Medium, H = High.
 | **Replay protection** | Rejecting duplicated or re-sent packets via sequence numbers and a sliding window. |
 | **CGEvent** | Core Graphics event API used to synthesize mouse and keyboard events on macOS; requires Accessibility permission. |
 | **Accessibility permission** | macOS Privacy & Security setting allowing an app to control the computer (post events). |
-| **Input Monitoring** | Separate macOS permission for observing keystrokes; *not* required by Air Mouse. |
+| **Input Monitoring** | Separate macOS permission for observing keystrokes; *not* required by Air Control. |
 | **LSUIElement** | Info.plist flag making a macOS app menu-bar-only (no Dock icon). |
 | **SMAppService** | macOS 13+ API for registering login items. |
 | **Notarization** | Apple's malware scan for directly distributed Mac apps; required for Gatekeeper to allow launch. |

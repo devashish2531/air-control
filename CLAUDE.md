@@ -1,4 +1,4 @@
-# Air Mouse — agent & contributor guide
+# Air Control — agent & contributor guide
 
 Open-source iPhone/iPad app that controls a Mac over local Wi-Fi via a Swift menu-bar helper.
 Native Swift 6 / SwiftUI on both sides. iOS 18+ / macOS 15+. Strict concurrency is ON.
@@ -12,13 +12,13 @@ The design is fully specified. Read the relevant section BEFORE writing code, an
 
 ## Layout
 ```
-Packages/AirMouseKit/            SwiftPM kit: AirMouseProtocol (pure data) → AirMouseCrypto, AirMouseFilters → AirMouseCore → airmouse-cli
-apps/AirMouse-iOS/               XcodeGen project.yml → AirMouse.xcodeproj (git-ignored). Sources/{App,Features,Services,Support}
-apps/AirMouse-Mac/               XcodeGen project.yml → AirMouseHelper.xcodeproj (git-ignored). Sources/{App,Features,Services,Support}
+Packages/AirControlKit/            SwiftPM kit: AirControlProtocol (pure data) → AirControlCrypto, AirControlFilters → AirControlCore → aircontrol-cli
+apps/AirControl-iOS/               XcodeGen project.yml → AirControl.xcodeproj (git-ignored). Sources/{App,Features,Services,Support}
+apps/AirControl-Mac/               XcodeGen project.yml → AirControlHelper.xcodeproj (git-ignored). Sources/{App,Features,Services,Support}
 Config/                          Base.xcconfig (+ git-ignored Local.xcconfig for DEVELOPMENT_TEAM)
 ```
-Layering rules (arch §3.1): `AirMouseProtocol` imports Foundation only. `AirMouseCore` never imports Network. Apps depend on Core.
-Only `airmouse-cli` and the two apps import Network.framework.
+Layering rules (arch §3.1): `AirControlProtocol` imports Foundation only. `AirControlCore` never imports Network. Apps depend on Core.
+Only `aircontrol-cli` and the two apps import Network.framework.
 
 ## Build & test (no sudo, no xcode-select needed)
 ```
@@ -38,13 +38,13 @@ The project path contains a space — always quote paths in shell.
 - Tests use Swift Testing (`import Testing`, `@Suite`, `@Test`, `#expect`). Put golden vectors in `Tests/*/Vectors/*.json`.
 - One type per file; file name == type name. Directory per module as listed in arch §3.
 - No third-party dependencies beyond `swift-certificates`, `swift-argument-parser`, and (Mac, later) Sparkle.
-- Logging via `os.Logger` with subsystem `com.airmouse.<app>`; never log keys, secrets, text typed, or full fingerprints (spec §7).
-- Every wire constant comes from `AirMouseProtocol` constants, never literals in apps.
+- Logging via `os.Logger` with subsystem `com.aircontrol.<app>`; never log keys, secrets, text typed, or full fingerprints (spec §7).
+- Every wire constant comes from `AirControlProtocol` constants, never literals in apps.
 - Multiple agents work in parallel in this repo. Only touch files inside the directories you were assigned. If you need a type
   owned by another module that does not exist yet, write a minimal `protocol` in your own module and note it in your report.
 - Do not run `git commit` unless asked. Do not edit `docs/0*.md`; write deviations to your final report instead.
 
 ## Hard safety rules (added 2026-09-05 after an incident)
-- NEVER delete, reset, or modify keychain items, certificates, identities, or private keys that this project did not create. The only keychain items agents may touch are those with this project's own labels/services (`com.airmouse.*`), and even those only via the app's own `IdentityStore`/`KeychainStore` code paths or an explicitly scoped `security delete-generic-password -s com.airmouse.*`. No `security delete-certificate`, `delete-identity`, `delete-keychain`, or keychain-wide loops, ever.
-- No destructive system changes outside the repo (TCC resets other than `tccutil reset Accessibility com.airmouse.helper*`, launchd, network settings, other apps' data) without the owner's explicit, per-action approval.
+- NEVER delete, reset, or modify keychain items, certificates, identities, or private keys that this project did not create. The only keychain items agents may touch are those with this project's own labels/services (`com.aircontrol.*`), and even those only via the app's own `IdentityStore`/`KeychainStore` code paths or an explicitly scoped `security delete-generic-password -s com.aircontrol.*`. No `security delete-certificate`, `delete-identity`, `delete-keychain`, or keychain-wide loops, ever. Legacy `com.airmouse.*` items from earlier builds may exist; the same scoped-delete-only rule applies to them.
+- No destructive system changes outside the repo (TCC resets other than `tccutil reset Accessibility com.aircontrol.helper*`, launchd, network settings, other apps' data) without the owner's explicit, per-action approval.
 - When a task seems to require anything above, stop and report instead.

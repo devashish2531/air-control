@@ -1,9 +1,8 @@
 /**
  * Every externally visible string and URL the landing page uses.
  *
- * The public product name is **Air Control** (docs/00-decisions.md, Addendum F1).
- * The apps and the source tree still say "Air Mouse" internally; nothing on this
- * site should.
+ * The public product name is **Air Control** (docs/00-decisions.md, Addendum F1),
+ * matching the app, helper, and source tree naming.
  */
 
 const GITHUB_REPO = "https://github.com/devashish2531/air-control";
@@ -28,9 +27,9 @@ const QR_BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(
 export const site = {
   name: "Air Control",
   tagline:
-    "Turn your iPhone into a trackpad, air mouse, keyboard and remote for your Mac",
+    "Turn your iPhone into a trackpad, air pointer, keyboard and remote for your Mac",
   description:
-    "Air Control turns your iPhone or iPad into a trackpad, air mouse, keyboard and presenter remote for your Mac. Free, open source, and it never leaves your local Wi-Fi network.",
+    "Air Control turns your iPhone or iPad into a trackpad, air pointer, keyboard and presenter remote for your Mac. Free, open source, and it never leaves your local Wi-Fi network.",
   subline: "Free and open source · Local Wi‑Fi only · No accounts",
 
   origin: ORIGIN,

@@ -1,4 +1,4 @@
-# Air Mouse nightly — arch §9.1 "Nightly" lane, plan §6 quality gates.
+# Air Control nightly — arch §9.1 "Nightly" lane, plan §6 quality gates.
 # Runs the kit fuzzers at high iteration count (spec §10.5: "Fuzzers run ≥ 10^6 iterations on
 # frame and datagram decoders without crash (nightly)"). No secrets are required or used.
 name: Nightly
@@ -14,13 +14,13 @@ permissions:
 
 jobs:
   fuzz:
-    name: kit fuzz (AIRMOUSE_FUZZ_ITERATIONS=1000000)
+    name: kit fuzz (AIRCONTROL_FUZZ_ITERATIONS=1000000)
     runs-on: macos-26
     env:
       # Docs disagree on the exact name in prose (arch §9.1 / plan §6 say
-      # AIRMOUSE_FUZZ_ITERATIONS; this job's own description says FUZZ_ITERATIONS) —
+      # AIRCONTROL_FUZZ_ITERATIONS; this job's own description says FUZZ_ITERATIONS) —
       # both are set so whichever the kit's fuzz tests read, they pick up 10^6.
-      AIRMOUSE_FUZZ_ITERATIONS: "1000000"
+      AIRCONTROL_FUZZ_ITERATIONS: "1000000"
       FUZZ_ITERATIONS: "1000000"
     steps:
       - uses: actions/checkout@v4
@@ -40,10 +40,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            Packages/AirMouseKit/.build
+            Packages/AirControlKit/.build
             ~/Library/Caches/org.swift.swiftpm
             ~/Library/org.swift.swiftpm
-          key: ${{ runner.os }}-spm-nightly-${{ hashFiles('Packages/AirMouseKit/Package.resolved', 'Packages/AirMouseKit/Package.swift') }}
+          key: ${{ runner.os }}-spm-nightly-${{ hashFiles('Packages/AirControlKit/Package.resolved', 'Packages/AirControlKit/Package.swift') }}
           restore-keys: |
             ${{ runner.os }}-spm-nightly-
 
@@ -52,7 +52,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p logs
-          cd Packages/AirMouseKit && swift test --parallel 2>&1 | tee ../../logs/nightly-kit-test.log
+          cd Packages/AirControlKit && swift test --parallel 2>&1 | tee ../../logs/nightly-kit-test.log
 
       - name: Upload logs
         if: always()

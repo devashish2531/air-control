@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Your iPhone. Now a trackpad for your Mac.</strong><br>
-  Also an air mouse, keyboard and presenter remote, all over your own Wi‑Fi.
+  Also an air pointer, keyboard and presenter remote, all over your own Wi‑Fi.
 </p>
 
 <p align="center">
@@ -26,13 +26,9 @@
   <img src="https://img.shields.io/badge/macOS-15%2B-000000?logo=apple&logoColor=white" alt="macOS 15+">
 </p>
 
-Air Control turns your iPhone or iPad into a trackpad, air mouse, keyboard and presenter
+Air Control turns your iPhone or iPad into a trackpad, air pointer, keyboard and presenter
 remote for your Mac. It is free, open source, and never leaves your local network: no relay,
 no cloud, no account, no telemetry.
-
-> **Naming.** The public product is **Air Control**. The source tree, bundle identifiers
-> (`com.airmouse.*`) and internal docs still use the working name *Air Mouse*; a rename pass
-> is tracked in [`docs/00-decisions.md`](docs/00-decisions.md) (Addendum F1).
 
 ---
 
@@ -40,10 +36,10 @@ no cloud, no account, no telemetry.
 
 Every mode, in light and dark. Screenshots from the iPhone app.
 
-| Touchpad | Air Mouse | Keyboard |
+| Touchpad | Air Pointer | Keyboard |
 | :---: | :---: | :---: |
-| <img src="site/public/screenshots/touchpad-light-480.png" width="220" alt="Touchpad screen, light mode"> | <img src="site/public/screenshots/air-mouse-light-480.png" width="220" alt="Air Mouse screen, light mode"> | <img src="site/public/screenshots/keyboard-light-480.png" width="220" alt="Keyboard screen, light mode"> |
-| <img src="site/public/screenshots/touchpad-dark-480.png" width="220" alt="Touchpad screen, dark mode"> | <img src="site/public/screenshots/air-mouse-dark-480.png" width="220" alt="Air Mouse screen, dark mode"> | <img src="site/public/screenshots/keyboard-dark-480.png" width="220" alt="Keyboard screen, dark mode"> |
+| <img src="site/public/screenshots/touchpad-light-480.png" width="220" alt="Touchpad screen, light mode"> | <img src="site/public/screenshots/air-pointer-light-480.png" width="220" alt="Air Pointer screen, light mode"> | <img src="site/public/screenshots/keyboard-light-480.png" width="220" alt="Keyboard screen, light mode"> |
+| <img src="site/public/screenshots/touchpad-dark-480.png" width="220" alt="Touchpad screen, dark mode"> | <img src="site/public/screenshots/air-pointer-dark-480.png" width="220" alt="Air Pointer screen, dark mode"> | <img src="site/public/screenshots/keyboard-dark-480.png" width="220" alt="Keyboard screen, dark mode"> |
 
 | Remote | Macros | Settings |
 | :---: | :---: | :---: |
@@ -55,7 +51,7 @@ Every mode, in light and dark. Screenshots from the iPhone app.
 | Mode | In one line |
 | --- | --- |
 | **Touchpad** | Slide to move the cursor, tap to click, two-finger scroll with momentum, pinch to zoom, three-finger swipes for Mission Control. |
-| **Air Mouse** | Point the phone and the cursor follows. Gyroscope and accelerometer fusion with drift correction and a clutch button that holds the pointer still while you gesture. |
+| **Air Pointer** | Point the phone and the cursor follows. Gyroscope and accelerometer fusion with drift correction and a clutch button that holds the pointer still while you gesture. |
 | **Keyboard** | Type straight into whatever app is frontmost on the Mac, with modifier chords, arrow and function keys, and a dedicated row for ⌘ ⌥ ⌃ ⇧. |
 | **Presenter & media remote** | Big next, previous and blank-screen buttons you can hit without looking, plus volume, play-pause and track skip. |
 | **Macros** | Define buttons on the Mac, such as a key combo, an app to launch or a Shortcut to run, and they appear as a one-tap deck on the phone. Scripts stay behind an explicit opt-in. |
@@ -88,7 +84,7 @@ is considerably faster anyway.
 
 **Mac.** Download the latest release from
 [GitHub Releases](https://github.com/devashish2531/air-control/releases/latest), open the
-`.dmg`, and drag `AirMouseHelper.app` to Applications. A Homebrew cask
+`.dmg`, and drag `AirControlHelper.app` to Applications. A Homebrew cask
 (`brew install --cask devashish2531/tap/air-control`) is planned; the cask definition lives
 in [`Formula/Casks`](Formula/Casks) and the tap is not published yet.
 
@@ -134,7 +130,7 @@ Native Swift on both ends. No Electron, no web views.
 | UI | SwiftUI on iOS, iPadOS and macOS |
 | Crypto | CryptoKit (P-256 identities, HKDF, ChaCha20-Poly1305), [swift-certificates](https://github.com/apple/swift-certificates) for X.509 |
 | Transport | Network.framework: TLS 1.3 control channel plus an authenticated UDP motion path |
-| Motion | CoreMotion sensor fusion for air-mouse mode |
+| Motion | CoreMotion sensor fusion for air-pointer mode |
 | Tests | Swift Testing with golden vectors under `Tests/*/Vectors/*.json` |
 | Tooling | XcodeGen for the app projects, `swift-argument-parser` for the CLI, a Makefile for every loop |
 | Website | Next.js static export in [`site/`](site), deployed to GitHub Pages by [`site.yml`](.github/workflows/site.yml) |
@@ -142,14 +138,14 @@ Native Swift on both ends. No Electron, no web views.
 ### Architecture
 
 ```
-Packages/AirMouseKit/            SwiftPM kit, layered strictly bottom-up:
-  AirMouseProtocol               wire format, byte layouts, constants (Foundation only)
-  AirMouseCrypto                 identities, pairing, TLS + packet encryption
-  AirMouseFilters                sensor fusion, smoothing, acceleration curves
-  AirMouseCore                   session state machines, macros, diagnostics (never imports Network)
-  airmouse-cli                   headless client/host for tests and debugging
-apps/AirMouse-iOS/               SwiftUI app: Touchpad, Air Mouse, Keyboard, Remote, Macros
-apps/AirMouse-Mac/               menu-bar helper: pairing window, input posting, macro host
+Packages/AirControlKit/            SwiftPM kit, layered strictly bottom-up:
+  AirControlProtocol               wire format, byte layouts, constants (Foundation only)
+  AirControlCrypto                 identities, pairing, TLS + packet encryption
+  AirControlFilters                sensor fusion, smoothing, acceleration curves
+  AirControlCore                   session state machines, macros, diagnostics (never imports Network)
+  aircontrol-cli                   headless client/host for tests and debugging
+apps/AirControl-iOS/               SwiftUI app: Touchpad, Air Pointer, Keyboard, Remote, Macros
+apps/AirControl-Mac/               menu-bar helper: pairing window, input posting, macro host
 site/                            landing page (Next.js, static export)
 docs/                            decisions, requirements, research, spec, architecture, plan
 ```

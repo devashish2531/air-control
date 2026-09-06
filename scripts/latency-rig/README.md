@@ -1,13 +1,13 @@
 # Latency rig
 
 Measures the PRD/spec §8.1 latency metric (NFR-PERF-001: control-path RTT p50 ≤ 12 ms, p95 ≤ 20 ms)
-against a real Mac over Wi-Fi, using `airmouse-cli bench` instead of a phone — see spec §8.2
+against a real Mac over Wi-Fi, using `aircontrol-cli bench` instead of a phone — see spec §8.2
 ("Measurement methodology") and §10.4 ("Performance test procedure") for the full picture this rig
 is one piece of.
 
 ## What `bench.sh` measures
 
-`airmouse-cli bench` opens a real TLS/UDP session to the Mac helper and, for the run's duration,
+`aircontrol-cli bench` opens a real TLS/UDP session to the Mac helper and, for the run's duration,
 streams synthetic 120 Hz motion while sending `heartbeat`/`pong` on the normal 500 ms cadence and
 UDP probes at 4 Hz (spec §3.4.6, §3.5.8) — the same traffic pattern a real session produces. At the
 end it prints `SessionStats` (spec §8.2): heartbeat RTT p50/p95, probe loss %, motion send rate, and
@@ -25,7 +25,7 @@ actual NFR-PERF-001 pass/fail number for a release.
 
 1. Pair once, from this machine, with the target Mac (same network):
    ```
-   swift run --package-path Packages/AirMouseKit airmouse-cli pair "airmouse://pair?..."
+   swift run --package-path Packages/AirControlKit aircontrol-cli pair "aircontrol://pair?..."
    ```
    (copy the URL from the Mac helper's pairing window/QR).
 2. Run the bench script against the Mac's Wi-Fi IP:
@@ -56,7 +56,7 @@ For the number that actually gates a release:
 
 ## Files here
 
-- `bench.sh` — builds `airmouse-cli` in release mode and runs one `bench` measurement, appending a
+- `bench.sh` — builds `aircontrol-cli` in release mode and runs one `bench` measurement, appending a
   CSV row.
 - `results.csv` — created on first run; not committed (add your own `.gitignore` entry if you want
   history, or keep results in your own tracking system per the PRD's latency-report issue template,

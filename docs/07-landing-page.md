@@ -24,11 +24,10 @@ Mac helper's updater will poll (`00-decisions.md` A6, D5, F2).
 
 The public product name is **Air Control**, matching the GitHub repository
 `devashish2531/air-control` (`00-decisions.md` Addendum F1, which supersedes the
-open item in A8). The apps, bundle identifiers (`com.airmouse.*`), the Swift
-package (`AirMouseKit`) and every other document still say "Air Mouse"; renaming
-those is a separate pass. **Nothing rendered by the site says "Air Mouse."**
-A guard in the site workflow (`grep -q "Air Control" out/index.html`) is a weak
-version of this check; the strong one is code review.
+open item in A8). The apps, bundle identifiers (`com.aircontrol.*`), the Swift
+package (`AirControlKit`) and every other document now use this name consistently.
+A guard in the site workflow (`grep -q "Air Control" out/index.html`) checks that
+the built page actually renders it; the strong version of that check is code review.
 
 ### 1.2 Content sources
 
@@ -390,7 +389,7 @@ asset URLs begin with `/air-control/`. Build without the variable to preview.
 | `curl /robots.txt`, `/sitemap.xml`, `/icon-ios.png`, `/og.png`, `/icon.png` | all `200` |
 | `curl /nonexistent-path` | `404` (does not shadow `/appcast.xml`) |
 | Section anchors present in `out/index.html` | `#features`, `#how-it-works`, `#security`, `#open-source`, `#faq`, `#top` |
-| Occurrences of "Air Mouse" in `out/index.html` | **0** |
+| Occurrences of the internal codename in `out/index.html` | **0** |
 | Headless-Chrome screenshots, light and dark | Both render correctly at 1280 px |
 | `ruby -ryaml` on `.github/workflows/site.yml` | Parses; two jobs, correct `permissions` and `on:` |
 

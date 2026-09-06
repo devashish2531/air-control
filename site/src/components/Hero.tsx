@@ -35,7 +35,7 @@ export function Hero() {
             </h1>
 
             <p className="lede hero__lede hero__in" style={inDelay(180)}>
-              Also an air mouse, keyboard and presenter remote, all over Wi‑Fi.
+              Also an air pointer, keyboard and presenter remote, all over Wi‑Fi.
             </p>
 
             {/* Two action rows, toggled purely by CSS (hero.css) — no

@@ -1,4 +1,4 @@
-# Air Mouse CI — arch §9.1, plan §6 quality gates.
+# Air Control CI — arch §9.1, plan §6 quality gates.
 #
 # Fork PRs run `pull_request` with a read-only GITHUB_TOKEN and NO secrets (spec §10.6, arch §9.3).
 # This workflow must not need any: iOS/Mac build unsigned (CODE_SIGNING_ALLOWED=NO / CODE_SIGN_IDENTITY=-),
@@ -20,7 +20,7 @@ permissions:
 env:
   # arch §2.6: xcconfig gates warnings-as-errors behind this build setting.
   # App targets are warning-clean as of 2026-09-05; CI enforces it.
-  AIRMOUSE_WARNINGS_AS_ERRORS: "YES"
+  AIRCONTROL_WARNINGS_AS_ERRORS: "YES"
 
 jobs:
   kit:
@@ -44,18 +44,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            Packages/AirMouseKit/.build
+            Packages/AirControlKit/.build
             ~/Library/Caches/org.swift.swiftpm
             ~/Library/org.swift.swiftpm
-          key: ${{ runner.os }}-spm-kit-${{ hashFiles('Packages/AirMouseKit/Package.resolved', 'Packages/AirMouseKit/Package.swift') }}
+          key: ${{ runner.os }}-spm-kit-${{ hashFiles('Packages/AirControlKit/Package.resolved', 'Packages/AirControlKit/Package.swift') }}
           restore-keys: |
             ${{ runner.os }}-spm-kit-
 
       - name: swift build
-        run: cd Packages/AirMouseKit && swift build
+        run: cd Packages/AirControlKit && swift build
 
       - name: swift test
-        run: cd Packages/AirMouseKit && swift test --parallel
+        run: cd Packages/AirControlKit && swift test --parallel
 
   ios:
     name: ios (xcodegen + xcodebuild test)
@@ -78,10 +78,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            Packages/AirMouseKit/.build
+            Packages/AirControlKit/.build
             ~/Library/Caches/org.swift.swiftpm
             ~/Library/org.swift.swiftpm
-          key: ${{ runner.os }}-spm-ios-${{ hashFiles('Packages/AirMouseKit/Package.resolved', 'Packages/AirMouseKit/Package.swift') }}
+          key: ${{ runner.os }}-spm-ios-${{ hashFiles('Packages/AirControlKit/Package.resolved', 'Packages/AirControlKit/Package.swift') }}
           restore-keys: |
             ${{ runner.os }}-spm-ios-
 
@@ -91,12 +91,12 @@ jobs:
       - name: make ios-build
         run: |
           make ios-build \
-            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= AIRMOUSE_WARNINGS_AS_ERRORS=YES"
+            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= AIRCONTROL_WARNINGS_AS_ERRORS=YES"
 
       - name: make ios-test
         run: |
           make ios-test \
-            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= AIRMOUSE_WARNINGS_AS_ERRORS=YES"
+            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= AIRCONTROL_WARNINGS_AS_ERRORS=YES"
 
   mac:
     name: mac (xcodegen + xcodebuild test incl. loopback integration)
@@ -119,10 +119,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            Packages/AirMouseKit/.build
+            Packages/AirControlKit/.build
             ~/Library/Caches/org.swift.swiftpm
             ~/Library/org.swift.swiftpm
-          key: ${{ runner.os }}-spm-mac-${{ hashFiles('Packages/AirMouseKit/Package.resolved', 'Packages/AirMouseKit/Package.swift') }}
+          key: ${{ runner.os }}-spm-mac-${{ hashFiles('Packages/AirControlKit/Package.resolved', 'Packages/AirControlKit/Package.swift') }}
           restore-keys: |
             ${{ runner.os }}-spm-mac-
 
@@ -132,12 +132,12 @@ jobs:
       - name: make mac-build
         run: |
           make mac-build \
-            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=- AIRMOUSE_WARNINGS_AS_ERRORS=YES"
+            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=- AIRCONTROL_WARNINGS_AS_ERRORS=YES"
 
       - name: make mac-test
         run: |
           make mac-test \
-            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=- AIRMOUSE_WARNINGS_AS_ERRORS=YES"
+            NOSIGN="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=- AIRCONTROL_WARNINGS_AS_ERRORS=YES"
 
   lint:
     name: lint (non-blocking for now — plan §6 will promote this to required)

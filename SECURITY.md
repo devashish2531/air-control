@@ -1,6 +1,6 @@
 # Security Policy
 
-Air Mouse posts synthesized keyboard/mouse input to your Mac and moves data across your local
+Air Control posts synthesized keyboard/mouse input to your Mac and moves data across your local
 network. We take reports about it seriously. See also
 [`docs/03-specifications.md`](docs/03-specifications.md) §7 for the full threat model and
 [`docs/protocol.md`](docs/protocol.md) for the wire protocol — **reports about the protocol or
@@ -23,7 +23,7 @@ This table will grow a row per major version once `1.0` ships.
 
 **Please report privately — do not open a public issue.**
 
-Preferred: use [GitHub Security Advisories](https://github.com/OWNER/air-mouse/security/advisories/new)
+Preferred: use [GitHub Security Advisories](https://github.com/OWNER/air-control/security/advisories/new)
 for this repository ("Report a vulnerability" under the Security tab).
 
 Alternative: email **security@\<project domain\>** once a project domain exists (placeholder —
@@ -67,12 +67,12 @@ in your report.
 
 In scope:
 
-- `Packages/AirMouseKit` (protocol, crypto, filters, core session logic, `airmouse-cli`).
-- `apps/AirMouse-iOS` and `apps/AirMouse-Mac` (the shipped apps and helper).
+- `Packages/AirControlKit` (protocol, crypto, filters, core session logic, `aircontrol-cli`).
+- `apps/AirControl-iOS` and `apps/AirControl-Mac` (the shipped apps and helper).
 - The wire protocol and pairing/trust model documented in `docs/03-specifications.md` §3, §7
   and `docs/protocol.md` — design-level issues, not just implementation bugs, are welcome.
 - Release infrastructure (`.github/workflows/release.yml`, `scripts/release/*`,
-  `Formula/Casks/air-mouse.rb`) — e.g. supply-chain or signing/notarization concerns.
+  `Formula/Casks/air-control.rb`) — e.g. supply-chain or signing/notarization concerns.
 
 Out of scope:
 
@@ -85,4 +85,4 @@ Out of scope:
   `swift-argument-parser`, Sparkle); we track and update them via Dependabot, but coordinate
   disclosure with the upstream project.
 
-Thank you for helping keep Air Mouse's users safe.
+Thank you for helping keep Air Control's users safe.

@@ -33,7 +33,7 @@ parallel Sonnet 5 agents. Cite sections in code as `// docs/08 §n`. Where this 
   control (44 pt circle with `slider.horizontal.3`) that opens the touchpad quick settings. If the
   ribbon carried mode text (relative/absolute etc.) keep it as a small caption inside the quick
   settings, not on the pad.
-- Air Mouse tab: keep the existing "Not connected — motion won't reach your Mac" banner (it is
+- Air Pointer tab: keep the existing "Not connected — motion won't reach your Mac" banner (it is
   actionable copy, not a duplicate pill) but reduce it to one line, secondary style.
 
 ### 2.2 Tab switching while the keyboard is up
@@ -81,7 +81,7 @@ parallel Sonnet 5 agents. Cite sections in code as `// docs/08 §n`. Where this 
 - The bar is provided by the SwiftUI side via `KeyInputHostRepresentable` (a closure/binding);
   the UIKit class stays free of SwiftUI imports except for `UIHostingController`.
 
-## 4. Theme + onboarding + secondary screens (owner: theme agent — `Sources/Features/Onboarding/*`, `Sources/Features/Settings/*`, `Sources/Features/Remote/*`, `Sources/Features/AirMouse/*`, `Sources/Features/Macros/*`, `Sources/Features/Diagnostics/*`, `Sources/Features/Pairing/*`, `Sources/Support/Appearance.swift`)
+## 4. Theme + onboarding + secondary screens (owner: theme agent — `Sources/Features/Onboarding/*`, `Sources/Features/Settings/*`, `Sources/Features/Remote/*`, `Sources/Features/AirPointer/*`, `Sources/Features/Macros/*`, `Sources/Features/Diagnostics/*`, `Sources/Features/Pairing/*`, `Sources/Support/Appearance.swift`)
 
 - Write `Sources/Support/Appearance.swift`: `extension AppearanceSetting { var colorScheme: ColorScheme? }`.
 - Settings: ensure the Appearance picker (System/Light/Dark) is in the first "Appearance" section
@@ -98,7 +98,7 @@ parallel Sonnet 5 agents. Cite sections in code as `// docs/08 §n`. Where this 
 - Remote tab: "No Mac connected" title → keep, but as `.secondary` caption; the big Previous/Next
   and round buttons adopt the §3.1 key style so the app looks like one product.
 
-## 5. Mac app: from menu-bar agent to proper app (owner: Mac agent — all of `apps/AirMouse-Mac/**`)
+## 5. Mac app: from menu-bar agent to proper app (owner: Mac agent — all of `apps/AirControl-Mac/**`)
 
 ### 5.1 App shell
 - `LSUIElement` → `NO`. Dock icon shows the existing `AppIcon`. `CFBundleDisplayName` = "Air Control"

@@ -2,16 +2,16 @@
 
 The first 10 issues from [`docs/05-plan.md`](05-plan.md) §8.2, formatted as `gh issue create`
 commands. Run these once the repository exists on GitHub and the milestones from §8.1's
-bootstrap runbook have been created (`M0 Bootstrap` … `M9 Release`). Replace `OWNER/air-mouse`
+bootstrap runbook have been created (`M0 Bootstrap` … `M9 Release`). Replace `OWNER/air-control`
 if you're not running these from inside a checked-out clone with `gh` already pointed at the
-right repo (in that case you can drop `--repo OWNER/air-mouse` entirely and `gh` will infer it).
+right repo (in that case you can drop `--repo OWNER/air-control` entirely and `gh` will infer it).
 
 Labels referenced below (`infra`, `security`, `spike`, `critical-path`, `mac`, `ios`,
 `performance`, `kit`, `testing`, `good first issue`) should exist in the repo already, or create
 them first with `gh label create <name>` (a fresh repo only ships GitHub's defaults).
 
 ```bash
-gh issue create --repo OWNER/air-mouse \
+gh issue create --repo OWNER/air-control \
   --title "M0: CI workflow ci.yml green on empty targets (kit / ios / mac / lint)" \
   --milestone "M0 Bootstrap" \
   --label "infra" \
@@ -21,11 +21,11 @@ Get `.github/workflows/ci.yml` passing end-to-end on the empty/placeholder targe
 during repo bootstrap (arch §9.1, plan §8.1) — before any real feature code exists.
 
 ## Acceptance
-- [ ] `kit` job: `swift build` + `swift test` succeed in `Packages/AirMouseKit` (even with only
+- [ ] `kit` job: `swift build` + `swift test` succeed in `Packages/AirControlKit` (even with only
       placeholder sources/tests).
-- [ ] `ios` job: XcodeGen generates `apps/AirMouse-iOS/AirMouse.xcodeproj` and
+- [ ] `ios` job: XcodeGen generates `apps/AirControl-iOS/AirControl.xcodeproj` and
       `xcodebuild test` succeeds against a simulator, `CODE_SIGNING_ALLOWED=NO`.
-- [ ] `mac` job: XcodeGen generates `apps/AirMouse-Mac/AirMouseHelper.xcodeproj` and
+- [ ] `mac` job: XcodeGen generates `apps/AirControl-Mac/AirControlHelper.xcodeproj` and
       `xcodebuild test` succeeds, ad-hoc signed.
 - [ ] `lint` job runs (SwiftLint, SwiftFormat --lint, `check-xcstrings.sh`) — non-blocking is
       fine for now (see arch §9.1 / plan §6).
@@ -36,7 +36,7 @@ during repo bootstrap (arch §9.1, plan §8.1) — before any real feature code 
 EOF
 )"
 
-gh issue create --repo OWNER/air-mouse \
+gh issue create --repo OWNER/air-control \
   --title "M0: SwiftLint custom rules — ban event taps, print, sleep; secret-interpolation check" \
   --milestone "M0 Bootstrap" \
   --label "infra,security" \
@@ -62,7 +62,7 @@ T1/T2, CLAUDE.md logging rule).
 EOF
 )"
 
-gh issue create --repo OWNER/air-mouse \
+gh issue create --repo OWNER/air-control \
   --title "M1: Spike R-1 — SecIdentity from swift-certificates + SecKey on macOS and iOS (Path A/B)" \
   --milestone "M1 Spikes" \
   --label "spike,security,critical-path" \
@@ -80,7 +80,7 @@ usable by `Network.framework`'s TLS options, on both a Mac (login Keychain) and 
       the same way.
 - [ ] Findings (what worked, what didn't, any Apple API gotchas) written up in
       `docs/02-technical-research.md` or a follow-up doc, per plan's spike process.
-- [ ] Unblocks M2/M3 identity code in `AirMouseCrypto`.
+- [ ] Unblocks M2/M3 identity code in `AirControlCrypto`.
 
 ## References
 - docs/03-specifications.md §3.2.1
@@ -88,7 +88,7 @@ usable by `Network.framework`'s TLS options, on both a Mac (login Keychain) and 
 EOF
 )"
 
-gh issue create --repo OWNER/air-mouse \
+gh issue create --repo OWNER/air-control \
   --title "M1: Spike R-1c — TLS exporter sec_protocol_metadata_create_secret availability" \
   --milestone "M1 Spikes" \
   --label "spike,security" \
@@ -112,7 +112,7 @@ documented on both current iOS and macOS.
 EOF
 )"
 
-gh issue create --repo OWNER/air-mouse \
+gh issue create --repo OWNER/air-control \
   --title "M1: Spike R-2 — synthesized-event acceptance matrix on macOS 26.3.1" \
   --milestone "M1 Spikes" \
   --label "spike,mac" \
@@ -137,7 +137,7 @@ macOS version, before building `EventInjector` against unverified assumptions.
 EOF
 )"
 
-gh issue create --repo OWNER/air-mouse \
+gh issue create --repo OWNER/air-control \
   --title "M1: Spike R-7 — Local Network prompt behaviour on iOS 18.6/26 and macOS 15/26" \
   --milestone "M1 Spikes" \
   --label "spike,ios,mac" \
@@ -160,7 +160,7 @@ browsing and TCP connection attempts, across the OS versions this project target
 EOF
 )"
 
-gh issue create --repo OWNER/air-mouse \
+gh issue create --repo OWNER/air-control \
   --title "M1: Spike R-4 — UDP echo latency baseline with DispatchSerialQueue(.userInteractive) executors" \
   --milestone "M1 Spikes" \
   --label "spike,performance" \
@@ -173,7 +173,7 @@ motion-pipeline code exists — so later regressions are measured against a real
 guess.
 
 ## Acceptance
-- [ ] `airmouse-cli`-style or standalone echo tool measures round-trip p50/p95/p99 over ≥ 1000
+- [ ] `aircontrol-cli`-style or standalone echo tool measures round-trip p50/p95/p99 over ≥ 1000
       samples.
 - [ ] Baseline numbers recorded in `docs/perf/` (create the directory if it doesn't exist).
 - [ ] Confirms or refutes that the p50 ≤ 12 ms / p95 ≤ 20 ms target (spec §8.1, plan §6) is
@@ -185,14 +185,14 @@ guess.
 EOF
 )"
 
-gh issue create --repo OWNER/air-mouse \
+gh issue create --repo OWNER/air-control \
   --title "M2: FrameCodec + Envelope/Message Codable with round-trip and split-delivery tests" \
   --milestone "M2 Walking skeleton" \
   --label "kit,good first issue" \
   --body "$(cat <<'EOF'
 ## Goal
 Implement `FrameCodec` (length-prefixed framing, spec §3.4.1) and `Envelope`/`Message` Codable
-mapping (spec §3.4.2, §3.4.5) in `AirMouseProtocol`.
+mapping (spec §3.4.2, §3.4.5) in `AirControlProtocol`.
 
 ## Acceptance
 - [ ] `FrameCodec.encode(kind:body:) -> Data` and a `Decoder` that retains partial input up to
@@ -203,10 +203,10 @@ mapping (spec §3.4.2, §3.4.5) in `AirMouseProtocol`.
       .withoutEscapingSlashes]` per spec §3.4.3.
 - [ ] Unknown `t` decodes without throwing (counted, not fatal); missing required fields throws
       a typed error.
-- [ ] Tests in `AirMouseProtocolTests` per spec §10.1 matrix.
+- [ ] Tests in `AirControlProtocolTests` per spec §10.1 matrix.
 
 ## Test file to create
-`Packages/AirMouseKit/Tests/AirMouseProtocolTests/FrameCodecTests.swift` and
+`Packages/AirControlKit/Tests/AirControlProtocolTests/FrameCodecTests.swift` and
 `.../MessageCodableTests.swift`
 
 ## References
@@ -215,14 +215,14 @@ mapping (spec §3.4.2, §3.4.5) in `AirMouseProtocol`.
 EOF
 )"
 
-gh issue create --repo OWNER/air-mouse \
+gh issue create --repo OWNER/air-control \
   --title "M2: QRPayload and TXTRecordModel parse/format with the §6.4 vectors" \
   --milestone "M2 Walking skeleton" \
   --label "kit,good first issue" \
   --body "$(cat <<'EOF'
 ## Goal
-Implement `QRPayload` (parse/format `airmouse://pair?...`) and `TXTRecordModel` in
-`AirMouseProtocol`, per spec §3.1.2–3.1.3.
+Implement `QRPayload` (parse/format `aircontrol://pair?...`) and `TXTRecordModel` in
+`AirControlProtocol`, per spec §3.1.2–3.1.3.
 
 ## Acceptance
 - [ ] Canonical URL ↔ struct round trip (the §6.4 vector).
@@ -230,11 +230,11 @@ Implement `QRPayload` (parse/format `airmouse://pair?...`) and `TXTRecordModel` 
       with brackets (grammar requires no brackets), unknown `v`.
 - [ ] `TXTRecordModel` encodes/decodes all seven keys (`v n id fp m tp up`) and enforces the
       ≤ 255 bytes/key, ≤ 400 bytes total limits.
-- [ ] Tests in `AirMouseProtocolTests` regenerate/verify against
-      `Tests/AirMouseProtocolTests/Vectors/qr.json` (generated by `scripts/gen-vectors.swift`).
+- [ ] Tests in `AirControlProtocolTests` regenerate/verify against
+      `Tests/AirControlProtocolTests/Vectors/qr.json` (generated by `scripts/gen-vectors.swift`).
 
 ## Test file to create
-`Packages/AirMouseKit/Tests/AirMouseProtocolTests/QRPayloadTests.swift` and
+`Packages/AirControlKit/Tests/AirControlProtocolTests/QRPayloadTests.swift` and
 `.../TXTRecordModelTests.swift`
 
 ## References
@@ -243,14 +243,14 @@ Implement `QRPayload` (parse/format `airmouse://pair?...`) and `TXTRecordModel` 
 EOF
 )"
 
-gh issue create --repo OWNER/air-mouse \
+gh issue create --repo OWNER/air-control \
   --title "M2: --loopback mode + RecordingInjector + first integration test" \
   --milestone "M2 Walking skeleton" \
   --label "mac,testing,critical-path" \
   --body "$(cat <<'EOF'
 ## Goal
 Build the `--loopback --port 0 --identity test [--pairing-secret <b64u>]` launch mode for
-AirMouseHelper and a `RecordingInjector` that logs would-be `CGEvent`s instead of posting them,
+AirControlHelper and a `RecordingInjector` that logs would-be `CGEvent`s instead of posting them,
 so contributors and CI can test the full session pipeline without a phone (arch §9.3, §10;
 this is also what keeps `ci.yml`'s `mac` job secret-free).
 
@@ -259,14 +259,14 @@ this is also what keeps `ci.yml`'s `mac` job secret-free).
       exposes a local JSON control socket with the event log + counters.
 - [ ] `RecordingInjector` conforms to whatever protocol `EventInjector` will implement, and
       records enough detail (button, keycode, deltas, click state) for assertions.
-- [ ] First `AirMouseHelperIntegrationTests` test: drives a real `NWConnection`-based client
+- [ ] First `AirControlHelperIntegrationTests` test: drives a real `NWConnection`-based client
       through pairing (`--pairing-secret`) and asserts the resulting recorded event(s) for one
       basic action (e.g. a single click).
 - [ ] This test runs in the `mac` CI job without any secrets or Accessibility grant.
 
 ## Test file to create
-`apps/AirMouse-Mac/IntegrationTests/LoopbackIntegrationTests.swift` (extend the existing
-placeholder if `apps/AirMouse-Mac/IntegrationTests/LoopbackIntegrationTests.swift` already
+`apps/AirControl-Mac/IntegrationTests/LoopbackIntegrationTests.swift` (extend the existing
+placeholder if `apps/AirControl-Mac/IntegrationTests/LoopbackIntegrationTests.swift` already
 exists from bootstrap)
 
 ## References

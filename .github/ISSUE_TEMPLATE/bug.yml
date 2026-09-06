@@ -34,7 +34,7 @@ body:
         - iOS app
         - Mac helper
         - Both / the wire protocol between them
-        - AirMouseKit (airmouse-cli or a Swift package consumer)
+        - AirControlKit (aircontrol-cli or a Swift package consumer)
     validations:
       required: true
   - type: input

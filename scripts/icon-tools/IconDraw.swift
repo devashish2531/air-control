@@ -1,4 +1,4 @@
-// IconDraw.swift — draws the Air Mouse app-icon artwork as vector shapes.
+// IconDraw.swift — draws the Air Control app-icon artwork as vector shapes.
 //
 // This is the *source of truth* for the icon artwork. It renders 1024x1024
 // full-bleed opaque PNGs into design/icons, which `IconTool.swift` then turns

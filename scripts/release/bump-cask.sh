@@ -2,9 +2,9 @@
 # scripts/release/bump-cask.sh <version-tag> <path/to/dmg.sha256>
 #
 # Opens a PR against the project's Homebrew tap (arch §9.4, decisions R-14: "start with
-# `brew tap <owner>/airmouse`") bumping Casks/air-mouse.rb to the new version and sha256.
+# `brew tap <owner>/aircontrol`") bumping Casks/air-control.rb to the new version and sha256.
 #
-# This repo's own Formula/Casks/air-mouse.rb (owned by this repo) is the template/reference
+# This repo's own Formula/Casks/air-control.rb (owned by this repo) is the template/reference
 # copy; the tap lives in a separate repository (HOMEBREW_TAP_REPO below) because `brew tap`
 # expects a repo named `homebrew-<name>`. This script:
 #   1. Updates the local template in place (so it never drifts from what ships).
@@ -14,7 +14,7 @@
 #   HOMEBREW_TAP_TOKEN   PAT (or GitHub App token) with write access to the tap repo, scoped
 #                         to this repo's `release` Environment (arch §9.3).
 # Optional environment:
-#   HOMEBREW_TAP_REPO    defaults to "OWNER/homebrew-airmouse" — replace OWNER once the tap exists.
+#   HOMEBREW_TAP_REPO    defaults to "OWNER/homebrew-aircontrol" — replace OWNER once the tap exists.
 set -euo pipefail
 
 if [ "$#" -ne 2 ]; then
@@ -38,7 +38,7 @@ if [ -z "$sha256" ]; then
 fi
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
-local_cask="$repo_root/Formula/Casks/air-mouse.rb"
+local_cask="$repo_root/Formula/Casks/air-control.rb"
 
 if [ ! -f "$local_cask" ]; then
   echo "error: local cask template not found: $local_cask" >&2
@@ -61,7 +61,7 @@ if [ -z "${HOMEBREW_TAP_TOKEN:-}" ]; then
   exit 0
 fi
 
-tap_repo="${HOMEBREW_TAP_REPO:-OWNER/homebrew-airmouse}"
+tap_repo="${HOMEBREW_TAP_REPO:-OWNER/homebrew-aircontrol}"
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
 
@@ -69,14 +69,14 @@ echo "Cloning tap $tap_repo"
 git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/${tap_repo}.git" "$work_dir/tap"
 
 mkdir -p "$work_dir/tap/Casks"
-update_cask "$work_dir/tap/Casks/air-mouse.rb"
+update_cask "$work_dir/tap/Casks/air-control.rb"
 
 pushd "$work_dir/tap" >/dev/null
-branch="bump-air-mouse-${version}"
-git config user.name "air-mouse-release-bot"
+branch="bump-air-control-${version}"
+git config user.name "air-control-release-bot"
 git config user.email "release@users.noreply.github.com"
 git checkout -b "$branch"
-git add "Casks/air-mouse.rb"
+git add "Casks/air-control.rb"
 
 if git diff --cached --quiet; then
   echo "No changes to the cask — already up to date."
@@ -84,14 +84,14 @@ if git diff --cached --quiet; then
   exit 0
 fi
 
-git commit -m "air-mouse ${version}"
+git commit -m "air-control ${version}"
 git push -u origin "$branch"
 
 if command -v gh >/dev/null 2>&1; then
   GH_TOKEN="$HOMEBREW_TAP_TOKEN" gh pr create \
     --repo "$tap_repo" \
-    --title "air-mouse ${version}" \
-    --body "Automated bump from air-mouse release.yml for ${version_tag}. sha256: \`${sha256}\`" \
+    --title "air-control ${version}" \
+    --body "Automated bump from air-control release.yml for ${version_tag}. sha256: \`${sha256}\`" \
     --head "$branch" \
     --base main
 else

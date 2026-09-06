@@ -1,4 +1,4 @@
-# Air Mouse — Planning Documents
+# Air Control — Planning Documents
 
 Documents are numbered in the order they were produced; each builds on the previous.
 Precedence when they disagree: `00-decisions.md` (addenda included) > `04-architecture.md` > `03-specifications.md` > `02` > `01`.
@@ -19,7 +19,7 @@ Precedence when they disagree: `00-decisions.md` (addenda included) > `04-archit
 See the addenda in `00-decisions.md`. Defaults stand unless overridden:
 - License: MIT vs Apache-2.0 (A7)
 - Transport: TCP+mTLS control + AEAD UDP motion, QUIC deferred (A1–A3)
-- Project name: "Air Mouse" collides on the App Store (A8)
+- Project name: "Air Control" collides on the App Store (A8)
 - Momentum locus: client decides, host runs decay (B1)
 
 ## Next step

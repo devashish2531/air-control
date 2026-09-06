@@ -1,0 +1,3014 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "-10s" : {
+      "comment" : "Media seek backward 10 seconds button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "-10s"
+          }
+        }
+      }
+    },
+    "\\(macro.name) ran" : {
+      "comment" : "Macro invoke success toast",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\\(macro.name) ran"
+          }
+        }
+      }
+    },
+    "\\(name) failed: \\(message)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\\(name) failed: \\(message)"
+          }
+        }
+      }
+    },
+    "\\(name) timed out" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\\(name) timed out"
+          }
+        }
+      }
+    },
+    "\\(userSettings.snapshot.pointer.sensitivity) of 10" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\\(userSettings.snapshot.pointer.sensitivity) of 10"
+          }
+        }
+      }
+    },
+    "%@ failed: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ failed: %2$@"
+          }
+        }
+      }
+    },
+    "%@ ran" : {
+      "comment" : "Macro invoke success toast"
+    },
+    "%@ timed out" : {
+
+    },
+    "%@, %@" : {
+      "comment" : "Accessibility label for the touchpad mode ribbon",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "%@: %.0f ms" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$.0f ms"
+          }
+        }
+      }
+    },
+    "%@: %.1f%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$.1f%%"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@: %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$lld"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld of 10" : {
+
+    },
+    "+10s" : {
+      "comment" : "Media seek forward 10 seconds button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+10s"
+          }
+        }
+      }
+    },
+    "About" : {
+      "comment" : "Settings section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        }
+      }
+    },
+    "Acceleration" : {
+      "comment" : "Settings › Pointer: acceleration picker label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acceleration"
+          }
+        }
+      }
+    },
+    "Add" : {
+      "comment" : "Shortcut editor: available-to-add shortcuts section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        }
+      }
+    },
+    "Add macros in the Air Control menu on your Mac." : {
+      "comment" : "Macros empty state description, spec §4.1.8",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add macros in the Air Control menu on your Mac."
+          }
+        }
+      }
+    },
+    "Air Control" : {
+      "comment" : "Root tab title\niPad sidebar navigation title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Air Control"
+          }
+        }
+      }
+    },
+    "Air Control can't see your Mac until you allow Local Network access in Settings." : {
+      "comment" : "Devices screen: local network denied banner",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Air Control can't see your Mac until you allow Local Network access in Settings."
+          }
+        }
+      }
+    },
+    "Air Pointer needs a gyroscope to turn your phone's motion into cursor movement." : {
+      "comment" : "Gyro tab unsupported-device explanation"
+    },
+    "Air Control needs to see devices on your Wi-Fi to find your Mac. iOS will ask you next. Nothing leaves your network." : {
+      "comment" : "Onboarding page 3 (spec §4.1.1)",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Air Control needs to see devices on your Wi-Fi to find your Mac. iOS will ask you next. Nothing leaves your network."
+          }
+        }
+      }
+    },
+    "Air Control uses the camera only to scan the QR code your Mac shows during pairing. Nothing is recorded or stored." : {
+      "comment" : "Onboarding camera page body",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Air Control uses the camera only to scan the QR code your Mac shows during pairing. Nothing is recorded or stored."
+          }
+        }
+      }
+    },
+    "AirControl — placeholder" : {
+      "comment" : "Placeholder screen body; replaced by the AirControl (gyro) agent",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AirControl — placeholder"
+          }
+        }
+      }
+    },
+    "Allow camera access to scan the pairing code, or paste the pairing link instead." : {
+      "comment" : "Pairing screen: camera denied message",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow camera access to scan the pairing code, or paste the pairing link instead."
+          }
+        }
+      }
+    },
+    "AppleScript" : {
+      "comment" : "Macro kind label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AppleScript"
+          }
+        }
+      }
+    },
+    "Are both devices on the same Wi-Fi?" : {
+
+    },
+    "Available" : {
+      "comment" : "Devices screen: host status"
+    },
+    "Blank" : {
+      "comment" : "Presenter blank/black screen button (B key)",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blank"
+          }
+        }
+      }
+    },
+    "Blocked by Mac policy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked by Mac policy"
+          }
+        }
+      }
+    },
+    "Both" : {
+
+    },
+    "Brightness down" : {
+      "comment" : "Keyboard extended key bar: fn-toggled media glyph label\nKeyboard media bar: Brightness down button\nMedia brightness down button, hold to repeat",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brightness down"
+          }
+        }
+      }
+    },
+    "Brightness up" : {
+      "comment" : "Keyboard extended key bar: fn-toggled media glyph label\nKeyboard media bar: Brightness up button\nMedia brightness up button, hold to repeat",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brightness up"
+          }
+        }
+      }
+    },
+    "Calibrating" : {
+
+    },
+    "Calibrating, %lld percent" : {
+      "comment" : "Accessibility label for gyro calibration progress"
+    },
+    "Calibrating…" : {
+      "comment" : "Gyro magnetometer-uncalibrated indicator, spec 4.3.5"
+    },
+    "Calibrating… keep the phone steady for a second." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calibrating… keep the phone steady for a second."
+          }
+        }
+      }
+    },
+    "Camera access needed" : {
+      "comment" : "Pairing screen: camera denied title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera access needed"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "comment" : "Error recovery action: cancels reconnect and returns to Devices\nMacro confirmation sheet cancel button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "Caps Lock" : {
+      "comment" : "Keyboard modifier row: Caps Lock button accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caps Lock"
+          }
+        }
+      }
+    },
+    "Channel" : {
+      "comment" : "Diagnostics HUD metric label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channel"
+          }
+        }
+      }
+    },
+    "Check permission" : {
+      "comment" : "Error recovery action: re-checks Local Network permission",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check permission"
+          }
+        }
+      }
+    },
+    "Click" : {
+      "comment" : "Accessibility custom action on the touchpad surface"
+    },
+    "Close" : {
+      "comment" : "Pairing screen: close button"
+    },
+    "Clutch" : {
+
+    },
+    "Codes work for 60 seconds. Click 'Pair new device' on your Mac to show a fresh one." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codes work for 60 seconds. Click 'Pair new device' on your Mac to show a fresh one."
+          }
+        }
+      }
+    },
+    "Command" : {
+      "comment" : "Keyboard modifier row: Command key accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
+          }
+        }
+      }
+    },
+    "Command C, Copy" : {
+      "comment" : "Shortcut palette: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command C, Copy"
+          }
+        }
+      }
+    },
+    "Command Option Escape, Force Quit" : {
+      "comment" : "Shortcut palette: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command Option Escape, Force Quit"
+          }
+        }
+      }
+    },
+    "Command Q, Quit" : {
+      "comment" : "Shortcut palette: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command Q, Quit"
+          }
+        }
+      }
+    },
+    "Command Shift 4, Screenshot" : {
+      "comment" : "Shortcut palette: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command Shift 4, Screenshot"
+          }
+        }
+      }
+    },
+    "Command Shift Z, Redo" : {
+      "comment" : "Shortcut palette: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command Shift Z, Redo"
+          }
+        }
+      }
+    },
+    "Command Space" : {
+      "comment" : "Shortcut palette: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command Space"
+          }
+        }
+      }
+    },
+    "Command Tab" : {
+      "comment" : "Shortcut palette: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command Tab"
+          }
+        }
+      }
+    },
+    "Command V, Paste" : {
+      "comment" : "Shortcut palette: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command V, Paste"
+          }
+        }
+      }
+    },
+    "Command W, Close Window" : {
+      "comment" : "Shortcut palette: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command W, Close Window"
+          }
+        }
+      }
+    },
+    "Command Z, Undo" : {
+      "comment" : "Shortcut palette: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command Z, Undo"
+          }
+        }
+      }
+    },
+    "Commit" : {
+      "comment" : "Keyboard entry mode",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commit"
+          }
+        }
+      }
+    },
+    "Commit mode text" : {
+      "comment" : "Accessibility label for the commit-mode text editor",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commit mode text"
+          }
+        }
+      }
+    },
+    "Connected" : {
+      "comment" : "Devices screen: host status"
+    },
+    "Connecting to %@…" : {
+
+    },
+    "Connecting…" : {
+      "comment" : "Connection pill compact state\nConnection pill state\nTouchpad ribbon connection state",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting…"
+          }
+        }
+      }
+    },
+    "Connection paused" : {
+
+    },
+    "Connection problem" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection problem"
+          }
+        }
+      }
+    },
+    "Connection: \\(label)" : {
+      "comment" : "Accessibility label for the connection pill",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection: \\(label)"
+          }
+        }
+      }
+    },
+    "Connection: %@" : {
+      "comment" : "Accessibility label for the connection pill"
+    },
+    "Continue" : {
+      "comment" : "Onboarding primary action",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        }
+      }
+    },
+    "Control" : {
+      "comment" : "Keyboard modifier row: Control key accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control"
+          }
+        }
+      }
+    },
+    "Control Command Q, Lock Screen" : {
+      "comment" : "Shortcut palette: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control Command Q, Lock Screen"
+          }
+        }
+      }
+    },
+    "Copy" : {
+      "comment" : "Error recovery action: copies a command to the clipboard\nOnboarding: copies the brew install command",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        }
+      }
+    },
+    "Couldn't reach \\(hostName)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't reach \\(hostName)"
+          }
+        }
+      }
+    },
+    "Couldn't reach %@" : {
+
+    },
+    "Couldn't reconnect" : {
+
+    },
+    "Dark" : {
+      "comment" : "Appearance option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dark"
+          }
+        }
+      }
+    },
+    "Dead zone" : {
+
+    },
+    "Default" : {
+      "comment" : "Pointer acceleration option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default"
+          }
+        }
+      }
+    },
+    "Delete" : {
+      "comment" : "Keyboard extended key bar: Delete/backspace key accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
+    },
+    "Devices" : {
+      "comment" : "Devices screen navigation title"
+    },
+    "Devices — placeholder" : {
+      "comment" : "Placeholder screen body; replaced by the Devices agent",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devices — placeholder"
+          }
+        }
+      }
+    },
+    "Devices on this Wi-Fi can't see each other (AP isolation). Turn on Personal Hotspot on this iPhone and join it from your Mac." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devices on this Wi-Fi can't see each other (AP isolation). Turn on Personal Hotspot on this iPhone and join it from your Mac."
+          }
+        }
+      }
+    },
+    "Diagnostics" : {
+      "comment" : "Diagnostics screen navigation title\nSettings: navigates to the Diagnostics screen",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostics"
+          }
+        }
+      }
+    },
+    "Diagnostics Log" : {
+      "comment" : "Diagnostics log viewer navigation title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostics Log"
+          }
+        }
+      }
+    },
+    "Disconnected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnected"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "comment" : "Settings: dismisses the screen\nShortcut editor: done button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
+    "Double-tap" : {
+
+    },
+    "Double-tap to recenter" : {
+
+    },
+    "Down arrow" : {
+      "comment" : "Keyboard extended key bar: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Down arrow"
+          }
+        }
+      }
+    },
+    "Drag lock" : {
+      "comment" : "Settings › Gestures toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag lock"
+          }
+        }
+      }
+    },
+    "Drag up or down to scroll" : {
+
+    },
+    "Dragging" : {
+      "comment" : "Touchpad mode ribbon drag-lock indicator"
+    },
+    "Edit" : {
+      "comment" : "Keyboard screen: edit shortcuts button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        }
+      }
+    },
+    "Elevated latency" : {
+      "comment" : "Touchpad mode ribbon banner",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elevated latency"
+          }
+        }
+      }
+    },
+    "End" : {
+      "comment" : "Keyboard extended key bar: End key button label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End"
+          }
+        }
+      }
+    },
+    "Esc" : {
+      "comment" : "Keyboard extended key bar: Escape key button label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc"
+          }
+        }
+      }
+    },
+    "Exit" : {
+      "comment" : "Presenter exit presentation button (Esc key)",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit"
+          }
+        }
+      }
+    },
+    "Expand side panel" : {
+      "comment" : "Accessibility label for the collapsed iPad side panel rail"
+    },
+    "Experimental features. Off by default." : {
+      "comment" : "Settings › Labs footer",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Experimental features. Off by default."
+          }
+        }
+      }
+    },
+    "Fast" : {
+      "comment" : "Pointer acceleration option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fast"
+          }
+        }
+      }
+    },
+    "Fast forward" : {
+      "comment" : "Keyboard extended key bar: fn-toggled media glyph label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fast forward"
+          }
+        }
+      }
+    },
+    "Fast motion packets are being blocked on this network; motion is using the reliable channel." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fast motion packets are being blocked on this network; motion is using the reliable channel."
+          }
+        }
+      }
+    },
+    "Feedback" : {
+      "comment" : "Settings section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedback"
+          }
+        }
+      }
+    },
+    "Find your Mac on Wi-Fi" : {
+      "comment" : "Onboarding local network page title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find your Mac on Wi-Fi"
+          }
+        }
+      }
+    },
+    "Forget Mac" : {
+      "comment" : "Error recovery action: forgets the trusted host",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forget Mac"
+          }
+        }
+      }
+    },
+    "Forget this Mac?" : {
+      "comment" : "Devices screen: forget confirmation title"
+    },
+    "Forward Delete" : {
+      "comment" : "Keyboard extended key bar: Forward Delete key accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forward Delete"
+          }
+        }
+      }
+    },
+    "Function" : {
+      "comment" : "Keyboard modifier row: fn key accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Function"
+          }
+        }
+      }
+    },
+    "Generic" : {
+      "comment" : "Presenter profile name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generic"
+          }
+        }
+      }
+    },
+    "Gestures" : {
+      "comment" : "Settings section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestures"
+          }
+        }
+      }
+    },
+    "GitHub" : {
+      "comment" : "Settings › About: link to the project's GitHub repository",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub"
+          }
+        }
+      }
+    },
+    "Go" : {
+      "comment" : "Pairing screen: submit pasted link"
+    },
+    "Gyro" : {
+      "comment" : "Settings section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gyro"
+          }
+        }
+      }
+    },
+    "Haptics" : {
+      "comment" : "Settings › Feedback toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haptics"
+          }
+        }
+      }
+    },
+    "Haptics and sounds fall back to a brief visual pulse on devices without a Taptic Engine." : {
+      "comment" : "Settings › Feedback footer, spec §4.8.1.9",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haptics and sounds fall back to a brief visual pulse on devices without a Taptic Engine."
+          }
+        }
+      }
+    },
+    "Hardware keyboard passthrough" : {
+      "comment" : "Keyboard screen toolbar: hardware passthrough toggle accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware keyboard passthrough"
+          }
+        }
+      }
+    },
+    "Hides typed text and disables autocorrect" : {
+      "comment" : "Keyboard screen toolbar: Secure entry toggle accessibility hint",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hides typed text and disables autocorrect"
+          }
+        }
+      }
+    },
+    "Hold" : {
+
+    },
+    "Hold the clutch to move the cursor" : {
+
+    },
+    "Hold the phone like a remote and keep it still" : {
+      "comment" : "Gyro calibration instruction, spec 4.3.7"
+    },
+    "Hold the phone like a remote and point at your Mac's screen." : {
+      "comment" : "Gyro tab first-use hint"
+    },
+    "Hold to repeat" : {
+      "comment" : "Accessibility hint for a hold-to-repeat button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold to repeat"
+          }
+        }
+      }
+    },
+    "Home" : {
+      "comment" : "Keyboard extended key bar: Home key button label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        }
+      }
+    },
+    "Host" : {
+      "comment" : "Scroll direction option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host"
+          }
+        }
+      }
+    },
+    "How to use a hotspot" : {
+      "comment" : "Error recovery action: opens hotspot help",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How to use a hotspot"
+          }
+        }
+      }
+    },
+    "I've installed it" : {
+      "comment" : "Onboarding page 2 primary action (spec §4.1.1)",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I've installed it"
+          }
+        }
+      }
+    },
+    "In flight" : {
+      "comment" : "Diagnostics HUD metric label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In flight"
+          }
+        }
+      }
+    },
+    "Input mode" : {
+      "comment" : "Keyboard input mode segmented control accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input mode"
+          }
+        }
+      }
+    },
+    "Install the Mac helper" : {
+      "comment" : "Onboarding page 2 title (spec §4.1.1)",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install the Mac helper"
+          }
+        }
+      }
+    },
+    "Inverted" : {
+      "comment" : "Scroll direction option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inverted"
+          }
+        }
+      }
+    },
+    "Is Local Network access allowed?" : {
+
+    },
+    "Is the Air Control helper running on your Mac?" : {
+
+    },
+    "Is the Air Control helper running on your Mac? Are both devices on the same Wi-Fi? Is Local Network access allowed?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Is the Air Control helper running on your Mac? Are both devices on the same Wi-Fi? Is Local Network access allowed?"
+          }
+        }
+      }
+    },
+    "Keep screen awake" : {
+      "comment" : "Settings › Feedback toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep screen awake"
+          }
+        }
+      }
+    },
+    "Key combo" : {
+      "comment" : "Macro kind label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key combo"
+          }
+        }
+      }
+    },
+    "Key sequence" : {
+      "comment" : "Macro kind label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key sequence"
+          }
+        }
+      }
+    },
+    "Keyboard" : {
+      "comment" : "Root tab title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyboard"
+          }
+        }
+      }
+    },
+    "Keynote" : {
+      "comment" : "Presenter profile name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keynote"
+          }
+        }
+      }
+    },
+    "Keys / Macros / Presenter" : {
+      "comment" : "iPad Touchpad side panel placeholder body"
+    },
+    "Labs" : {
+      "comment" : "Settings section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Labs"
+          }
+        }
+      }
+    },
+    "Large buttons" : {
+      "comment" : "Macros large-buttons toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Large buttons"
+          }
+        }
+      }
+    },
+    "Latched" : {
+      "comment" : "Keyboard modifier key accessibility value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latched"
+          }
+        }
+      }
+    },
+    "Latency" : {
+      "comment" : "Diagnostics HUD title\nDiagnostics screen section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latency"
+          }
+        }
+      }
+    },
+    "Latency diagnostics" : {
+      "comment" : "Accessibility label for the diagnostics HUD",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latency diagnostics"
+          }
+        }
+      }
+    },
+    "Launch app" : {
+      "comment" : "Macro kind label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launch app"
+          }
+        }
+      }
+    },
+    "Left arrow" : {
+      "comment" : "Keyboard extended key bar: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left arrow"
+          }
+        }
+      }
+    },
+    "Left click" : {
+      "comment" : "Touchpad click button accessibility label"
+    },
+    "Left-handed" : {
+      "comment" : "Handedness option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left-handed"
+          }
+        }
+      }
+    },
+    "License" : {
+      "comment" : "Settings › About row label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "License"
+          }
+        }
+      }
+    },
+    "Light" : {
+      "comment" : "Appearance option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
+          }
+        }
+      }
+    },
+    "Live" : {
+      "comment" : "Keyboard entry mode",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live"
+          }
+        }
+      }
+    },
+    "Local network access is off" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local network access is off"
+          }
+        }
+      }
+    },
+    "Lock orientation" : {
+
+    },
+    "Locked" : {
+      "comment" : "Keyboard modifier key accessibility value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locked"
+          }
+        }
+      }
+    },
+    "Log viewer" : {
+      "comment" : "Diagnostics screen: navigates to the log viewer stub",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log viewer"
+          }
+        }
+      }
+    },
+    "Log viewer coming soon" : {
+      "comment" : "Diagnostics log viewer stub title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log viewer coming soon"
+          }
+        }
+      }
+    },
+    "Long press to adjust sensitivity" : {
+      "comment" : "Accessibility hint for the touchpad mode ribbon"
+    },
+    "Loss" : {
+      "comment" : "Diagnostics HUD metric label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loss"
+          }
+        }
+      }
+    },
+    "Mac device limit reached" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac device limit reached"
+          }
+        }
+      }
+    },
+    "Mac needs Accessibility permission" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac needs Accessibility permission"
+          }
+        }
+      }
+    },
+    "Macros" : {
+      "comment" : "Macros tab navigation title\nRoot tab title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Macros"
+          }
+        }
+      }
+    },
+    "Macros — placeholder" : {
+      "comment" : "Placeholder screen body; replaced by the Macros agent",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Macros — placeholder"
+          }
+        }
+      }
+    },
+    "Make sure the helper is running and both devices are on the same network." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make sure the helper is running and both devices are on the same network."
+          }
+        }
+      }
+    },
+    "Media" : {
+      "comment" : "Keyboard screen: media key bar section header\nRemote segment title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Media"
+          }
+        }
+      }
+    },
+    "MIT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MIT"
+          }
+        }
+      }
+    },
+    "Momentum" : {
+      "comment" : "Settings › Gestures toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momentum"
+          }
+        }
+      }
+    },
+    "Move one finger to move the pointer. Tap to click. Two fingers to scroll." : {
+      "comment" : "Accessibility hint for the touchpad surface"
+    },
+    "Moving" : {
+
+    },
+    "Mute" : {
+      "comment" : "Keyboard extended key bar: fn-toggled media glyph label\nKeyboard media bar: Mute button\nMedia mute button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute"
+          }
+        }
+      }
+    },
+    "Natural" : {
+      "comment" : "Scroll direction option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Natural"
+          }
+        }
+      }
+    },
+    "Next" : {
+      "comment" : "Keyboard media bar: Next track button\nMedia next track button\nPresenter next slide button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        }
+      }
+    },
+    "No data yet" : {
+      "comment" : "Diagnostics HUD placeholder before first sample",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No data yet"
+          }
+        }
+      }
+    },
+    "No Mac connected" : {
+      "comment" : "Presenter header when no frontmost app is known",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Mac connected"
+          }
+        }
+      }
+    },
+    "No macros yet" : {
+      "comment" : "Macros empty state title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No macros yet"
+          }
+        }
+      }
+    },
+    "No Macs found yet" : {
+      "comment" : "Devices screen empty state title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Macs found yet"
+          }
+        }
+      }
+    },
+    "Not connected" : {
+      "comment" : "Connection pill state\nTouchpad ribbon connection state",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not connected"
+          }
+        }
+      }
+    },
+    "Not connected — motion won't reach your Mac" : {
+
+    },
+    "Not found · Last seen %@" : {
+      "comment" : "Devices screen: host status with relative last-seen time"
+    },
+    "Not paired" : {
+      "comment" : "Devices screen: unpaired host badge"
+    },
+    "Not paired with this Mac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not paired with this Mac"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "comment" : "Keyboard modifier key accessibility value\nPointer acceleration option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        }
+      }
+    },
+    "Offline" : {
+      "comment" : "Connection pill compact state"
+    },
+    "OK" : {
+      "comment" : "Error recovery action: dismisses the alert",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "On the row" : {
+      "comment" : "Shortcut editor: currently shown shortcuts section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the row"
+          }
+        }
+      }
+    },
+    "On-device log viewing and export isn't implemented yet." : {
+      "comment" : "Diagnostics log viewer stub description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On-device log viewing and export isn't implemented yet."
+          }
+        }
+      }
+    },
+    "One-way est." : {
+      "comment" : "Diagnostics HUD metric label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One-way est."
+          }
+        }
+      }
+    },
+    "Open Air Control on the Mac and follow the setup to allow it to control the cursor." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Air Control on the Mac and follow the setup to allow it to control the cursor."
+          }
+        }
+      }
+    },
+    "Open Air Control on your Mac and choose Check for Updates, or run brew upgrade --cask air-control." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Air Control on your Mac and choose Check for Updates, or run brew upgrade --cask air-control."
+          }
+        }
+      }
+    },
+    "Open App Store" : {
+      "comment" : "Error recovery action: opens the App Store listing",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open App Store"
+          }
+        }
+      }
+    },
+    "Open GitHub Releases" : {
+      "comment" : "Onboarding: link to the GitHub Releases page",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open GitHub Releases"
+          }
+        }
+      }
+    },
+    "Open Settings" : {
+      "comment" : "Error recovery action: deep-links to iOS Settings for this app",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings"
+          }
+        }
+      }
+    },
+    "Open URL" : {
+      "comment" : "Macro kind label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open URL"
+          }
+        }
+      }
+    },
+    "Opens Devices" : {
+      "comment" : "Accessibility hint for the connection pill",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens Devices"
+          }
+        }
+      }
+    },
+    "Option" : {
+      "comment" : "Keyboard modifier row: Option key accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Option"
+          }
+        }
+      }
+    },
+    "Other Macs on this network" : {
+      "comment" : "Devices screen: unpaired hosts section header"
+    },
+    "Page Down" : {
+      "comment" : "Keyboard extended key bar: Page Down key accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page Down"
+          }
+        }
+      }
+    },
+    "Page Up" : {
+      "comment" : "Keyboard extended key bar: Page Up key accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page Up"
+          }
+        }
+      }
+    },
+    "Pair again to reconnect, or forget this Mac." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair again to reconnect, or forget this Mac."
+          }
+        }
+      }
+    },
+    "Paired" : {
+      "comment" : "Pairing screen: success state"
+    },
+    "Pairing — placeholder" : {
+      "comment" : "Placeholder screen body; replaced by the Pairing agent",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pairing — placeholder"
+          }
+        }
+      }
+    },
+    "Pairing code expired" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pairing code expired"
+          }
+        }
+      }
+    },
+    "Pairing with %@…" : {
+      "comment" : "Pairing screen: verifying state"
+    },
+    "Pairing…" : {
+      "comment" : "Connection pill compact state\nConnection pill state\nTouchpad ribbon connection state",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pairing…"
+          }
+        }
+      }
+    },
+    "Paste link" : {
+      "comment" : "Error recovery action: opens the paste-pairing-link field",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste link"
+          }
+        }
+      }
+    },
+    "Paste pairing link" : {
+      "comment" : "Pairing screen: paste field placeholder\nPairing screen: reveals the paste field"
+    },
+    "Pause" : {
+      "comment" : "Presenter timer pause button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
+          }
+        }
+      }
+    },
+    "Paused" : {
+      "comment" : "Connection pill compact state"
+    },
+    "Paused on Mac" : {
+      "comment" : "Touchpad ribbon connection state"
+    },
+    "Paused on Mac — input is ignored until you resume it from the Air Control menu." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused on Mac — input is ignored until you resume it from the Air Control menu."
+          }
+        }
+      }
+    },
+    "Play / Pause" : {
+      "comment" : "Media play/pause button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play / Pause"
+          }
+        }
+      }
+    },
+    "Play or Pause" : {
+      "comment" : "Keyboard media bar: Play/Pause button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play or Pause"
+          }
+        }
+      }
+    },
+    "Play/Pause" : {
+      "comment" : "Keyboard extended key bar: fn-toggled media glyph label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play/Pause"
+          }
+        }
+      }
+    },
+    "Pointer" : {
+      "comment" : "Presenter pointer-spotlight toggle button\nSettings section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pointer"
+          }
+        }
+      }
+    },
+    "Pointer prediction" : {
+      "comment" : "Settings › Labs toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pointer prediction"
+          }
+        }
+      }
+    },
+    "Pointer sensitivity" : {
+      "comment" : "Accessibility label for the touchpad sensitivity slider"
+    },
+    "PowerPoint" : {
+      "comment" : "Presenter profile name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PowerPoint"
+          }
+        }
+      }
+    },
+    "Precise" : {
+      "comment" : "Pointer acceleration option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Precise"
+          }
+        }
+      }
+    },
+    "Presenter" : {
+      "comment" : "Remote segment title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter"
+          }
+        }
+      }
+    },
+    "Presenter timer" : {
+      "comment" : "Accessibility label for the presenter timer display",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter timer"
+          }
+        }
+      }
+    },
+    "Previous" : {
+      "comment" : "Keyboard media bar: Previous track button\nMedia previous track button\nPresenter previous slide button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous"
+          }
+        }
+      }
+    },
+    "Probe RTT" : {
+      "comment" : "Diagnostics HUD metric label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probe RTT"
+          }
+        }
+      }
+    },
+    "Ready — move the phone" : {
+
+    },
+    "Recalibrate now" : {
+
+    },
+    "Recenter" : {
+
+    },
+    "Reconnect" : {
+      "comment" : "Error recovery action: reconnects after a rate-limit disconnect",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconnect"
+          }
+        }
+      }
+    },
+    "Reconnecting to \\(hostName)…" : {
+      "comment" : "Connection pill state",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconnecting to \\(hostName)…"
+          }
+        }
+      }
+    },
+    "Reconnecting to %@…" : {
+      "comment" : "Connection pill state\nTouchpad ribbon connection state"
+    },
+    "Reconnecting…" : {
+
+    },
+    "Remote" : {
+      "comment" : "Remote tab navigation title\nRoot tab title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote"
+          }
+        }
+      }
+    },
+    "Remote — placeholder" : {
+      "comment" : "Placeholder screen body; replaced by the Remote agent",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote — placeholder"
+          }
+        }
+      }
+    },
+    "Remote mode" : {
+      "comment" : "Accessibility label for the Presenter/Media segmented control",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote mode"
+          }
+        }
+      }
+    },
+    "Reset" : {
+      "comment" : "Presenter timer reset button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
+          }
+        }
+      }
+    },
+    "Retry" : {
+      "comment" : "Error recovery action: retries the failed connection attempt",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        }
+      }
+    },
+    "Return" : {
+      "comment" : "Keyboard extended key bar: Return key button label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return"
+          }
+        }
+      }
+    },
+    "Return sends" : {
+      "comment" : "Keyboard screen toolbar: Return-sends toggle accessibility label (spec §4.1.9)",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return sends"
+          }
+        }
+      }
+    },
+    "Rewind" : {
+      "comment" : "Keyboard extended key bar: fn-toggled media glyph label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewind"
+          }
+        }
+      }
+    },
+    "Right arrow" : {
+      "comment" : "Keyboard extended key bar: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right arrow"
+          }
+        }
+      }
+    },
+    "Right click" : {
+      "comment" : "Touchpad click button accessibility label"
+    },
+    "Right-click" : {
+      "comment" : "Accessibility custom action on the touchpad surface"
+    },
+    "Right-handed" : {
+      "comment" : "Handedness option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right-handed"
+          }
+        }
+      }
+    },
+    "RTT p50" : {
+      "comment" : "Diagnostics HUD metric label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RTT p50"
+          }
+        }
+      }
+    },
+    "RTT p95" : {
+      "comment" : "Diagnostics HUD metric label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RTT p95"
+          }
+        }
+      }
+    },
+    "Run" : {
+      "comment" : "Macro confirmation sheet confirm button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run"
+          }
+        }
+      }
+    },
+    "Run \\(request.macro.name)?" : {
+      "comment" : "Macro confirmation sheet title, spec §4.1.8",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run \\(request.macro.name)?"
+          }
+        }
+      }
+    },
+    "Run %@?" : {
+      "comment" : "Macro confirmation sheet title, spec §4.1.8"
+    },
+    "Run Shortcut" : {
+      "comment" : "Macro kind label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run Shortcut"
+          }
+        }
+      }
+    },
+    "running" : {
+      "comment" : "Accessibility label suffix while a macro is invoking",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "running"
+          }
+        }
+      }
+    },
+    "Scan QR" : {
+      "comment" : "Devices screen: scan QR toolbar button\nError recovery action: navigates to the QR scanner",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan QR"
+          }
+        }
+      }
+    },
+    "Scan the pairing code on the Mac to connect." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan the pairing code on the Mac to connect."
+          }
+        }
+      }
+    },
+    "Scan the QR shown by 'Pair new device' in the Air Control menu on your Mac." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan the QR shown by 'Pair new device' in the Air Control menu on your Mac."
+          }
+        }
+      }
+    },
+    "Scan your Mac's pairing code" : {
+      "comment" : "Onboarding camera page title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan your Mac's pairing code"
+          }
+        }
+      }
+    },
+    "script" : {
+      "comment" : "Accessibility label suffix marking a macro as a script kind",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "script"
+          }
+        }
+      }
+    },
+    "Script macros are turned off on this Mac" : {
+      "comment" : "Accessibility hint for a disabled script macro button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script macros are turned off on this Mac"
+          }
+        }
+      }
+    },
+    "Scroll" : {
+      "comment" : "Gyro tab scroll strip label"
+    },
+    "Scroll direction" : {
+      "comment" : "Settings › Gestures picker label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll direction"
+          }
+        }
+      }
+    },
+    "Scroll strip" : {
+      "comment" : "Gyro tab scroll strip accessibility label\nTouchpad right-edge scroll strip accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll strip"
+          }
+        }
+      }
+    },
+    "Searching for your Mac…" : {
+
+    },
+    "Searching…" : {
+      "comment" : "Connection pill compact state\nConnection pill state\nTouchpad ribbon connection state",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching…"
+          }
+        }
+      }
+    },
+    "Secure entry" : {
+      "comment" : "Keyboard screen toolbar: Secure entry toggle accessibility label (spec §4.1.6)",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secure entry"
+          }
+        }
+      }
+    },
+    "Security check failed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Security check failed"
+          }
+        }
+      }
+    },
+    "Send" : {
+      "comment" : "Commit mode: send button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        }
+      }
+    },
+    "Send up to 16,000 characters at a time." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send up to 16,000 characters at a time."
+          }
+        }
+      }
+    },
+    "Sends key presses from an attached hardware keyboard directly to the Mac" : {
+      "comment" : "Keyboard screen toolbar: hardware passthrough toggle accessibility hint",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sends key presses from an attached hardware keyboard directly to the Mac"
+          }
+        }
+      }
+    },
+    "Sends the typed text to the Mac" : {
+      "comment" : "Accessibility hint for the commit-mode Send button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sends the typed text to the Mac"
+          }
+        }
+      }
+    },
+    "Sensitivity" : {
+      "comment" : "Settings › Gyro: sensitivity control label\nSettings › Pointer: sensitivity control label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sensitivity"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "comment" : "Accessibility label for the settings gear button\nSettings screen navigation title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
+    "Shake" : {
+
+    },
+    "Shell command" : {
+      "comment" : "Macro kind label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shell command"
+          }
+        }
+      }
+    },
+    "Shift" : {
+      "comment" : "Keyboard modifier row: Shift key accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shift"
+          }
+        }
+      }
+    },
+    "Shortcuts" : {
+      "comment" : "Keyboard screen: shortcut row section header\nShortcut editor navigation title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shortcuts"
+          }
+        }
+      }
+    },
+    "Side panel placeholder" : {
+      "comment" : "Accessibility label for the iPad side panel slot"
+    },
+    "Skip" : {
+      "comment" : "Onboarding: skips the remaining first-run pages",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        }
+      }
+    },
+    "Skip onboarding" : {
+      "comment" : "Accessibility label for the onboarding Skip button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip onboarding"
+          }
+        }
+      }
+    },
+    "Slide up or down to scroll" : {
+      "comment" : "Touchpad right-edge scroll strip accessibility hint",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide up or down to scroll"
+          }
+        }
+      }
+    },
+    "Smoothing" : {
+      "comment" : "Settings › Gyro: smoothing control label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smoothing"
+          }
+        }
+      }
+    },
+    "Sounds" : {
+      "comment" : "Settings › Feedback toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sounds"
+          }
+        }
+      }
+    },
+    "Start" : {
+      "comment" : "Presenter start-from-current button\nPresenter timer start button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        }
+      }
+    },
+    "Suspended" : {
+      "comment" : "Connection pill state",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suspended"
+          }
+        }
+      }
+    },
+    "Switches to the Touchpad tab" : {
+      "comment" : "Accessibility hint for the presenter Pointer button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switches to the Touchpad tab"
+          }
+        }
+      }
+    },
+    "System" : {
+      "comment" : "Appearance option",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System"
+          }
+        }
+      }
+    },
+    "Tab" : {
+      "comment" : "Keyboard extended key bar: Tab key button label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tab"
+          }
+        }
+      }
+    },
+    "Tap to click" : {
+      "comment" : "Settings › Gestures toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to click"
+          }
+        }
+      }
+    },
+    "TCP fallback" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TCP fallback"
+          }
+        }
+      }
+    },
+    "Terminal command: \\(brewCommand)" : {
+      "comment" : "Accessibility label for the brew install command",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminal command: \\(brewCommand)"
+          }
+        }
+      }
+    },
+    "Terminal command: %@" : {
+      "comment" : "Accessibility label for the brew install command"
+    },
+    "Text too long" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text too long"
+          }
+        }
+      }
+    },
+    "That macro was removed on the Mac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That macro was removed on the Mac"
+          }
+        }
+      }
+    },
+    "That's not an Air Control code" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That's not an Air Control code"
+          }
+        }
+      }
+    },
+    "The Mac received too many commands at once and closed the connection." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Mac received too many commands at once and closed the connection."
+          }
+        }
+      }
+    },
+    "The Mac that answered isn't the one that showed this code. Pairing was cancelled." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Mac that answered isn't the one that showed this code. Pairing was cancelled."
+          }
+        }
+      }
+    },
+    "This device has no gyroscope, so Air Pointer mode isn't available." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device has no gyroscope, so Air Pointer mode isn't available."
+          }
+        }
+      }
+    },
+    "This device has no gyroscope." : {
+      "comment" : "Gyro tab / Settings unsupported-device message, spec 4.1.5"
+    },
+    "This Mac already trusts 20 devices. Remove one in Trusted Devices on the Mac." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Mac already trusts 20 devices. Remove one in Trusted Devices on the Mac."
+          }
+        }
+      }
+    },
+    "This Mac no longer trusts this device" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Mac no longer trusts this device"
+          }
+        }
+      }
+    },
+    "This network keeps devices apart" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This network keeps devices apart"
+          }
+        }
+      }
+    },
+    "This pairing code comes from a newer Mac helper. Update the iPhone app to pair." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This pairing code comes from a newer Mac helper. Update the iPhone app to pair."
+          }
+        }
+      }
+    },
+    "This removes the pairing and its saved credentials. You'll need to scan the QR code again to reconnect." : {
+      "comment" : "Devices screen: forget confirmation message"
+    },
+    "This runs \\(kindDescription.lowercased()) on your Mac. Only continue if you trust it." : {
+      "comment" : "Macro confirmation warning for script kinds",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This runs \\(kindDescription.lowercased()) on your Mac. Only continue if you trust it."
+          }
+        }
+      }
+    },
+    "This runs %@ on your Mac. Only continue if you trust it." : {
+      "comment" : "Macro confirmation warning for script kinds"
+    },
+    "This will run on your Mac." : {
+      "comment" : "Macro confirmation warning for non-script kinds",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will run on your Mac."
+          }
+        }
+      }
+    },
+    "To connect to this Mac, scan the pairing QR code shown in the Air Control menu on your Mac." : {
+      "comment" : "Devices screen: unpaired host explanation"
+    },
+    "Toggle" : {
+
+    },
+    "Too many attempts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many attempts"
+          }
+        }
+      }
+    },
+    "Torch" : {
+      "comment" : "Pairing screen: torch toggle"
+    },
+    "Touchpad" : {
+      "comment" : "Keyboard tab iPad layout: touchpad placeholder region label\nRoot tab title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touchpad"
+          }
+        }
+      }
+    },
+    "Touchpad — placeholder" : {
+      "comment" : "Placeholder screen body; replaced by the Touchpad agent",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touchpad — placeholder"
+          }
+        }
+      }
+    },
+    "Touchpad surface" : {
+      "comment" : "Accessibility label for the touchpad surface (spec §4.8)"
+    },
+    "Trim" : {
+      "comment" : "Error recovery action: trims text to the maximum length",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trim"
+          }
+        }
+      }
+    },
+    "Try again" : {
+      "comment" : "Error recovery action: dismisses and lets the user rescan",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        }
+      }
+    },
+    "UDP" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UDP"
+          }
+        }
+      }
+    },
+    "Up arrow" : {
+      "comment" : "Keyboard extended key bar: accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up arrow"
+          }
+        }
+      }
+    },
+    "Update Air Control" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Air Control"
+          }
+        }
+      }
+    },
+    "Update the Air Control app" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update the Air Control app"
+          }
+        }
+      }
+    },
+    "Update the Mac helper" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update the Mac helper"
+          }
+        }
+      }
+    },
+    "Version" : {
+      "comment" : "Settings › About row label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        }
+      }
+    },
+    "Volume down" : {
+      "comment" : "Keyboard extended key bar: fn-toggled media glyph label\nKeyboard media bar: Volume down button\nMedia volume down button, hold to repeat",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume down"
+          }
+        }
+      }
+    },
+    "Volume up" : {
+      "comment" : "Keyboard extended key bar: fn-toggled media glyph label\nKeyboard media bar: Volume up button\nMedia volume up button, hold to repeat",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume up"
+          }
+        }
+      }
+    },
+    "Wait a minute, then show a new code on your Mac." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wait a minute, then show a new code on your Mac."
+          }
+        }
+      }
+    },
+    "Your iPhone is now a trackpad, air pointer and keyboard for your Mac." : {
+      "comment" : "Onboarding page 1 (spec §4.1.1)",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your iPhone is now a trackpad, air pointer and keyboard for your Mac."
+          }
+        }
+      }
+    },
+    "Your Mac couldn't prove it showed this code. Pairing was cancelled." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Mac couldn't prove it showed this code. Pairing was cancelled."
+          }
+        }
+      }
+    },
+    "Your Mac's helper speaks a newer protocol." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Mac's helper speaks a newer protocol."
+          }
+        }
+      }
+    },
+    "Your Macs" : {
+      "comment" : "Devices screen: trusted hosts section header"
+    },
+    "Not accepted by your Mac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not accepted by your Mac"
+          }
+        }
+      }
+    },
+    "Your Mac didn't accept this iPhone. Open Pair New Device on the Mac and scan the new code." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Mac didn't accept this iPhone. Open Pair New Device on the Mac and scan the new code."
+          }
+        }
+      }
+    },
+    "Mac identity changed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac identity changed"
+          }
+        }
+      }
+    },
+    "This Mac's identity has changed. Forget it and pair again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Mac's identity has changed. Forget it and pair again."
+          }
+        }
+      }
+    },
+    "Secure connection failed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secure connection failed"
+          }
+        }
+      }
+    },
+    "Secure connection failed (\\(detail)). Update both apps and try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secure connection failed (\\(detail)). Update both apps and try again."
+          }
+        }
+      }
+    },
+    "Try Again" : {
+      "comment" : "Devices screen: retries a failed connect-to-known-host attempt",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        }
+      }
+    },
+    "Forget and pair again" : {
+      "comment" : "Devices screen: destructive action when the Mac's identity changed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forget and pair again"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

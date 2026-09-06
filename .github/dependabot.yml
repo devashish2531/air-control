@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: "swift"
-    directory: "/Packages/AirMouseKit"
+    directory: "/Packages/AirControlKit"
     schedule:
       interval: "weekly"
     labels: ["dependencies", "kit"]

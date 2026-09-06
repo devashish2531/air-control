@@ -1,4 +1,4 @@
-# Air Mouse — Functional & Technical Specification (v1)
+# Air Control — Functional & Technical Specification (v1)
 
 | Field | Value |
 |---|---|
@@ -17,7 +17,7 @@
 
 ### 1.1 Scope
 
-In scope for v1 (per `00-decisions.md`): iPhone/iPad client (iOS 18+) and Mac helper (macOS 15+) over local Wi-Fi; Bonjour discovery; QR + mutual-TLS pairing; touchpad, gyro air-mouse, keyboard, presenter/media remote, host-authored macros, iPad split layout with hardware-keyboard passthrough; open-source (MIT) monorepo with a shared `AirMouseProtocol` Swift package. Out of scope: multi-Mac switching, Apple Watch, Bluetooth, cloud relay, screen streaming, clipboard/file transfer, phone-side macro editing, Mac App Store build (PRD §7.1).
+In scope for v1 (per `00-decisions.md`): iPhone/iPad client (iOS 18+) and Mac helper (macOS 15+) over local Wi-Fi; Bonjour discovery; QR + mutual-TLS pairing; touchpad, gyro air-pointer, keyboard, presenter/media remote, host-authored macros, iPad split layout with hardware-keyboard passthrough; open-source (MIT) monorepo with a shared `AirControlProtocol` Swift package. Out of scope: multi-Mac switching, Apple Watch, Bluetooth, cloud relay, screen streaming, clipboard/file transfer, phone-side macro editing, Mac App Store build (PRD §7.1).
 
 ### 1.2 Traceability matrix
 
@@ -178,22 +178,22 @@ In scope for v1 (per `00-decisions.md`): iPhone/iPad client (iOS 18+) and Mac he
 
 ## 2. System overview
 
-> **Amendment (2026-09-04):** `04-architecture.md` ADR-001 renames the shared package to `AirMouseKit` with targets `AirMouseProtocol`, `AirMouseCrypto`, `AirMouseFilters`, `AirMouseCore` and an `airmouse-cli` executable, and generates the Xcode projects with XcodeGen instead of a hand-maintained `.xcodeproj`. Wire format, constants and behaviour in this document are unchanged; read the module names in §2.1, §2.4 and §6.1 through the mapping table in ADR-001.
+> **Amendment (2026-09-04):** `04-architecture.md` ADR-001 renames the shared package to `AirControlKit` with targets `AirControlProtocol`, `AirControlCrypto`, `AirControlFilters`, `AirControlCore` and an `aircontrol-cli` executable, and generates the Xcode projects with XcodeGen instead of a hand-maintained `.xcodeproj`. Wire format, constants and behaviour in this document are unchanged; read the module names in §2.1, §2.4 and §6.1 through the mapping table in ADR-001.
 
 
 ### 2.1 Components
 
 | Component | Target / product | Responsibilities |
 |---|---|---|
-| **AirMouse (iOS)** | `AirMouse.app`, iOS/iPadOS 18+, SwiftUI + UIKit input views | Discovery, pairing UI, touch/gyro/keyboard engines, connection manager, settings, macro buttons |
-| **AirMouseHelper (macOS)** | `AirMouseHelper.app`, macOS 15+, `LSUIElement`, SwiftUI `MenuBarExtra` + AppKit windows | Bonjour advertising, TLS listener, UDP listener, session management, event injection (`CGEvent`), macro engine, trusted-device store, permissions onboarding, Sparkle updates |
-| **AirMouseProtocol (SPM package)** | `Packages/AirMouseProtocol`, platforms `.iOS(.v18)`, `.macOS(.v15)`, deps: Foundation + CryptoKit only | Library targets `AirMouseWire` (framing, JSON envelope, message models, motion datagram codec, AEAD framing, replay window, pairing proof), `AirMouseInputCore` (One-Euro filter, acceleration curve, gesture state machine, display clamping), `AirMouseMacroModel` (macro `Codable` models and validation). **(spec decision)**: one package, three library targets, so `swift test` exercises everything without Xcode. |
+| **AirControl (iOS)** | `AirControl.app`, iOS/iPadOS 18+, SwiftUI + UIKit input views | Discovery, pairing UI, touch/gyro/keyboard engines, connection manager, settings, macro buttons |
+| **AirControlHelper (macOS)** | `AirControlHelper.app`, macOS 15+, `LSUIElement`, SwiftUI `MenuBarExtra` + AppKit windows | Bonjour advertising, TLS listener, UDP listener, session management, event injection (`CGEvent`), macro engine, trusted-device store, permissions onboarding, Sparkle updates |
+| **AirControlProtocol (SPM package)** | `Packages/AirControlProtocol`, platforms `.iOS(.v18)`, `.macOS(.v15)`, deps: Foundation + CryptoKit only | Library targets `AirControlWire` (framing, JSON envelope, message models, motion datagram codec, AEAD framing, replay window, pairing proof), `AirControlInputCore` (One-Euro filter, acceleration curve, gesture state machine, display clamping), `AirControlMacroModel` (macro `Codable` models and validation). **(spec decision)**: one package, three library targets, so `swift test` exercises everything without Xcode. |
 
 ### 2.2 Component diagram
 
 ```mermaid
 flowchart LR
-  subgraph iOS["AirMouse (iOS)"]
+  subgraph iOS["AirControl (iOS)"]
     UI[SwiftUI screens] --> TE[TouchEngine UIView]
     UI --> GE[GyroEngine CoreMotion]
     UI --> KE[KeyboardEngine hidden UITextView]
@@ -203,10 +203,10 @@ flowchart LR
     CM --> KS[(Keychain: identity, pinned host certs)]
     CM --> ST[(UserDefaults + JSON stores)]
   end
-  subgraph Pkg["AirMouseProtocol"]
-    W[AirMouseWire] --- IC[AirMouseInputCore] --- MM[AirMouseMacroModel]
+  subgraph Pkg["AirControlProtocol"]
+    W[AirControlWire] --- IC[AirControlInputCore] --- MM[AirControlMacroModel]
   end
-  subgraph Mac["AirMouseHelper (macOS)"]
+  subgraph Mac["AirControlHelper (macOS)"]
     L1[NWListener TLS/TCP + Bonjour] --> SM[SessionManager]
     L2[NWListener UDP] --> SM
     SM --> INJ[EventInjector CGEvent / NSEvent]
@@ -224,13 +224,13 @@ flowchart LR
 
 - Both devices on one IP network (same Wi-Fi/AP, or Mac joined to the iPhone's Personal Hotspot). No internet path is ever used except the host's opt-in update check (§5.7.2).
 - Host listens on **TCP 47800** (control) and **UDP 47800** (motion) by default **(spec decision)**; if either port is busy the host binds an ephemeral port for *both* and advertises the real values in TXT and QR. Fixed defaults simplify firewall documentation.
-- iOS `Info.plist`: `NSLocalNetworkUsageDescription` = "Air Mouse finds and connects to your Mac on your local network. Nothing is sent over the internet."; `NSBonjourServices` = `["_airmouse._tcp", "_airmouse._udp"]`; `NSCameraUsageDescription` = "The camera is used only to scan the pairing QR code shown on your Mac."; `CFBundleURLTypes` registers `airmouse`; `UIRequiresFullScreen` = NO.
+- iOS `Info.plist`: `NSLocalNetworkUsageDescription` = "Air Control finds and connects to your Mac on your local network. Nothing is sent over the internet."; `NSBonjourServices` = `["_aircontrol._tcp", "_aircontrol._udp"]`; `NSCameraUsageDescription` = "The camera is used only to scan the pairing QR code shown on your Mac."; `CFBundleURLTypes` registers `aircontrol`; `UIRequiresFullScreen` = NO.
 - macOS `Info.plist`: `LSUIElement` = YES, `NSLocalNetworkUsageDescription` (same text), `NSBonjourServices` (same list), `NSAppleEventsUsageDescription` (script macros), `SUFeedURL` (Sparkle, HTTPS), `SUPublicEDKey`.
 - Signing: iOS App Store/TestFlight; Mac Developer ID + Hardened Runtime + notarization, not sandboxed (A6), universal binary. Debug builds use a stable Apple Development identity from git-ignored `Config/Local.xcconfig` (A10).
 
 ### 2.4 Repository layout
 
-`AirMouse.xcodeproj` (Xcode 16 buildable folders) with targets `AirMouse` (iOS), `AirMouseHelper` (macOS), `AirMouseHelperIntegrationTests`; `Packages/AirMouseProtocol`; `Config/Base.xcconfig` + `Config/Local.xcconfig` (ignored); `docs/`; `.github/workflows/{ci,release}.yml`; `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`.
+`AirControl.xcodeproj` (Xcode 16 buildable folders) with targets `AirControl` (iOS), `AirControlHelper` (macOS), `AirControlHelperIntegrationTests`; `Packages/AirControlProtocol`; `Config/Base.xcconfig` + `Config/Local.xcconfig` (ignored); `docs/`; `.github/workflows/{ci,release}.yml`; `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`.
 
 ---
 ## 3. Wire protocol specification
@@ -254,7 +254,7 @@ flowchart LR
 
 #### 3.1.1 Bonjour service types
 
-The host registers **`_airmouse._tcp`** (control) and **`_airmouse._udp`** (motion) in the local domain with the **same instance name** and the **same TXT record** (FR-DP-001). The client browses **only `_airmouse._tcp`**; the UDP record exists so the iOS `NSBonjourServices` list is complete and so third-party tooling can see both ports **(spec decision)**. Instance name = the Mac's computer name (`Host.current().localizedName`), Bonjour appends " (2)" on collision; the host reads the registered name from `serviceRegistrationUpdateHandler` and uses it as its display name in `hello`. `includePeerToPeer = false` on both sides (no AWDL).
+The host registers **`_aircontrol._tcp`** (control) and **`_aircontrol._udp`** (motion) in the local domain with the **same instance name** and the **same TXT record** (FR-DP-001). The client browses **only `_aircontrol._tcp`**; the UDP record exists so the iOS `NSBonjourServices` list is complete and so third-party tooling can see both ports **(spec decision)**. Instance name = the Mac's computer name (`Host.current().localizedName`), Bonjour appends " (2)" on collision; the host reads the registered name from `serviceRegistrationUpdateHandler` and uses it as its display name in `hello`. `includePeerToPeer = false` on both sides (no AWDL).
 
 Cross-talk guard (R-10): a browse result whose TXT lacks `v` or whose `v` list does not include a version the client speaks is hidden from the Devices list.
 
@@ -277,7 +277,7 @@ Each key/value pair ≤ 255 bytes; total TXT ≤ 400 bytes. The client uses `id`
 The QR encodes exactly one URL (FR-DP-003). Error correction level **M**, rendered ≥ 300 × 300 pt with a 4-module quiet zone on a white background regardless of appearance mode.
 
 ```
-airmouse://pair?v=1&id=<hostID>&n=<name>&a=<addr1,addr2,…>&p=<tcpPort>&u=<udpPort>&fp=<certFP>&s=<secret>
+aircontrol://pair?v=1&id=<hostID>&n=<name>&a=<addr1,addr2,…>&p=<tcpPort>&u=<udpPort>&fp=<certFP>&s=<secret>
 ```
 
 | Param | Required | Encoding | Size | Semantics |
@@ -307,7 +307,7 @@ Total URL length SHALL be ≤ 512 bytes (fits QR version 15 at ECC-M); the host 
 | Aspect | Host | Client |
 |---|---|---|
 | Key | P-256 (`SecKeyCreateRandomKey`, `kSecAttrTokenID` none), login Keychain, non-exportable, `kSecAttrAccessible…AfterFirstUnlock` | P-256 in Secure Enclave when available (`kSecAttrTokenIDSecureEnclave`), else Keychain; `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` |
-| Certificate | Self-signed X.509 v3 built with `swift-certificates`: CN = `AirMouse Host <hostID b64u>`, validity 10 years, serial random 16 bytes, EKU serverAuth+clientAuth, no SAN | Same, CN = `AirMouse Client <clientID b64u>`, EKU clientAuth+serverAuth |
+| Certificate | Self-signed X.509 v3 built with `swift-certificates`: CN = `AirControl Host <hostID b64u>`, validity 10 years, serial random 16 bytes, EKU serverAuth+clientAuth, no SAN | Same, CN = `AirControl Client <clientID b64u>`, EKU clientAuth+serverAuth |
 | Generated | First launch | First pairing (lazily) |
 | TLS | `NWProtocolTLS.Options`; `sec_protocol_options_set_min_tls_protocol_version(.TLSv13)`; `sec_protocol_options_set_local_identity`; `sec_protocol_options_set_peer_authentication_required(true)`; `sec_protocol_options_set_verify_block` | Same; server-name indication disabled (no hostname validation) |
 | Cipher suites | TLS 1.3 AEAD only (AES-128-GCM, AES-256-GCM, ChaCha20-Poly1305); the OS default 1.3 set already satisfies this | Same |
@@ -324,7 +324,7 @@ sequenceDiagram
   autonumber
   participant P as Phone (Client)
   participant M as Mac (Host)
-  M->>M: Pairing window opens: secret S (16 B), expiry 60 s, QR = airmouse://pair?…
+  M->>M: Pairing window opens: secret S (16 B), expiry 60 s, QR = aircontrol://pair?…
   P->>P: Scan QR, parse URL, pin fp, order addresses
   P->>M: TCP connect (addr order §3.3.2)
   P->>M: TLS 1.3 ClientHello (+ client cert on request)
@@ -332,7 +332,7 @@ sequenceDiagram
   Note over P,M: Both verify blocks run. Phone: FP == QR fp. Mac: unknown cert but window open → unauthenticated
   P->>M: hello { pairing: true, device, protocol {min,max} }
   M->>P: pairChallenge { nonce (16 B), hostID, hostName }
-  P->>P: exporter = TLS-Exporter("EXPORTER-airmouse-pairing-v1", 32 B)
+  P->>P: exporter = TLS-Exporter("EXPORTER-aircontrol-pairing-v1", 32 B)
   P->>M: pairProof { proof = HMAC-SHA256(S, 0x01 ‖ exporter ‖ nonce ‖ clientFP ‖ hostFP ‖ hostID) }
   M->>M: Recompute, constant-time compare, check expiry/attempts/rate limit
   M->>M: Persist client cert + metadata (trusted); consume S
@@ -348,7 +348,7 @@ Timing target: QR scanned → touchpad screen usable in ≤ 3 s (AM-DP-02); the 
 #### 3.2.3 Proof construction (channel binding)
 
 ```
-exporter  = TLS 1.3 exporter, label "EXPORTER-airmouse-pairing-v1", empty context, 32 bytes
+exporter  = TLS 1.3 exporter, label "EXPORTER-aircontrol-pairing-v1", empty context, 32 bytes
             (Network.framework: sec_protocol_metadata_create_secret(metadata, labelLen, label, 32))
 binding   = exporter(32) ‖ nonce(16) ‖ clientFP(32) ‖ hostFP(32) ‖ hostID(16)      // 128 bytes
 proof     = HMAC-SHA256(key = S, data = 0x01 ‖ binding)                              // client → host
@@ -361,8 +361,8 @@ Both values are transmitted b64u-encoded in JSON. The secret S never leaves the 
 
 | Side | Store | Record |
 |---|---|---|
-| Host | Keychain (`kSecClassCertificate`, label `AirMouse Trusted Client <clientID>`) + `~/Library/Application Support/AirMouseHelper/TrustedDevices.json` | `clientID` (FP), `name`, `model`, `osVersion`, `firstPaired`, `lastSeen`, `localAlias?`, `allowScripts` (false), `revoked` (false) |
-| Client | Keychain (`kSecClassCertificate`, label `AirMouse Trusted Host <hostID>`) + `Application Support/AirMouse/TrustedHosts.json` | `hostID`, `hostFP`, `name`, `model`, `firstPaired`, `lastConnected`, `lastKnownAddresses[]` (≤ 6, with timestamps), `tcpPort`, `udpPort`, `qrAddresses[]`, `perHostSettingsOverride?`, `macroCacheRevision` |
+| Host | Keychain (`kSecClassCertificate`, label `AirControl Trusted Client <clientID>`) + `~/Library/Application Support/AirControlHelper/TrustedDevices.json` | `clientID` (FP), `name`, `model`, `osVersion`, `firstPaired`, `lastSeen`, `localAlias?`, `allowScripts` (false), `revoked` (false) |
+| Client | Keychain (`kSecClassCertificate`, label `AirControl Trusted Host <hostID>`) + `Application Support/AirControl/TrustedHosts.json` | `hostID`, `hostFP`, `name`, `model`, `firstPaired`, `lastConnected`, `lastKnownAddresses[]` (≤ 6, with timestamps), `tcpPort`, `udpPort`, `qrAddresses[]`, `perHostSettingsOverride?`, `macroCacheRevision` |
 
 The certificate is the source of truth for trust; the JSON file holds metadata only. On load, any JSON record without a matching Keychain certificate is dropped.
 
@@ -605,8 +605,8 @@ offset  size  field       description
 #### 3.5.3 Keys and nonces
 
 ```
-kC2H = HKDF-SHA256(ikm = secret, salt = sessionID as u32 LE (4 B), info = "airmouse-udp-c2h-v1", L = 32)
-kH2C = HKDF-SHA256(ikm = secret, salt = sessionID as u32 LE (4 B), info = "airmouse-udp-h2c-v1", L = 32)
+kC2H = HKDF-SHA256(ikm = secret, salt = sessionID as u32 LE (4 B), info = "aircontrol-udp-c2h-v1", L = 32)
+kH2C = HKDF-SHA256(ikm = secret, salt = sessionID as u32 LE (4 B), info = "aircontrol-udp-h2c-v1", L = 32)
 nonce = 0x00 0x00 0x00 0x00 ‖ counter as u64 LE (8 B)            // 12 bytes
 ```
 
@@ -704,7 +704,7 @@ Pinch (keys mode), three-finger swipes, four-finger tap are sent as `key` messag
 
 ### 4.1 App structure and navigation map
 
-Root: `TabView` with five tabs — **Touchpad**, **Air Mouse**, **Keyboard**, **Remote**, **Macros** — plus a toolbar with a **connection pill** (host name + status dot, tap → Devices) on the left and **Settings** (gear) on the right. Onboarding and Scan QR are presented as full-screen covers. The Air Mouse tab is hidden when `CMMotionManager().isDeviceMotionAvailable == false` (FR-GY-012). Default tab is configurable (FR-ST-004). Navigation:
+Root: `TabView` with five tabs — **Touchpad**, **Air Pointer**, **Keyboard**, **Remote**, **Macros** — plus a toolbar with a **connection pill** (host name + status dot, tap → Devices) on the left and **Settings** (gear) on the right. Onboarding and Scan QR are presented as full-screen covers. The Air Pointer tab is hidden when `CMMotionManager().isDeviceMotionAvailable == false` (FR-GY-012). Default tab is configurable (FR-ST-004). Navigation:
 
 ```
 Onboarding (first launch) → [Local Network pre-prompt] → Scan QR → Touchpad
@@ -713,12 +713,12 @@ Any tab ── gear ──► Settings ──► {Pointer, Gestures, Gyro, Keybo
 ```
 
 #### 4.1.1 Onboarding (3 pages, `TabView(.page)`)
-1. *"Your iPhone is now a trackpad, air mouse and keyboard for your Mac."* — illustration; **Continue**.
-2. *Install the Mac helper* — QR to the GitHub Releases page, `brew install --cask air-mouse` in a copyable code block (**Copy** button), **I've installed it**.
-3. *Local network access* — copy: "Air Mouse needs to see devices on your Wi-Fi to find your Mac. iOS will ask you next. Nothing leaves your network." **Continue** → triggers the first `NWBrowser` (system prompt) and pushes Scan QR. **Skip** exists on every page. Completion stored in `UserDefaults.onboardingCompleted`.
+1. *"Your iPhone is now a trackpad, air pointer and keyboard for your Mac."* — illustration; **Continue**.
+2. *Install the Mac helper* — QR to the GitHub Releases page, `brew install --cask air-control` in a copyable code block (**Copy** button), **I've installed it**.
+3. *Local network access* — copy: "Air Control needs to see devices on your Wi-Fi to find your Mac. iOS will ask you next. Nothing leaves your network." **Continue** → triggers the first `NWBrowser` (system prompt) and pushes Scan QR. **Skip** exists on every page. Completion stored in `UserDefaults.onboardingCompleted`.
 
 #### 4.1.2 Scan QR
-`DataScannerViewController` (fallback `AVCaptureSession` when `!isSupported || !isAvailable`) full-screen with a reticle; on recognising a URL starting with `airmouse://pair?` the scanner stops, haptic `.success`, and the pairing sheet appears ("Pairing with **<n>**…" progress → success "Paired" checkmark → auto-dismiss to Touchpad after 600 ms). Controls: **Close**, **Paste pairing link** (text field, validates §3.1.3), **Torch** toggle. Camera denied → E-CAMERA (§9) with Settings deep link and the paste field.
+`DataScannerViewController` (fallback `AVCaptureSession` when `!isSupported || !isAvailable`) full-screen with a reticle; on recognising a URL starting with `aircontrol://pair?` the scanner stops, haptic `.success`, and the pairing sheet appears ("Pairing with **<n>**…" progress → success "Paired" checkmark → auto-dismiss to Touchpad after 600 ms). Controls: **Close**, **Paste pairing link** (text field, validates §3.1.3), **Torch** toggle. Camera denied → E-CAMERA (§9) with Settings deep link and the paste field.
 
 #### 4.1.3 Devices
 List of trusted hosts (name, model glyph, "Connected"/"Available"/"Not found" status, last connected relative time) followed by "Other Macs on this network" (browse results without a trusted record, "Not paired" badge, tapping → explains that pairing needs the QR and offers **Scan QR**). Toolbar: **Scan QR**. Swipe actions on trusted hosts: **Connect**, **Forget** (confirmation alert, deletes Keychain cert + record + macro cache). Empty state after 5 s of browsing: guidance list (helper running? same Wi-Fi? local network permission?) with **Scan QR** and **Check permission** buttons (AM-DP-01).
@@ -732,7 +732,7 @@ List of trusted hosts (name, model glyph, "Connected"/"Available"/"Not found" st
 - Idle dim: after 30 s without touch the whole tab's UI opacity animates to 0.25 (never system brightness); restores on any touch. `isIdleTimerDisabled = true` while Connected and foregrounded.
 - First-connect **gesture tutorial** overlay (5 steps: move, tap, two-finger tap, scroll, pinch), each advanced when the engine recognises the gesture; **Skip**; replay from Settings › Tutorial.
 
-#### 4.1.5 Air Mouse (gyro)
+#### 4.1.5 Air Pointer (gyro)
 Layout (portrait): top third = status card (calibration indicator, "hold like a remote" hint on first use), middle = **Click area** split left (primary) / right (secondary) — tap = click, hold ≥ 250 ms = drag while held; two-finger drag on the click area scrolls (FR-GY-010); bottom = **Clutch** button ≥ 96 pt, thumb position (mirrored for left-handed). Clutch modes: Hold (default) / Toggle (AM-GY-08). Double-tap clutch = `recenter`. Shake-to-recenter optional (`UIEvent.subtype == .motionShake`). Landscape moves the clutch to the trailing edge. If no gyro: tab hidden; Settings › Gyro shows "This device has no gyroscope."
 
 #### 4.1.6 Keyboard
@@ -744,7 +744,7 @@ Segmented **Presenter / Media**.
 - Media: Play/Pause, Previous, Next, −10 s / +10 s (← / → generic; J / L when frontmost app is a browser), **volume slider** (0–1, sends `volume` at ≤ 20 Hz, coalesced), **Mute**, launcher row of up to 8 `launchApp` macros flagged `showOnMediaPage`.
 
 #### 4.1.8 Macros
-Pages 0–5 as horizontally paged grids (4 columns; **Large buttons** toggle → 2 columns); each button = icon (SF Symbol, fallback `command`), name, tint, script badge (⚠︎ overlay) for script kinds. Tap → `macroInvoke`; `requiresConfirmation` → alert "Run <name>?" first. `macroResult` → toast (success/failure, message). Empty state: "Add macros in the Air Mouse menu on your Mac." Cached set renders instantly on reconnect (FR-MC-009).
+Pages 0–5 as horizontally paged grids (4 columns; **Large buttons** toggle → 2 columns); each button = icon (SF Symbol, fallback `command`), name, tint, script badge (⚠︎ overlay) for script kinds. Tap → `macroInvoke`; `requiresConfirmation` → alert "Run <name>?" first. `macroResult` → toast (success/failure, message). Empty state: "Add macros in the Air Control menu on your Mac." Cached set renders instantly on reconnect (FR-MC-009).
 
 #### 4.1.9 Settings
 Sections and controls (each with inline explanation; touchpad settings have a live preview area that shows the recognised gesture):
@@ -849,7 +849,7 @@ Ignore a touch if `majorRadius > 30 pt` (spec decision), if it begins within 4 p
 ### 4.3 Gyro engine
 
 #### 4.3.1 CoreMotion configuration
-`CMMotionManager.deviceMotionUpdateInterval = 1/100`; `startDeviceMotionUpdates(using: .xArbitraryCorrectedZVertical, to: OperationQueue(qos: .userInteractive))`. Updates run **only** while the Air Mouse tab (or Presenter Pointer button) is visible and the app is active; stopped otherwise (NFR-PERF-007). Use `rotationRate` (bias-corrected) and `gravity`.
+`CMMotionManager.deviceMotionUpdateInterval = 1/100`; `startDeviceMotionUpdates(using: .xArbitraryCorrectedZVertical, to: OperationQueue(qos: .userInteractive))`. Updates run **only** while the Air Pointer tab (or Presenter Pointer button) is visible and the app is active; stopped otherwise (NFR-PERF-007). Use `rotationRate` (bias-corrected) and `gravity`.
 
 #### 4.3.2 Mapping
 With `g = normalize(gravity)`, `w = rotationRate` (rad/s), device X axis `ex = (1,0,0)` re-oriented per interface orientation (portrait: `ex`; landscapeLeft: `ey`; landscapeRight: `−ey`; upside-down: `−ex`; suspended when "Lock orientation" is on):
@@ -938,7 +938,7 @@ stateDiagram-v2
 - Each `Reconnecting` attempt first re-resolves via `NWBrowser` (if active), then last-known addresses, then QR addresses (FR-CR-007), through the §3.3.2 selection.
 
 #### 4.5.3 Browsing
-`NWBrowser(for: .bonjour(type: "_airmouse._tcp", domain: nil))` runs only while Devices is visible or an auto-connect is pending (and for 10 s after foregrounding when auto-connect is on); results are debounced 100 ms.
+`NWBrowser(for: .bonjour(type: "_aircontrol._tcp", domain: nil))` runs only while Devices is visible or an auto-connect is pending (and for 10 s after foregrounding when auto-connect is on); results are debounced 100 ms.
 
 #### 4.5.4 Direct connect and local-only guard
 QR addresses bypass Bonjour entirely (FR-DP-009). Non-private addresses are refused unless from a QR (FR-CR-011). After a hostID has connected successfully, its resolved IP is appended to `lastKnownAddresses` (max 6, LRU).
@@ -972,9 +972,9 @@ Generators are `prepare()`d on touch-down. All haptics and sounds are individual
 | Data | Store | Notes |
 |---|---|---|
 | Client identity private key + certificate | Keychain (Secure Enclave key where available), `ThisDeviceOnly`, not in iCloud Keychain | Never exported |
-| Trusted host certificates | Keychain `kSecClassCertificate`, label `AirMouse Trusted Host <hostID>` | Deleted on Forget |
-| Trusted host metadata (`TrustedHostRecord`) | `Application Support/AirMouse/TrustedHosts.json` (Codable, atomic write, file protection `.completeUntilFirstUserAuthentication`) | §3.2.4 fields |
-| Macro cache | `Application Support/AirMouse/Macros/<hostID>.json` | revision + `[Macro]` |
+| Trusted host certificates | Keychain `kSecClassCertificate`, label `AirControl Trusted Host <hostID>` | Deleted on Forget |
+| Trusted host metadata (`TrustedHostRecord`) | `Application Support/AirControl/TrustedHosts.json` (Codable, atomic write, file protection `.completeUntilFirstUserAuthentication`) | §3.2.4 fields |
+| Macro cache | `Application Support/AirControl/Macros/<hostID>.json` | revision + `[Macro]` |
 | Settings (global) | `UserDefaults.standard` via `@AppStorage`-backed `SettingsStore` (Codable snapshot also exportable) | keys prefixed `am.` |
 | Per-host overrides | inside `TrustedHostRecord.overrides` (partial `Settings`) | layered at read time |
 | Shortcut palette, tutorial flags, onboarding flags | `UserDefaults` | |
@@ -1034,8 +1034,8 @@ Icon: `cursorarrow.rays` monochrome when idle; filled/tinted variant when ≥ 1 
 | **Trusted Devices…** | §5.6 window |
 | **Diagnostics…** | Live counters window |
 | **Settings…** (⌘,) | Preferences window |
-| **Check for updates…** | Sparkle; hidden when installed via Homebrew (`/opt/homebrew/Caskroom` path detection) — shows "Update with `brew upgrade --cask air-mouse`" instead |
-| **Quit Air Mouse** (⌘Q) | Release-all, `goodbye{hostQuit}`, exit |
+| **Check for updates…** | Sparkle; hidden when installed via Homebrew (`/opt/homebrew/Caskroom` path detection) — shows "Update with `brew upgrade --cask air-control`" instead |
+| **Quit Air Control** (⌘Q) | Release-all, `goodbye{hostQuit}`, exit |
 
 #### 5.1.3 Windows
 - **Pairing / QR**: 420 × 520 pt, always-on-top level `.floating`, white background in both appearances; QR ≥ 300 pt; host name; 60 s countdown ring; copyable pairing link (disclosure "Can't scan?"); status text "Waiting…" → "Paired with <device>" (green, 2 s, then window closes unless ⌥ is held). Closing invalidates the secret.
@@ -1056,7 +1056,7 @@ All windows keyboard-navigable (full keyboard access), labelled for VoiceOver, t
 
 Single window, 4 steps, re-enterable from Settings › General › "Run setup again"; completion flag in UserDefaults.
 
-1. **Accessibility** — copy: "Air Mouse needs Accessibility permission to move the cursor and type on your behalf. It never reads your screen or your keystrokes." Buttons: **Open System Settings** (`x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`) and **Request** (`AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt: true])`). Poll `AXIsProcessTrusted()` every **2 s** while the window is visible (FR-MB-003), also on `NSApplication.didBecomeActive`; the step auto-advances with a checkmark when granted.
+1. **Accessibility** — copy: "Air Control needs Accessibility permission to move the cursor and type on your behalf. It never reads your screen or your keystrokes." Buttons: **Open System Settings** (`x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`) and **Request** (`AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt: true])`). Poll `AXIsProcessTrusted()` every **2 s** while the window is visible (FR-MB-003), also on `NSApplication.didBecomeActive`; the step auto-advances with a checkmark when granted.
 2. **Launch at login** — checkbox default on → `SMAppService.mainApp.register()`; if `.requiresApproval` show "Approve in Login Items" → `SMAppService.openSystemSettingsLoginItems()`.
 3. **Firewall** (shown only if `/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate` reports on) — explain the "Allow incoming connections" prompt.
 4. **Pair** — embeds the QR view.
@@ -1125,11 +1125,11 @@ a        = 0 (off) · 1.0 (precise) · 2.5 (default) · 4.0 (fast)
 gain     = base(s) · accel(v)                         applied to touch and external-pointer deltas; not to gyro
 ```
 
-`v` is computed from the datagram's own `dx, dy` and the client-timestamp interval to the previous datagram of the same source (clamped 4–50 ms); the first datagram of a burst uses `accel = 1`. The curve lives in `AirMouseInputCore.AccelerationCurve` and is unit-tested against the table above.
+`v` is computed from the datagram's own `dx, dy` and the client-timestamp interval to the previous datagram of the same source (clamped 4–50 ms); the first datagram of a burst uses `accel = 1`. The curve lives in `AirControlInputCore.AccelerationCurve` and is unit-tested against the table above.
 
 ### 5.5 Macro engine
 
-#### 5.5.1 Data model (`AirMouseMacroModel`)
+#### 5.5.1 Data model (`AirControlMacroModel`)
 
 ```swift
 public struct Macro: Codable, Identifiable, Hashable {
@@ -1152,7 +1152,7 @@ public enum MacroAction: Codable, Hashable {
 `SequenceStep = .combo(modifiers, keyCode, keyLabel) | .text(String ≤ 256)`. Validation (shared, runs on both sides): limits above; 64 macros; ≤ 12 per page; unique names (case-insensitive); `icon` must be a known SF Symbol on the validating OS or is rendered as `command`; `requiresConfirmation` forced `true` for `appleScript`/`shellCommand`. `isScript` computed property. `MacroList` JSON schema version `"macros/1"`.
 
 #### 5.5.2 Storage, defaults, export/import
-`~/Library/Application Support/AirMouseHelper/Macros.json` = `{ "schema": "macros/1", "revision": Int, "macros": [Macro] }`, atomic writes, `revision` incremented on every save. First run creates the starter set (FR-MC-010): Mission Control (⌃↑), Show Desktop (fn F11), Screenshot (⌘⇧4), Lock Screen (⌃⌘Q), Spotlight (⌘Space), Terminal (`com.apple.Terminal`), Safari (`com.apple.Safari`), Music (`com.apple.Music`). **Export…** writes the same document via `NSSavePanel`; **Import…** validates the schema, merges by `id` (imported wins; `updatedAt` refreshed), enforces limits, and previews the count before applying. Script macros in an import are imported **disabled** (`requiresConfirmation = true`, and shown with a warning) — execution still requires the opt-ins.
+`~/Library/Application Support/AirControlHelper/Macros.json` = `{ "schema": "macros/1", "revision": Int, "macros": [Macro] }`, atomic writes, `revision` incremented on every save. First run creates the starter set (FR-MC-010): Mission Control (⌃↑), Show Desktop (fn F11), Screenshot (⌘⇧4), Lock Screen (⌃⌘Q), Spotlight (⌘Space), Terminal (`com.apple.Terminal`), Safari (`com.apple.Safari`), Music (`com.apple.Music`). **Export…** writes the same document via `NSSavePanel`; **Import…** validates the schema, merges by `id` (imported wins; `updatedAt` refreshed), enforces limits, and previews the count before applying. Script macros in an import are imported **disabled** (`requiresConfirmation = true`, and shown with a warning) — execution still requires the opt-ins.
 
 #### 5.5.3 Editor UI
 Window with a left page list (Pages 1–6, reorder by drag) and a right grid mirroring the phone layout (drag to reorder across pages). Inspector for the selected macro: Name, Icon (searchable SF Symbol picker with preview), Tint, Show on media page, Requires confirmation, Action kind picker and per-kind fields: **Key combo recorder** (a focused `NSView` with `NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged])` active only while the editor window is key — no global monitor; displays the macOS glyph string, stores `keyCode + modifiers + keyLabel` from the current layout), sequence step list, app picker (enumerates `/Applications` and `~/Applications` via `NSWorkspace`, shows icons), URL field, Shortcut picker (`/usr/bin/shortcuts list`, cached 60 s), script text areas with a red warning header when script macros are globally disabled.
@@ -1189,19 +1189,19 @@ Store per §3.2.4. **Trusted Devices** window: table columns Name (editable loca
 Sparkle 2 framework (EdDSA-signed appcast, HTTPS only, `SUAutomaticallyUpdate = NO`), opt-in during onboarding ("Check for updates automatically" default **off** per FR-MB-007's opt-in); when on, `SUScheduledCheckInterval = 86400`. Homebrew-cask installs (path under a Caskroom) disable Sparkle UI and show the `brew upgrade` hint. This is the only non-LAN network access the helper makes (NFR-SEC-006).
 
 #### 5.7.3 Logging
-OSLog subsystem `com.airmouse.helper`, categories: `net`, `tls`, `pairing`, `session`, `inject`, `macro`, `store`, `ui`. Rules: `.debug` level for per-message traces (off in release builds); all peer identifiers as `privacy: .private` except FP prefixes (8 hex) which are `.public`; **never** logged: typed text, key characters, pairing secrets, session keys, private keys, full certificates, full IP addresses at `.info`+ (masked to /24). `frontmostApp` changes are observed via `NSWorkspace.didActivateApplicationNotification` and emitted as `hostState` within 500 ms (FR-PR-005) and logged at `.debug` only. Diagnostics export contains counters and timing only (NFR-PRIV-005). The iOS app uses subsystem `com.airmouse.app` with the same categories and rules.
+OSLog subsystem `com.aircontrol.helper`, categories: `net`, `tls`, `pairing`, `session`, `inject`, `macro`, `store`, `ui`. Rules: `.debug` level for per-message traces (off in release builds); all peer identifiers as `privacy: .private` except FP prefixes (8 hex) which are `.public`; **never** logged: typed text, key characters, pairing secrets, session keys, private keys, full certificates, full IP addresses at `.info`+ (masked to /24). `frontmostApp` changes are observed via `NSWorkspace.didActivateApplicationNotification` and emitted as `hostState` within 500 ms (FR-PR-005) and logged at `.debug` only. Diagnostics export contains counters and timing only (NFR-PRIV-005). The iOS app uses subsystem `com.aircontrol.app` with the same categories and rules.
 
 ---
 
-## 6. Shared package specification (`Packages/AirMouseProtocol`)
+## 6. Shared package specification (`Packages/AirControlProtocol`)
 
 ### 6.1 Modules and public API surface
 
 | Target | Public types (selected) | Dependencies |
 |---|---|---|
-| `AirMouseWire` | `ProtocolVersion`, `Envelope`, `Message` + payload structs (§3.4.5), `FrameCodec` (length-prefix encode/decode with partial-buffer state), `MotionPayload` (16-byte pack/unpack), `MotionCrypto` (seal/open with `sessionID`, counter, keys), `SessionKeys` (HKDF derivation), `ReplayWindow`, `PairingProof` (binding + HMAC), `QRPayload` (parse/format `airmouse://pair`), `TXTRecordModel`, `ErrorCode` | Foundation, CryptoKit |
-| `AirMouseInputCore` | `OneEuroFilter`, `GyroMapper` (gravity-aware mapping, dead zone, bias estimator), `AccelerationCurve`, `ScrollGain`, `GestureRecognizer` (state machine with injected `Clock`), `DisplayClamp`, `MomentumSynthesizer` (pure function of time) | Foundation, simd |
-| `AirMouseMacroModel` | `Macro`, `MacroAction`, `MacroValidator`, `MacroDocument` (schema `macros/1`) | Foundation |
+| `AirControlWire` | `ProtocolVersion`, `Envelope`, `Message` + payload structs (§3.4.5), `FrameCodec` (length-prefix encode/decode with partial-buffer state), `MotionPayload` (16-byte pack/unpack), `MotionCrypto` (seal/open with `sessionID`, counter, keys), `SessionKeys` (HKDF derivation), `ReplayWindow`, `PairingProof` (binding + HMAC), `QRPayload` (parse/format `aircontrol://pair`), `TXTRecordModel`, `ErrorCode` | Foundation, CryptoKit |
+| `AirControlInputCore` | `OneEuroFilter`, `GyroMapper` (gravity-aware mapping, dead zone, bias estimator), `AccelerationCurve`, `ScrollGain`, `GestureRecognizer` (state machine with injected `Clock`), `DisplayClamp`, `MomentumSynthesizer` (pure function of time) | Foundation, simd |
+| `AirControlMacroModel` | `Macro`, `MacroAction`, `MacroValidator`, `MacroDocument` (schema `macros/1`) | Foundation |
 
 All public types are `Sendable`; no `@unchecked`; no `Unsafe*` in decoding paths (NFR-SEC-009). Semantic versioning of the package tracks the protocol major.
 
@@ -1311,7 +1311,7 @@ Control actions (click, key): TCP + TLS record + JSON decode ≤ 30 ms p95 (NFR-
 - **In-app Latency HUD** (Settings › Advanced, and the Diagnostics window): shows RTT p50/p95 from `heartbeat`/`pong` (`RTT = t4 − t1 − (t3 − t2)`) over the last 32 samples, UDP probe RTT p50/p95 over the last 12, estimated one-way motion latency, datagram loss % (probes), and channel (UDP/TCP). One-way estimate: clock offset `θ = ((t2 − t1) + (t3 − t4)) / 2` from the most recent 8 pongs (median); for the latest `pong.motion` pair, `oneWay = (motion.hostTs − θ) − motion.clientTs`; the HUD shows p50/p95 over 2 s. Host-internal `injectP50Us` (receive → post) is shown separately.
 - **Ground truth**: lab procedure §10.4 with a 240 fps camera.
 - **Host signposts**: `os_signpost` intervals `udp.receive→inject.post` in the `inject` category; `xctrace` template checked into `Scripts/`.
-- **Bench mode**: `AirMouseHelper --bench` echoes every datagram immediately; the client's Labs screen runs a 10 s 120 Hz probe stream and prints RTT percentiles.
+- **Bench mode**: `AirControlHelper --bench` echoes every datagram immediately; the client's Labs screen runs a 10 s 120 Hz probe stream and prints RTT percentiles.
 
 ### 8.3 Battery
 
@@ -1335,13 +1335,13 @@ All messages are String Catalog keys; English copy below is final for v1. "Actio
 
 | ID | Where | Trigger | Title / message | Recovery action |
 |---|---|---|---|---|
-| E-LOCALNET | iOS, Devices/Onboarding | Local network denied (§4.5.5) | **Local network access is off** / "Air Mouse can't see your Mac until you allow Local Network access in Settings." | **Open Settings** (deep link) · re-check on return |
+| E-LOCALNET | iOS, Devices/Onboarding | Local network denied (§4.5.5) | **Local network access is off** / "Air Control can't see your Mac until you allow Local Network access in Settings." | **Open Settings** (deep link) · re-check on return |
 | E-CAMERA | iOS, Scan QR | Camera denied | **Camera access needed** / "Allow camera access to scan the pairing code, or paste the pairing link instead." | **Open Settings** · **Paste link** |
-| E-NOHOSTS | iOS, Devices (after 5 s) | No browse results | **No Macs found yet** / checklist: "Is the Air Mouse helper running on your Mac?", "Are both devices on the same Wi-Fi?", "Is Local Network access allowed?" | **Scan QR** · **Check permission** |
+| E-NOHOSTS | iOS, Devices (after 5 s) | No browse results | **No Macs found yet** / checklist: "Is the Air Control helper running on your Mac?", "Are both devices on the same Wi-Fi?", "Is Local Network access allowed?" | **Scan QR** · **Check permission** |
 | E-ISOLATED | iOS, Connecting | Every address timed out and Bonjour empty | **This network keeps devices apart** / "Devices on this Wi-Fi can't see each other (AP isolation). Turn on Personal Hotspot on this iPhone and join it from your Mac." | **Retry** · **How to use a hotspot** |
 | E-CONN-FAILED | iOS, Connecting | Candidates exhausted (12 s) | **Couldn't reach <Mac>** / "Make sure the helper is running and both devices are on the same network." | **Retry** · **Scan QR** |
-| E-PAIR-URL | iOS, Scan QR | Malformed URL | **That's not an Air Mouse code** / "Scan the QR shown by 'Pair new device' in the Air Mouse menu on your Mac." | **Try again** |
-| E-PAIR-VERSION | iOS, Scan QR | Unknown `v` | **Update Air Mouse** / "This pairing code comes from a newer Mac helper. Update the iPhone app to pair." | **Open App Store** |
+| E-PAIR-URL | iOS, Scan QR | Malformed URL | **That's not an Air Control code** / "Scan the QR shown by 'Pair new device' in the Air Control menu on your Mac." | **Try again** |
+| E-PAIR-VERSION | iOS, Scan QR | Unknown `v` | **Update Air Control** / "This pairing code comes from a newer Mac helper. Update the iPhone app to pair." | **Open App Store** |
 | E-PAIR-FP | iOS, Pairing | Host cert ≠ QR fp | **Security check failed** / "The Mac that answered isn't the one that showed this code. Pairing was cancelled." | **Scan again** |
 | E-PAIR-EXPIRED | iOS, Pairing | `pairing.expired` / `invalidProof` | **Pairing code expired** / "Codes work for 60 seconds. Click 'Pair new device' on your Mac to show a fresh one." | **Scan again** |
 | E-PAIR-RATELIMIT | iOS, Pairing | No `pairChallenge` within 3 s | **Too many attempts** / "Wait a minute, then show a new code on your Mac." | **OK** |
@@ -1349,25 +1349,25 @@ All messages are String Catalog keys; English copy below is final for v1. "Actio
 | E-PAIR-HOSTPROOF | iOS, Pairing | Host proof invalid | **Security check failed** / "Your Mac couldn't prove it showed this code. Pairing was cancelled." | **Scan again** |
 | E-AUTH-UNTRUSTED | iOS, Connecting | TLS rejected, no local record | **Not paired with this Mac** / "Scan the pairing code on the Mac to connect." | **Scan QR** |
 | E-AUTH-REVOKED | iOS, Connecting | TLS rejected, local record exists | **This Mac no longer trusts this device** / "Pair again to reconnect, or forget this Mac." | **Scan QR** · **Forget Mac** |
-| E-VERSION-APP | iOS | `protocol.versionMismatch`, helper newer | **Update the Air Mouse app** / "Your Mac's helper speaks a newer protocol." | **Open App Store** |
-| E-VERSION-HELPER | iOS | mismatch, app newer | **Update the Mac helper** / "Open Air Mouse on your Mac and choose Check for Updates, or run brew upgrade --cask air-mouse." | **OK** |
+| E-VERSION-APP | iOS | `protocol.versionMismatch`, helper newer | **Update the Air Control app** / "Your Mac's helper speaks a newer protocol." | **Open App Store** |
+| E-VERSION-HELPER | iOS | mismatch, app newer | **Update the Mac helper** / "Open Air Control on your Mac and choose Check for Updates, or run brew upgrade --cask air-control." | **OK** |
 | E-RECONNECTING | iOS, banner | `Reconnecting` | "Reconnecting to <Mac>…" (non-blocking, spinner) | **Cancel** (→ Devices) |
 | E-UDP-FALLBACK | iOS, badge | TCP motion fallback | "Elevated latency" (tap → "Fast motion packets are being blocked on this network; motion is using the reliable channel.") | — |
-| E-PAUSED | iOS, banner | `hostState.paused` | "Paused on Mac — input is ignored until you resume it from the Air Mouse menu." | — |
-| E-NOAX | iOS, banner | `hostState.accessibility == false` | **Mac needs Accessibility permission** / "Open Air Mouse on the Mac and follow the setup to allow it to control the cursor." | — |
+| E-PAUSED | iOS, banner | `hostState.paused` | "Paused on Mac — input is ignored until you resume it from the Air Control menu." | — |
+| E-NOAX | iOS, banner | `hostState.accessibility == false` | **Mac needs Accessibility permission** / "Open Air Control on the Mac and follow the setup to allow it to control the cursor." | — |
 | E-MACRO-BLOCKED | iOS, toast | `blockedByPolicy` | "Blocked by Mac policy" | — |
 | E-MACRO-FAILED | iOS, toast | `failed` | "<name> failed: <message>" | — |
 | E-MACRO-TIMEOUT | iOS, toast | `timeout` | "<name> timed out" | — |
 | E-MACRO-NOTFOUND | iOS, toast | `notFound` | "That macro was removed on the Mac" (list refreshes) | — |
 | E-TEXT-TOOLONG | iOS, Keyboard | > 16 KB | **Text too long** / "Send up to 16,000 characters at a time." | **Trim** |
 | E-RATE | iOS, alert | `rate.limited` | **Disconnected** / "The Mac received too many commands at once and closed the connection." | **Reconnect** |
-| E-GYRO-NONE | iOS, Settings › Gyro | No gyroscope | "This device has no gyroscope, so Air Mouse mode isn't available." | — |
-| E-GYRO-CAL | iOS, Air Mouse tab | Fusion unreliable | "Calibrating… keep the phone steady for a second." (indicator) | — |
-| E-MAC-AX | Mac, menu + onboarding | Accessibility missing/lost | "Accessibility permission needed — Air Mouse can pair but can't move the cursor yet." | **Open System Settings** |
-| E-MAC-LOCALNET | Mac, menu | Bonjour PolicyDenied | "Local network access is off for Air Mouse. Devices can't discover this Mac; QR pairing still works." | **Open System Settings** |
+| E-GYRO-NONE | iOS, Settings › Gyro | No gyroscope | "This device has no gyroscope, so Air Pointer mode isn't available." | — |
+| E-GYRO-CAL | iOS, Air Pointer tab | Fusion unreliable | "Calibrating… keep the phone steady for a second." (indicator) | — |
+| E-MAC-AX | Mac, menu + onboarding | Accessibility missing/lost | "Accessibility permission needed — Air Control can pair but can't move the cursor yet." | **Open System Settings** |
+| E-MAC-LOCALNET | Mac, menu | Bonjour PolicyDenied | "Local network access is off for Air Control. Devices can't discover this Mac; QR pairing still works." | **Open System Settings** |
 | E-MAC-FIREWALL | Mac, menu | §5.1.3 heuristic | "Incoming connections may be blocked by the firewall." | **Open Firewall settings** |
 | E-MAC-PORT | Mac, Diagnostics | Default port busy | "Port 47800 is in use; using <port>. Devices will still connect via QR and Bonjour." | — |
-| E-MAC-UPDATE-BREW | Mac, menu | Homebrew install | "Update with: brew upgrade --cask air-mouse" | **Copy** |
+| E-MAC-UPDATE-BREW | Mac, menu | Homebrew install | "Update with: brew upgrade --cask air-control" | **Copy** |
 
 Fatal `error` messages received from the peer without a mapping fall back to: **Connection problem** / "<code>" with **Reconnect**.
 
@@ -1397,7 +1397,7 @@ Fatal `error` messages received from the peer without a mapping fall back to: **
 | Host SessionManager (with `RecordingInjector`) | stale at 2 s releases held inputs; close at 6 s; pause drops input; revoke closes in ≤ 1 s; rate limits; key rotation overlap 2 s |
 
 ### 10.2 Integration harness
-`AirMouseHelper --loopback [--port N] [--identity test]` starts the listeners on 127.0.0.1 with an ephemeral in-memory identity, a pre-trusted test client certificate loaded from the test bundle (or a pairing window opened with a known secret via `--pairing-secret`), and `RecordingInjector`, which appends every would-be `CGEvent` (type, position, deltas, flags, clickState, scroll fields, phases, unicode string, NX key) to an in-memory log exposed over a local JSON control socket. `AirMouseHelperIntegrationTests` (macOS XCTest) drives the real client transport code (from the iOS target's shared source) against it and asserts on the log: pairing success/failure paths, reconnect with re-key, motion → move events with correct acceleration, clicks with clickState, scroll phases + momentum ticks, text pacing, media keys, macro gating, release-all on stale. No test touches a real `CGEvent` (CI runners have no Accessibility grant).
+`AirControlHelper --loopback [--port N] [--identity test]` starts the listeners on 127.0.0.1 with an ephemeral in-memory identity, a pre-trusted test client certificate loaded from the test bundle (or a pairing window opened with a known secret via `--pairing-secret`), and `RecordingInjector`, which appends every would-be `CGEvent` (type, position, deltas, flags, clickState, scroll fields, phases, unicode string, NX key) to an in-memory log exposed over a local JSON control socket. `AirControlHelperIntegrationTests` (macOS XCTest) drives the real client transport code (from the iOS target's shared source) against it and asserts on the log: pairing success/failure paths, reconnect with re-key, motion → move events with correct acceleration, clicks with clickState, scroll phases + momentum ticks, text pacing, media keys, macro gating, release-all on stale. No test touches a real `CGEvent` (CI runners have no Accessibility grant).
 
 ### 10.3 Manual test plan (per feature, run on iOS 18.6+/26 and macOS 15/26)
 
@@ -1505,7 +1505,7 @@ Motion datagram and payload: §3.5.1–§3.5.2. Frame kinds: §3.4.1.
 | Right ⇧ | 0xE5 | 0x3C | Right ⌥ | 0xE6 | 0x3D | Right ⌘ | 0xE7 | 0x36 |
 | fn (Globe) | — | 0x3F (not passable) | Keypad 0–9 | 0x62, 0x59–0x61 | 0x52, 0x53–0x5C | Keypad Enter | 0x58 | 0x4C |
 
-The full ~110-entry table (remaining keypad keys, international keys) is generated into `AirMouseWire/HIDKeycodeTable.swift` from `Scripts/hid-kvk.csv`, and a test asserts the entries above.
+The full ~110-entry table (remaining keypad keys, international keys) is generated into `AirControlWire/HIDKeycodeTable.swift` from `Scripts/hid-kvk.csv`, and a test asserts the entries above.
 
 ### 11.3 Constants table
 

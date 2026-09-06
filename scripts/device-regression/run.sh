@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # On-device regression orchestrator (Mac side). Builds + launches the Mac helper against a real
-# code-signing identity, opens a fresh TextEdit document, runs the AirMouseUITests
+# code-signing identity, opens a fresh TextEdit document, runs the AirControlUITests
 # `DeviceRegressionUITests` suite on an already-paired iPhone, then verifies the touchpad actually
 # moved the host cursor, the keyboard test's text actually arrived in TextEdit, and the helper's
 # own host log shows a clean authenticated session. Prints a PASS/FAIL table and always cleans up
@@ -8,7 +8,7 @@
 #
 # Usage: scripts/device-regression/run.sh
 # Requires: DEVELOPER_DIR set to a real Xcode.app, the phone already paired/trusted, and
-# apps/AirMouse-iOS/AirMouse.xcodeproj already built-for-testing at least once (this script calls
+# apps/AirControl-iOS/AirControl.xcodeproj already built-for-testing at least once (this script calls
 # `xcodebuild test-without-building`, not `test`, per the coordinator's per-invocation overhead
 # note -- run `make gen` + a `build-for-testing` invocation first if DerivedData is empty).
 
@@ -20,12 +20,12 @@ cd "$REPO_DIR"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 
 UDID="0A51118F-A890-52B2-84DF-CEFB294F0694"
-PROJECT="apps/AirMouse-iOS/AirMouse.xcodeproj"
-SCHEME="AirMouse"
-SUITE="AirMouseUITests/DeviceRegressionUITests"
-ENTITLEMENTS="apps/AirMouse-Mac/Sources/AirMouseHelper.entitlements"
+PROJECT="apps/AirControl-iOS/AirControl.xcodeproj"
+SCHEME="AirControl"
+SUITE="AirControlUITests/DeviceRegressionUITests"
+ENTITLEMENTS="apps/AirControl-Mac/Sources/AirControlHelper.entitlements"
 
-WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/airmouse-device-regression.XXXXXX")"
+WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/aircontrol-device-regression.XXXXXX")"
 HELPER_LOG="$WORKDIR/helper.out"
 HOST_LOG="$WORKDIR/host.log"
 TEST_LOG="$WORKDIR/xcodebuild-test.log"
@@ -36,13 +36,13 @@ LOGSTREAM_PID=""
 cleanup() {
     if [ -n "$LOGSTREAM_PID" ]; then kill "$LOGSTREAM_PID" >/dev/null 2>&1 || true; fi
     if [ -n "$HELPER_PID" ]; then kill "$HELPER_PID" >/dev/null 2>&1 || true; fi
-    pkill -f "AirMouse.app/Contents/MacOS/AirMouse" >/dev/null 2>&1 || true
+    pkill -f "AirControl.app/Contents/MacOS/AirControl" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
 echo "== [1/8] Waiting for port 47800 / any Mac helper test run to be free =="
 deadline=$((SECONDS + 900))
-while lsof -nP -iTCP:47800 -sTCP:LISTEN >/dev/null 2>&1 || pgrep -f "xcodebuild.*AirMouseHelper" >/dev/null 2>&1; do
+while lsof -nP -iTCP:47800 -sTCP:LISTEN >/dev/null 2>&1 || pgrep -f "xcodebuild.*AirControlHelper" >/dev/null 2>&1; do
     if [ "$SECONDS" -ge "$deadline" ]; then
         echo "Timed out after 15 min waiting for port 47800 / helper test run to finish" >&2
         exit 1
@@ -57,9 +57,9 @@ if ! make -C "$REPO_DIR" mac-build > "$WORKDIR/mac-build.log" 2>&1; then
     exit 1
 fi
 
-APP="$(ls -d "$HOME/Library/Developer/Xcode/DerivedData/AirMouseHelper-"*/Build/Products/Debug/AirMouse.app 2>/dev/null | head -1)"
+APP="$(ls -d "$HOME/Library/Developer/Xcode/DerivedData/AirControlHelper-"*/Build/Products/Debug/AirControl.app 2>/dev/null | head -1)"
 if [ -z "$APP" ]; then
-    echo "AirMouse.app not found in DerivedData after mac-build" >&2
+    echo "AirControl.app not found in DerivedData after mac-build" >&2
     exit 1
 fi
 ID="$(security find-identity -v -p codesigning 2>/dev/null | grep -m1 -o '"Apple Development: [^"]*"' | tr -d '"')"
@@ -70,14 +70,14 @@ fi
 
 echo "== [3/8] Signing + (re)launching helper: $APP =="
 codesign --force --options runtime --timestamp=none --entitlements "$ENTITLEMENTS" --sign "$ID" "$APP"
-pkill -f "AirMouse.app/Contents/MacOS/AirMouse" >/dev/null 2>&1 || true
+pkill -f "AirControl.app/Contents/MacOS/AirControl" >/dev/null 2>&1 || true
 sleep 1
 
-log stream --predicate 'process == "AirMouse" AND subsystem == "com.airmouse.helper"' --level debug --style compact > "$HOST_LOG" 2>&1 &
+log stream --predicate 'process == "AirControl" AND subsystem == "com.aircontrol.helper"' --level debug --style compact > "$HOST_LOG" 2>&1 &
 LOGSTREAM_PID=$!
 sleep 2
 
-AIRMOUSE_PAIR_SECRET_TTL=900 nohup "$APP/Contents/MacOS/AirMouse" --print-pair-url --log-level debug > "$HELPER_LOG" 2>&1 &
+AIRCONTROL_PAIR_SECRET_TTL=900 nohup "$APP/Contents/MacOS/AirControl" --print-pair-url --log-level debug > "$HELPER_LOG" 2>&1 &
 HELPER_PID=$!
 sleep 2
 if ! kill -0 "$HELPER_PID" >/dev/null 2>&1; then
@@ -121,7 +121,7 @@ if [[ "$X_BEFORE" =~ ^-?[0-9.]+$ ]] && [[ "$X_AFTER" =~ ^-?[0-9.]+$ ]]; then
 fi
 
 KEYBOARD_RESULT="FAIL"
-if printf '%s' "$TEXTEDIT_TEXT" | grep -q "airmouse ok"; then KEYBOARD_RESULT="PASS"; fi
+if printf '%s' "$TEXTEDIT_TEXT" | grep -q "aircontrol ok"; then KEYBOARD_RESULT="PASS"; fi
 
 SESSION_AUTH_RESULT="FAIL"
 grep -q "session authenticated" "$HOST_LOG" 2>/dev/null && SESSION_AUTH_RESULT="PASS"
@@ -136,7 +136,7 @@ UITEST_RESULT="FAIL"
 echo "== [8/8] PASS/FAIL table =="
 printf '%-42s %s\n' "xcodebuild UI test suite" "$UITEST_RESULT"
 printf '%-42s %s\n' "Touchpad: cursor moved right >= 40px" "$TOUCHPAD_RESULT (dx=$DELTA_X, before=$CURSOR_BEFORE, after=$CURSOR_AFTER)"
-printf '%-42s %s\n' "Keyboard: 'airmouse ok' arrived in TextEdit" "$KEYBOARD_RESULT"
+printf '%-42s %s\n' "Keyboard: 'aircontrol ok' arrived in TextEdit" "$KEYBOARD_RESULT"
 printf '%-42s %s\n' "Host log: session authenticated" "$SESSION_AUTH_RESULT"
 printf '%-42s %s\n' "Host log: no 'error' lines from helper" "$NO_ERRORS_RESULT"
 

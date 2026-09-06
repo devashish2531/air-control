@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   keywords: [
     "Air Control",
     "iPhone trackpad for Mac",
-    "air mouse",
+    "air pointer",
     "remote mouse",
     "presenter remote",
     "macOS",

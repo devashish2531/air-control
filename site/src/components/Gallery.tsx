@@ -15,14 +15,14 @@ type Shot = {
 };
 
 /**
- * Six screens, in the same order as the Features strip (Touchpad, Air mouse,
+ * Six screens, in the same order as the Features strip (Touchpad, Air pointer,
  * Keyboard, Remote, Macros, Settings). Screenshot files live in
  * `public/screenshots/<slug>-<light|dark>-<480|960>.png` — see
  * `scripts/make-screenshots.sh`.
  */
 const shots: Shot[] = [
   { slug: "touchpad", alt: "Touchpad screen" },
-  { slug: "air-mouse", alt: "Air Mouse screen" },
+  { slug: "air-pointer", alt: "Air Pointer screen" },
   { slug: "keyboard", alt: "Keyboard screen" },
   { slug: "remote", alt: "Remote screen" },
   { slug: "macros", alt: "Macros screen" },
