@@ -139,3 +139,8 @@ Pushing to `main` with anything under `site/**` changed runs
 `.github/workflows/site.yml`, which builds with `NEXT_PUBLIC_BASE_PATH=/air-control`
 and publishes `site/out` to GitHub Pages. It can also be run by hand from the
 Actions tab (`workflow_dispatch`).
+
+One-time setup: in the repository settings under Pages, set the source to
+**GitHub Actions**. Do not click "Configure" on GitHub's suggested Next.js
+workflow: it expects the app at the repository root and fails with "Unable to
+determine package manager". `site.yml` already handles the `site/` folder.
