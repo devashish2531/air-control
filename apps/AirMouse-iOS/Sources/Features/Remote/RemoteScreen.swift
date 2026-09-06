@@ -123,10 +123,19 @@ private struct PresenterSegmentView: View {
         }
     }
 
+    // docs/08 §4: "'No Mac connected' title → keep, but as `.secondary` caption" — a live
+    // frontmost app name stays a headline, the no-Mac fallback drops to a secondary caption so it
+    // doesn't read as a page title.
     private var header: some View {
         VStack(spacing: 4) {
-            Text(model.frontmostAppName ?? String(localized: "No Mac connected", comment: "Presenter header when no frontmost app is known"))
-                .font(.headline)
+            if let frontmostAppName = model.frontmostAppName {
+                Text(frontmostAppName)
+                    .font(.headline)
+            } else {
+                Text("No Mac connected", comment: "Presenter header when no frontmost app is known")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Text(model.presenterProfile.title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -281,6 +290,21 @@ private struct MediaSegmentView: View {
 
 // MARK: - Shared button styles
 
+/// docs/08 §4: Remote's buttons adopt the §3.1 key style (continuous 10 pt radius, semantic
+/// secondary/tertiary fills) so Remote reads as part of the same product as Keyboard, rather
+/// than the system `.bordered` gray capsule it had before. Mirrored here (not imported) since
+/// `Features/Keyboard/*` is owned by another agent.
+private struct RemoteKeyButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(configuration.isPressed ? Color(.tertiarySystemBackground) : Color(.secondarySystemBackground))
+            )
+            .foregroundStyle(.primary)
+    }
+}
+
 private struct RemoteButton: View {
     let title: String
     let systemImage: String
@@ -303,7 +327,7 @@ private struct RemoteButton: View {
             .frame(maxWidth: .infinity, minHeight: A11y.minimumTapTarget)
             .padding(.vertical, 12)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(RemoteKeyButtonStyle())
         .minimumTapTarget()
         .onAppear { haptics.prepare(.tapClick) }
         .accessibleButton(label: LocalizedStringKey(title))
@@ -317,6 +341,8 @@ private struct RepeatingRemoteButton: View {
     let onPress: () -> Void
     let onRelease: () -> Void
 
+    @State private var isPressed = false
+
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: systemImage)
@@ -328,16 +354,26 @@ private struct RepeatingRemoteButton: View {
         }
         .frame(maxWidth: .infinity, minHeight: A11y.minimumTapTarget)
         .padding(.vertical, 12)
+        .foregroundStyle(.primary)
         .contentShape(Rectangle())
-        .background(.tertiary.opacity(0.15), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        // docs/08 §4/§3.1 key style: same continuous 10 pt radius + secondary/tertiary fills as
+        // `RemoteKeyButtonStyle`, tracked by hand since this isn't a `Button` (it needs a
+        // press-and-hold `DragGesture`, not a tap action).
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isPressed ? Color(.tertiarySystemBackground) : Color(.secondarySystemBackground))
+        )
         .minimumTapTarget()
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
+                    guard !isPressed else { return }
+                    isPressed = true
                     haptics.fire(.buttonDown)
                     onPress()
                 }
                 .onEnded { _ in
+                    isPressed = false
                     haptics.fire(.buttonUp)
                     onRelease()
                 }

@@ -45,6 +45,7 @@ private struct SettingsForm: View {
 
     var body: some View {
         Form {
+            appearanceSection
             pointerSection
             gesturesSection
             gyroSection
@@ -54,6 +55,24 @@ private struct SettingsForm: View {
             aboutSection
         }
         .airMouseDynamicTypeRange()
+    }
+
+    // MARK: Appearance (docs/08 §4: Appearance picker, first section, takes effect immediately
+    // since `RootTabView` reads `userSettings.snapshot.appearance.mode.colorScheme` from this
+    // same `@Observable` snapshot — no extra plumbing needed here.)
+
+    private var appearanceSection: some View {
+        Section {
+            Picker(selection: $userSettings.snapshot.appearance.mode) {
+                ForEach(AppearanceMode.allCases) { option in
+                    Text(option.title).tag(option)
+                }
+            } label: {
+                Text("Appearance", comment: "Settings › Appearance: System/Light/Dark picker label")
+            }
+        } header: {
+            Text("Appearance", comment: "Settings section header")
+        }
     }
 
     // MARK: Pointer (spec §4.1.9 "Pointer")

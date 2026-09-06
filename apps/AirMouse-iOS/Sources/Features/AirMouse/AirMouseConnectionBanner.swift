@@ -4,20 +4,20 @@
 // card / click area / clutch), so this sits above the status card whenever not connected.
 import SwiftUI
 
+// docs/08 §4: "keep the … banner but reduce it to one line, secondary style" — a plain secondary
+// caption rather than a colour-filled alert pill, so it reads as supporting copy, not a duplicate
+// status indicator (the shell's `ConnectionStatusDot`, docs/08 §2.1, already owns that signal).
 struct AirMouseConnectionBanner: View {
     let connectionState: ConnectionState
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Image(systemName: glyph)
             SwiftUI.Text(message)
-                .font(.footnote.weight(.medium))
-            Spacer(minLength: 0)
+                .lineLimit(1)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(tint.opacity(0.15), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .foregroundStyle(tint)
+        .font(.footnote)
+        .foregroundStyle(.secondary)
         .accessibilityElement(children: .combine)
     }
 
@@ -39,14 +39,6 @@ struct AirMouseConnectionBanner: View {
         case .connected: return "checkmark.circle.fill"
         case .connecting, .pairing, .reconnecting, .browsing: return "arrow.triangle.2.circlepath"
         default: return "exclamationmark.triangle.fill"
-        }
-    }
-
-    private var tint: Color {
-        switch connectionState {
-        case .connected: return .green
-        case .connecting, .pairing, .reconnecting, .browsing: return .orange
-        default: return .secondary
         }
     }
 }

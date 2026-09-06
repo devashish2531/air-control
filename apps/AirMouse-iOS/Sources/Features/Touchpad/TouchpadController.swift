@@ -231,6 +231,11 @@ public final class TouchpadController: TouchpadIntentSink {
         case .middle: .middle
         }
         controlSink.sendClick(Click(button: wireButton, action: .down, count: 1, modifiers: []))
+        // docs/08 §2.4: hide the "Left click"/"Right click" captions for good after the first
+        // successful press.
+        if !userSettings.hasUsedClickButtons {
+            userSettings.hasUsedClickButtons = true
+        }
     }
 
     public func clickButtonReleased(_ button: ClickButton) {

@@ -144,26 +144,53 @@ public final class KeyInputHostView: UITextView {
         text = Self.sentinel
     }
 
-    // MARK: - Keyboard dismissal (UI fix: no way to hide the software keyboard once shown)
+    // MARK: - Input accessory bar (docs/08 §3.2)
 
-    /// A one-item "Done" toolbar shown above the software keyboard while this view is first
-    /// responder, mirroring the standard `UITextField`/`UITextView` "Done" accessory pattern —
-    /// this view has none by default since it never shows the system return key affordance.
-    private lazy var doneAccessory: UIToolbar = {
-        let toolbar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
-        toolbar.items = [
-            UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
-            UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(handleDoneTapped)),
-        ]
-        return toolbar
-    }()
-
-    public override var inputAccessoryView: UIView? {
-        get { doneAccessory }
-        set { /* fixed; no external accessory injection needed */ }
+    /// Supplies the accessory bar's content view, already wrapped by the SwiftUI side's own
+    /// `UIHostingController` — `KeyInputHostRepresentable`'s coordinator sets this. This class
+    /// never imports SwiftUI itself; only the resulting `UIView` crosses the boundary (docs/08
+    /// §3.2: "the UIKit class stays free of SwiftUI imports except for `UIHostingController`" —
+    /// this design keeps it free of SwiftUI entirely, since even `UIHostingController` lives on
+    /// the representable's side).
+    public var accessoryContentProvider: (() -> UIView?)? {
+        didSet {
+            cachedAccessoryInputView = nil
+            reloadInputViews()
+        }
     }
 
-    @objc private func handleDoneTapped() {
+    private var cachedAccessoryInputView: UIInputView?
+
+    /// Replaces the previous "Done"-only `UIToolbar` with a `UIInputView` hosting the SwiftUI
+    /// `KeyboardAccessoryBar` (docs/08 §3.2): five tab icons, a gear, and a trailing Done, all
+    /// height 44 pt with a material background supplied by the hosted content itself.
+    public override var inputAccessoryView: UIView? {
+        get {
+            if let cachedAccessoryInputView { return cachedAccessoryInputView }
+            guard let content = accessoryContentProvider?() else { return nil }
+            let inputView = UIInputView(frame: CGRect(x: 0, y: 0, width: 0, height: 44), inputViewStyle: .keyboard)
+            inputView.allowsSelfSizing = true
+            content.translatesAutoresizingMaskIntoConstraints = false
+            inputView.addSubview(content)
+            NSLayoutConstraint.activate([
+                content.leadingAnchor.constraint(equalTo: inputView.leadingAnchor),
+                content.trailingAnchor.constraint(equalTo: inputView.trailingAnchor),
+                content.topAnchor.constraint(equalTo: inputView.topAnchor),
+                content.bottomAnchor.constraint(equalTo: inputView.bottomAnchor),
+                content.heightAnchor.constraint(equalToConstant: 44),
+            ])
+            cachedAccessoryInputView = inputView
+            return inputView
+        }
+        set { /* fixed; content comes from accessoryContentProvider */ }
+    }
+
+    /// Hides the software keyboard — called from the accessory bar's Done button, or after a tab
+    /// tap (docs/08 §2.2/§3.2: "Tapping a tab calls `tabSwitcher.switchTo(tab)` and resigns first
+    /// responder"). Only resigns this view's own first-responder status; the delegate is
+    /// responsible for the corresponding `KeyboardBridge.wantsFirstResponder = false` (see
+    /// `KeyInputHostViewDelegate.keyInputHostDidRequestHide`).
+    public func requestHide() {
         hostDelegate?.keyInputHostDidRequestHide(self)
         resignFirstResponder()
     }

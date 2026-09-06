@@ -34,7 +34,9 @@ struct ShortcutRowView: View {
                                 .padding(.horizontal, 12)
                                 .frame(minHeight: 44)
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.plain)
+                        .keyCapStyle(.normal)
+                        .minimumTapTarget()
                         .accessibleButton(label: LocalizedStringKey(chord.accessibilityLabel))
                     }
                 }

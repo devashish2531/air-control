@@ -113,6 +113,13 @@ public struct KeyboardScreen: View {
             .accessibilityHidden(true)
     }
 
+    /// docs/08 §3.1: "When the system keyboard is visible, collapse to: segmented control ·
+    /// modifier row · extended bar. Everything else scrolls under the keyboard; never let content
+    /// sit under the keyboard." The commit-mode text area is the input surface itself (not
+    /// optional chrome), so it stays visible in both states; Media/Shortcuts are the rows that
+    /// collapse away.
+    private var isSystemKeyboardShowing: Bool { keyboardHeight > 0 }
+
     private func keyboardPanel(_ viewModel: KeyboardViewModel) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -122,8 +129,10 @@ public struct KeyboardScreen: View {
                 }
                 ModifierBarView(viewModel: viewModel)
                 ExtendedKeyBarView(viewModel: viewModel)
-                MediaKeyBarView(viewModel: viewModel)
-                ShortcutRowView(viewModel: viewModel)
+                if !isSystemKeyboardShowing {
+                    MediaKeyBarView(viewModel: viewModel)
+                    ShortcutRowView(viewModel: viewModel)
+                }
                 // Tapping the empty area below the last row dismisses the keyboard (UI fix), the
                 // same way tapping outside a text field does elsewhere in the app.
                 Color.clear
@@ -134,6 +143,7 @@ public struct KeyboardScreen: View {
             }
             .padding()
             .padding(.bottom, keyboardHeight)
+            .animation(ReduceMotion.isEnabled ? nil : .easeOut, value: isSystemKeyboardShowing)
         }
         .scrollDismissesKeyboard(.interactively)
         .airMouseDynamicTypeRange()
@@ -141,14 +151,22 @@ public struct KeyboardScreen: View {
 
     private func modeAndTrail(_ viewModel: KeyboardViewModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Picker(selection: Binding(get: { viewModel.mode }, set: { viewModel.mode = $0 })) {
-                Text("Live", comment: "Keyboard entry mode").tag(KeyboardInputMode.live)
-                Text("Commit", comment: "Keyboard entry mode").tag(KeyboardInputMode.commit)
-            } label: {
-                Text("Input mode", comment: "Keyboard input mode segmented control accessibility label")
+            HStack(spacing: 8) {
+                Picker(selection: Binding(get: { viewModel.mode }, set: { viewModel.mode = $0 })) {
+                    Text("Live", comment: "Keyboard entry mode").tag(KeyboardInputMode.live)
+                    Text("Commit", comment: "Keyboard entry mode").tag(KeyboardInputMode.commit)
+                } label: {
+                    Text("Input mode", comment: "Keyboard input mode segmented control accessibility label")
+                }
+                .pickerStyle(.segmented)
+                .accessibilityLabel(Text("Input mode", comment: "Keyboard input mode segmented control accessibility label"))
+
+                // docs/08 §3.1 scopes the trailing toolbar group to exactly Show/Hide keyboard,
+                // Secure entry, and Return — hardware passthrough isn't one of those three, so
+                // this agent's deviation (see final report) keeps its existing behaviour by
+                // relocating the toggle here rather than dropping it.
+                passthroughToggle(viewModel)
             }
-            .pickerStyle(.segmented)
-            .accessibilityLabel(Text("Input mode", comment: "Keyboard input mode segmented control accessibility label"))
 
             if viewModel.mode == .live {
                 Text(viewModel.isSecureEntry || viewModel.bridge.trailText.isEmpty ? " " : viewModel.bridge.trailText)
@@ -163,46 +181,77 @@ public struct KeyboardScreen: View {
         }
     }
 
+    private func passthroughToggle(_ viewModel: KeyboardViewModel) -> some View {
+        Button {
+            viewModel.isPassthroughEnabled.toggle()
+        } label: {
+            Image(systemName: "keyboard.fill")
+                .font(.body)
+                .frame(minWidth: 44, minHeight: 44)
+                .keyCapStyle(viewModel.isPassthroughEnabled ? .latched : .normal)
+        }
+        .buttonStyle(.plain)
+        .minimumTapTarget()
+        .accessibleButton(
+            label: LocalizedStringKey("Hardware keyboard passthrough"),
+            hint: LocalizedStringKey("Sends key presses from an attached hardware keyboard directly to the Mac")
+        )
+        .accessibleLatched(viewModel.isPassthroughEnabled)
+    }
+
     private func commitEditor(_ viewModel: KeyboardViewModel) -> some View {
-        VStack(alignment: .trailing, spacing: 8) {
-            TextEditor(text: Binding(get: { viewModel.commitText }, set: { viewModel.commitText = $0 }))
-                .frame(minHeight: 100, maxHeight: 200)
-                .focused($isCommitFieldFocused)
-                .textInputAutocapitalization(viewModel.isSecureEntry ? .never : .sentences)
-                .autocorrectionDisabled(viewModel.isSecureEntry)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator))
-                .accessibilityLabel(Text("Commit mode text", comment: "Accessibility label for the commit-mode text editor"))
-                // UI fix: Commit mode's text editor had no way to dismiss its keyboard either.
-                .toolbar {
-                    ToolbarItemGroup(placement: .keyboard) {
-                        Spacer()
-                        Button {
-                            isCommitFieldFocused = false
-                        } label: {
-                            Text("Done", comment: "Keyboard screen: dismisses the commit-mode text editor's software keyboard")
-                        }
+        TextEditor(text: Binding(get: { viewModel.commitText }, set: { viewModel.commitText = $0 }))
+            .frame(minHeight: 100, maxHeight: 200)
+            .focused($isCommitFieldFocused)
+            .textInputAutocapitalization(viewModel.isSecureEntry ? .never : .sentences)
+            .autocorrectionDisabled(viewModel.isSecureEntry)
+            .padding(.trailing, 44) // keeps typed text clear of the overlaid Send button
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator))
+            // docs/08 §3.1: "Send button inside the commit text field's trailing edge."
+            .overlay(alignment: .bottomTrailing) { sendButton(viewModel).padding(6) }
+            .accessibilityLabel(Text("Commit mode text", comment: "Accessibility label for the commit-mode text editor"))
+            // UI fix: Commit mode's text editor had no way to dismiss its keyboard either.
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button {
+                        isCommitFieldFocused = false
+                    } label: {
+                        Text("Done", comment: "Keyboard screen: dismisses the commit-mode text editor's software keyboard")
                     }
                 }
-            Button {
-                viewModel.sendCommit()
-            } label: {
-                Text("Send", comment: "Commit mode: send button")
             }
-            .buttonStyle(.borderedProminent)
-            .minimumTapTarget()
-            .disabled(viewModel.commitText.isEmpty)
-            .accessibilityHint(Text("Sends the typed text to the Mac", comment: "Accessibility hint for the commit-mode Send button"))
+    }
+
+    private func sendButton(_ viewModel: KeyboardViewModel) -> some View {
+        Button {
+            viewModel.sendCommit()
+        } label: {
+            Image(systemName: "arrow.up.circle.fill")
+                .font(.title2)
+                .foregroundStyle(viewModel.commitText.isEmpty ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.tint))
         }
+        .buttonStyle(.plain)
+        .minimumTapTarget()
+        .disabled(viewModel.commitText.isEmpty)
+        .accessibleButton(
+            label: LocalizedStringKey("Send"),
+            hint: LocalizedStringKey("Sends the typed text to the Mac")
+        )
     }
 
     @ToolbarContentBuilder
     private func toolbarContent(_ viewModel: KeyboardViewModel) -> some ToolbarContent {
-        if viewModel.mode == .live {
-            ToolbarItem(placement: .topBarLeading) {
+        // docs/08 §3.1: trailing group only — Show/Hide keyboard, Secure entry, Return — the
+        // leading floating hide-keyboard button (which used to overlap the top-left toolbar item,
+        // docs/08 §1.3) is gone; the shell's own gear stays the only leading/other item.
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if viewModel.mode == .live {
                 // UI fix: the software keyboard previously had no Done/hide affordance once shown
                 // in Live mode (this hidden host view's first responder isn't SwiftUI-focus-based,
-                // so the system never adds its own accessory chrome for it beyond `doneAccessory`
-                // above the keyboard itself — this toolbar button covers hide *and* re-show).
+                // so the system never adds its own accessory chrome for it beyond the accessory
+                // bar above the keyboard itself, docs/08 §3.2 — this toolbar button covers hide
+                // *and* re-show).
                 Button {
                     if viewModel.isSystemKeyboardVisible {
                         dismissKeyboard(viewModel)
@@ -217,8 +266,7 @@ public struct KeyboardScreen: View {
                     label: LocalizedStringKey(viewModel.isSystemKeyboardVisible ? "Hide keyboard" : "Show keyboard")
                 )
             }
-        }
-        ToolbarItemGroup(placement: .topBarTrailing) {
+
             Toggle(isOn: Binding(get: { viewModel.isSecureEntry }, set: { viewModel.isSecureEntry = $0 })) {
                 Image(systemName: viewModel.isSecureEntry ? "eye.slash.fill" : "eye.slash")
             }
@@ -239,17 +287,6 @@ public struct KeyboardScreen: View {
                 .accessibleButton(label: LocalizedStringKey("Return sends"))
                 .accessibleLatched(viewModel.returnSends)
             }
-
-            Toggle(isOn: Binding(get: { viewModel.isPassthroughEnabled }, set: { viewModel.isPassthroughEnabled = $0 })) {
-                Image(systemName: "keyboard")
-            }
-            .toggleStyle(.button)
-            .minimumTapTarget()
-            .accessibleButton(
-                label: LocalizedStringKey("Hardware keyboard passthrough"),
-                hint: LocalizedStringKey("Sends key presses from an attached hardware keyboard directly to the Mac")
-            )
-            .accessibleLatched(viewModel.isPassthroughEnabled)
         }
     }
 }

@@ -10,6 +10,15 @@
 // why a downcast, not a widened shell protocol, is the wiring seam here) — falls back to a
 // disabled "not connected" state if a `ConnectionManager` isn't installed yet (previews, or before
 // app-launch DI wiring runs).
+//
+// docs/08 §4 audit note: this screen's `Color.black` backdrop and fixed `.white`/`.black` chrome
+// (close/torch buttons, camera-denied copy, the collapsed "Paste pairing link" pill) are the one
+// deliberate exception to "replace black/white with semantic colours" — it's a camera-viewfinder
+// screen (like a QR scanner or Camera app), always dark chrome over a live/absent video feed,
+// independent of the app's own Appearance setting. Every part of this screen that *isn't* fixed
+// viewfinder chrome already uses adaptive styles (`progressOverlay`'s `.regularMaterial` card with
+// `.primary`/`.secondary`/`.green`/`.red`), so it renders correctly in both Light and Dark —
+// verified in the simulator with both `-AppleInterfaceStyle` values.
 
 import AVFoundation
 import SwiftUI

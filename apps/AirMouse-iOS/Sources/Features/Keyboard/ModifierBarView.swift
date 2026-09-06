@@ -1,9 +1,10 @@
 // Features/Keyboard/ModifierBarView.swift
 // Modifier row (spec §4.1.6 "⌘ ⌥ ⌃ ⇧ fn Caps") with latch/lock visuals (spec §4.4.4: "Latched:
 // filled background + underline; locked: filled + underline + small lock glyph (never colour
-// alone, NFR-A11Y-004)"). Every button meets the 44 pt minimum tap target (spec §4.8) and carries
-// an accessibility label + a spoken "Off"/"Latched"/"Locked" value so the state reaches VoiceOver
-// users without relying on colour.
+// alone, NFR-A11Y-004)"), styled per docs/08 §3.1's shared key-cap look (`keyCapStyle`, this
+// module's `KeyCapButton.swift`). Every button meets the 44 pt minimum tap target (spec §4.8) and
+// carries an accessibility label + a spoken "Off"/"Latched"/"Locked" value so the state reaches
+// VoiceOver users without relying on colour.
 
 import SwiftUI
 import AirMouseProtocol
@@ -63,13 +64,11 @@ private struct ModifierKeyButton: View {
             Image(systemName: symbolName)
                 .font(.title3)
                 .frame(minWidth: 44, minHeight: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(state == .off ? AnyShapeStyle(.quaternary.opacity(0.35)) : AnyShapeStyle(.tint))
-                )
+                .keyCapStyle(keyCapState)
                 .overlay(alignment: .bottom) {
                     if state != .off {
                         Rectangle()
+                            .fill(.tint)
                             .frame(height: 2)
                             .padding(.horizontal, 8)
                     }
@@ -78,15 +77,28 @@ private struct ModifierKeyButton: View {
                     if state == .locked {
                         Image(systemName: "lock.fill")
                             .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.tint)
                             .padding(3)
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
+        // Without an explicit style, `Button`'s default chrome tints icon-only labels with
+        // `.tint` regardless of the label's own `.foregroundStyle` — that silently overrode
+        // `keyCapStyle`'s `.primary` for the off state, showing every modifier glyph blue
+        // (docs/08 §3.1: colour is state, not chrome).
+        .buttonStyle(.plain)
         .minimumTapTarget()
         .accessibleButton(label: LocalizedStringKey(label))
         .accessibleLatched(state != .off)
         .accessibilityValue(accessibilityValueText)
+    }
+
+    private var keyCapState: KeyCapState {
+        switch state {
+        case .off: .normal
+        case .latched: .latched
+        case .locked: .locked
+        }
     }
 
     private var accessibilityValueText: String {

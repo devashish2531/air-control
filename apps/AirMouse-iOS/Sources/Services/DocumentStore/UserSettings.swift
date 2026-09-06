@@ -22,6 +22,9 @@ public enum UserDefaultsKey {
     public static let defaultTab = "am.defaultTab"
     public static let autoConnectLastHost = "am.autoConnectLastHost"
     public static let lastHostID = "am.lastHostID"
+    /// docs/08 §2.4 — hides the "Left click"/"Right click" captions on the touchpad's click
+    /// buttons once the user has successfully used them at least once.
+    public static let hasUsedClickButtons = "am.hasUsedClickButtons"
 }
 
 // MARK: - Value types
@@ -252,6 +255,11 @@ public final class UserSettings {
     public var lastHostID: String? {
         didSet { defaults.set(lastHostID, forKey: UserDefaultsKey.lastHostID) }
     }
+    /// docs/08 §2.4 — set once the touchpad's on-screen click buttons have been used
+    /// successfully; the button captions hide once this flips true.
+    public var hasUsedClickButtons: Bool {
+        didSet { defaults.set(hasUsedClickButtons, forKey: UserDefaultsKey.hasUsedClickButtons) }
+    }
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -262,6 +270,7 @@ public final class UserSettings {
         self.defaultTab = (defaults.string(forKey: UserDefaultsKey.defaultTab)).flatMap(AppTab.init(rawValue:)) ?? .touchpad
         self.autoConnectLastHost = defaults.object(forKey: UserDefaultsKey.autoConnectLastHost) as? Bool ?? true
         self.lastHostID = defaults.string(forKey: UserDefaultsKey.lastHostID)
+        self.hasUsedClickButtons = defaults.bool(forKey: UserDefaultsKey.hasUsedClickButtons)
     }
 
     /// Restores every setting to its documented default (spec §4.1.9 Advanced "Reset to

@@ -1,10 +1,19 @@
 // App/RootTabView.swift
 // Root navigation per spec §4.1: TabView with five tabs (Touchpad, Air Mouse, Keyboard, Remote,
-// Macros) plus a toolbar connection pill (tap → Devices) and a Settings gear. The Air Mouse tab
-// is hidden when the device has no gyroscope (FR-GY-012). Default tab is configurable
-// (AM-ST-05). iPad regular width uses `NavigationSplitView` (spec §4.1.10 drives this at the
-// screen level too, but the *root* choice between tab bar and split view is this file's call,
-// per this agent's assignment) — size class, not `userInterfaceIdiom`, decides.
+// Macros) plus a toolbar connection status dot (tap → Devices, docs/08 §2.1) and a Settings gear.
+// The Air Mouse tab is hidden when the device has no gyroscope (FR-GY-012). Default tab is
+// configurable (AM-ST-05). iPad regular width uses `NavigationSplitView` (spec §4.1.10 drives this
+// at the screen level too, but the *root* choice between tab bar and split view is this file's
+// call, per this agent's assignment) — size class, not `userInterfaceIdiom`, decides.
+//
+// docs/08 §2.2: injects the live `TabSwitcher` so features that cover the root tab bar (the
+// Keyboard tab's input accessory bar) can switch tabs / open Settings without owning this file's
+// state.
+// docs/08 §2.3: applies `.preferredColorScheme` from `UserSettings.snapshot.appearance.mode` at
+// the root so every sheet/cover presented from here (onboarding, Devices, Settings) inherits it.
+// The theme agent is writing `Sources/Support/Appearance.swift`'s `AppearanceSetting.colorScheme`
+// extension separately; the mapping below is written inline instead of depending on that type so
+// this file still builds if that extension lands after this one.
 
 import Combine
 import SwiftUI
@@ -29,6 +38,13 @@ public struct RootTabView: View {
             }
         }
         .overlay(alignment: .top) { debugPairingLabel }
+        // docs/08 §2.3
+        .preferredColorScheme(colorScheme(for: environment.userSettings.snapshot.appearance.mode))
+        // docs/08 §2.2
+        .environment(\.tabSwitcher, TabSwitcher(
+            switchTo: { selectedTab = $0 },
+            openSettings: { showSettings = true }
+        ))
         .task {
             guard !hasAppliedDefaultTab else { return }
             hasAppliedDefaultTab = true
@@ -86,26 +102,12 @@ public struct RootTabView: View {
                 }
             }
             .navigationTitle(Text("Air Mouse", comment: "iPad sidebar navigation title"))
-            .toolbar {
-                if #available(iOS 26.0, *) {
-                    ToolbarItem(placement: .topBarLeading) {
-                        ConnectionPillButton(environment: environment, showDevices: $showDevices)
-                    }
-                    .sharedBackgroundVisibility(.hidden)
-                } else {
-                    ToolbarItem(placement: .topBarLeading) {
-                        ConnectionPillButton(environment: environment, showDevices: $showDevices)
-                    }
-                }
-            }
         } detail: {
+            // docs/08 §2.1: the status dot is the top-leading item on every tab's own toolbar
+            // (matching the iPhone tab view), not the sidebar column, so it reads per-screen.
             NavigationStack {
                 destination(for: selectedTab)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            SettingsGearButton(showSettings: $showSettings)
-                        }
-                    }
+                    .airMouseRootToolbar(showDevices: $showDevices, showSettings: $showSettings, environment: environment)
             }
         }
     }
@@ -169,116 +171,20 @@ public struct RootTabView: View {
             motionSink: environment.motionPublisher
         )
     }
-}
 
-// MARK: - Shared toolbar (connection pill + gear)
-
-private struct ConnectionPillButton: View {
-    let environment: AppEnvironment
-    @Binding var showDevices: Bool
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-
-    var body: some View {
-        Button {
-            showDevices = true
-        } label: {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(dotColor)
-                    .frame(width: 8, height: 8)
-                // `ViewThatFits` prefers the full label ("Connecting…"/host name) but falls back
-                // to the shorter compact label, and finally a hard `truncationMode(.tail)` cut,
-                // before iOS ever needs to clip anything — every variant keeps lineLimit(1) so
-                // the label never wraps or truncates mid-word.
-                ViewThatFits(in: .horizontal) {
-                    Text(label)
-                        .font(.subheadline.weight(.medium))
-                        .lineLimit(1)
-                    Text(compactLabel)
-                        .font(.subheadline.weight(.medium))
-                        .lineLimit(1)
-                    Text(compactLabel)
-                        .font(.subheadline.weight(.medium))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-            }
-            // Fix (not cap) the label's own proposed width — larger on iPad's roomier toolbar —
-            // so a long host name truncates with an ellipsis instead of growing the button (and
-            // thus what the toolbar reports as this item's ideal size, see below). Fixing the
-            // width also keeps that reported size — and so the correction below — the same for
-            // every connection state instead of only for the longest one.
-            .frame(width: maxLabelWidth, alignment: .leading)
-            // iOS 26's shared Liquid Glass toolbar background sizes an un-grouped topBarLeading
-            // item as if it were a small icon-only button, collapsing this capsule down to a
-            // sliver (confirmed on-device: only the dot survived). `.fixedSize` makes the button
-            // report its own (already width-fixed, above) ideal size instead of accepting that
-            // proposal, so the full — or correctly-truncated — label actually renders.
-            .fixedSize(horizontal: true, vertical: false)
-        }
-        // With the shared background hidden (below) and a wider-than-icon ideal size (above),
-        // iOS 26 centers this toolbar item on the *icon-sized* slot's midpoint rather than
-        // left-aligning it from the leading safe area — so half of any extra width past that
-        // small slot spills off the left edge of the screen (confirmed on-device: this is what
-        // clipped the leading part of a long host name). `.offset` doesn't change the ideal size
-        // the toolbar centers on, so — unlike padding, which would only claw back half its own
-        // value here — it shifts the whole capsule right by exactly `leadingCorrection`,
-        // calibrated so the fixed width above (the same for every state) lands just inside the
-        // leading safe area instead of straddling the screen edge.
-        .offset(x: leadingCorrection)
-        .buttonStyle(.bordered)
-        .buttonBorderShape(.capsule)
-        .tint(.secondary)
-        .minimumTapTarget()
-        .accessibilityLabel(Text("Connection: \(label)", comment: "Accessibility label for the connection pill"))
-        .accessibilityHint(Text("Opens Devices", comment: "Accessibility hint for the connection pill"))
-    }
-
-    private var maxLabelWidth: CGFloat { horizontalSizeClass == .regular ? 260 : 200 }
-
-    /// Calibrated on-device (iOS 26 simulator) against `maxLabelWidth == 200`: at zero offset the
-    /// capsule's leading dot and first few characters render off-screen; +80pt lands its leading
-    /// edge just inside the safe area. The centering this corrects for (see the `.offset` call
-    /// site) scales with the item's fixed ideal width, so this scales the same way for iPad's
-    /// wider `maxLabelWidth` rather than hard-coding a second constant.
-    private var leadingCorrection: CGFloat { 80 + (maxLabelWidth - 200) / 2 }
-
-    private var label: String {
-        switch environment.connection.connectionState {
-        case .idle: return String(localized: "Not connected", comment: "Connection pill state")
-        case .browsing: return String(localized: "Searching…", comment: "Connection pill state")
-        case .connecting: return String(localized: "Connecting…", comment: "Connection pill state")
-        case .pairing: return String(localized: "Pairing…", comment: "Connection pill state")
-        case .connected(let hostName): return hostName
-        case .reconnecting(let hostName): return String(localized: "Reconnecting to \(hostName)…", comment: "Connection pill state")
-        case .suspended: return String(localized: "Suspended", comment: "Connection pill state")
-        case .failed: return String(localized: "Not connected", comment: "Connection pill state")
-        }
-    }
-
-    /// Shorter fallback for narrow toolbars (compact-width iPhones, or when the settings gear
-    /// crowds the trailing side) so the pill degrades to "Offline"/"Searching…"/host name
-    /// instead of the system truncating the full label.
-    private var compactLabel: String {
-        switch environment.connection.connectionState {
-        case .idle, .failed: return String(localized: "Offline", comment: "Connection pill compact state")
-        case .browsing: return String(localized: "Searching…", comment: "Connection pill compact state")
-        case .connecting: return String(localized: "Connecting…", comment: "Connection pill compact state")
-        case .pairing: return String(localized: "Pairing…", comment: "Connection pill compact state")
-        case .connected(let hostName): return hostName
-        case .reconnecting(let hostName): return hostName
-        case .suspended: return String(localized: "Paused", comment: "Connection pill compact state")
-        }
-    }
-
-    private var dotColor: Color {
-        switch environment.connection.connectionState {
-        case .connected: return .green
-        case .connecting, .pairing, .reconnecting, .browsing: return .yellow
-        case .idle, .suspended, .failed: return .secondary
+    /// docs/08 §2.3 — written inline (rather than depending on the theme agent's
+    /// `AppearanceSetting.colorScheme` extension in `Sources/Support/Appearance.swift`) so this
+    /// file builds regardless of that file's landing order.
+    private func colorScheme(for mode: AppearanceMode) -> ColorScheme? {
+        switch mode {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
         }
     }
 }
+
+// MARK: - Shared toolbar (connection status dot + gear)
 
 private struct SettingsGearButton: View {
     @Binding var showSettings: Bool
@@ -297,15 +203,8 @@ private struct SettingsGearButton: View {
 private extension View {
     func airMouseRootToolbar(showDevices: Binding<Bool>, showSettings: Binding<Bool>, environment: AppEnvironment) -> some View {
         toolbar {
-            if #available(iOS 26.0, *) {
-                ToolbarItem(placement: .topBarLeading) {
-                    ConnectionPillButton(environment: environment, showDevices: showDevices)
-                }
-                .sharedBackgroundVisibility(.hidden)
-            } else {
-                ToolbarItem(placement: .topBarLeading) {
-                    ConnectionPillButton(environment: environment, showDevices: showDevices)
-                }
+            ToolbarItem(placement: .topBarLeading) {
+                ConnectionStatusDot(environment: environment, showDevices: showDevices)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 SettingsGearButton(showSettings: showSettings)

@@ -13,6 +13,7 @@ Precedence when they disagree: `00-decisions.md` (addenda included) > `04-archit
 | 05 | `05-plan.md` | Delivery plan: M0–M9 roadmap, 158-task WBS, critical path, quality gates, M0 runbook, backlog | Complete |
 | 06 | `06-implementation-log.md` | Running record of the build: environment, bootstrap, parallel agent waves, integration, end-to-end results | Complete (v0.1 code) |
 | 07 | `07-landing-page.md` | Air Control landing page: Next.js static export in `site/`, GitHub Pages deploy, local dev, custom-domain switch | In progress |
+| 08 | `08-ui-revamp.md` | UI revamp: single connection indicator, keyboard accessory tab strip, light/dark theme, onboarding fixes, Mac proper app with main window | In progress |
 
 ## Owner decisions still open
 See the addenda in `00-decisions.md`. Defaults stand unless overridden:

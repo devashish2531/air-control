@@ -7,7 +7,9 @@
 // Every button draws its own fixed-size background (a plain `Button` label, never
 // `.buttonStyle(.bordered)`) so its visible bounds match its 44×44 tap target exactly — the
 // system bordered/"glass" button style pads its chrome well past the label's frame, which at the
-// 8 pt spacing this row uses made consecutive circular transport buttons visually overlap.
+// 8 pt spacing this row uses made consecutive circular transport buttons visually overlap. Fills
+// use the same semantic tokens as `KeyCapButton.swift` (docs/08 §3.1) so this row matches the rest
+// of the tab in both themes.
 
 import SwiftUI
 import AirMouseProtocol
@@ -41,7 +43,7 @@ struct MediaKeyBarView: View {
                 .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
-        .background(Circle().fill(.quaternary.opacity(0.3)))
+        .background(Circle().fill(Color(.secondarySystemBackground)))
         .clipShape(Circle())
         .contentShape(Circle())
         .minimumTapTarget()
@@ -49,14 +51,30 @@ struct MediaKeyBarView: View {
     }
 
     private func holdButton(_ key: MediaKey, symbol: String, label: String) -> some View {
+        HoldMediaKeyButton(symbol: symbol, label: label, key: key, viewModel: viewModel)
+    }
+}
+
+/// Volume/brightness buttons need a `@State` pressed-visual since they repeat while held rather
+/// than firing once (docs/08 §3.1 "pressed `.tertiarySystemBackground`"), unlike `tapButton`'s
+/// stateless single-tap circles above.
+private struct HoldMediaKeyButton: View {
+    let symbol: String
+    let label: String
+    let key: MediaKey
+    let viewModel: KeyboardViewModel
+
+    @State private var isPressing = false
+
+    var body: some View {
         Image(systemName: symbol)
             .frame(width: 44, height: 44)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(.quaternary.opacity(0.3)))
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .keyCapStyle(isPressing ? .pressed : .normal)
             .contentShape(Rectangle())
             .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity) {
                 // No-op; press/release handled by `onPressingChanged` for host-style repeat.
             } onPressingChanged: { pressing in
+                isPressing = pressing
                 if pressing {
                     viewModel.beginMediaKeyRepeat(key)
                 } else {
