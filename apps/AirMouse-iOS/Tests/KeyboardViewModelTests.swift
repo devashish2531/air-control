@@ -112,4 +112,35 @@ private final class FakeKeyboardEventSink: KeyboardEventSink {
         viewModel.mode = .commit
         #expect(viewModel.commitText == "")
     }
+
+    // MARK: - Software keyboard visibility (UI fix: hide/show affordance, spec §4.8.1 no dead ends)
+
+    @Test func hideSystemKeyboardResignsFirstResponderWithoutChangingMode() {
+        let (viewModel, _) = makeViewModel()
+        viewModel.mode = .live
+        viewModel.bridge.wantsFirstResponder = true
+        #expect(viewModel.isSystemKeyboardVisible)
+
+        viewModel.hideSystemKeyboard()
+
+        #expect(!viewModel.isSystemKeyboardVisible)
+        #expect(!viewModel.bridge.wantsFirstResponder)
+        #expect(viewModel.mode == .live)
+    }
+
+    @Test func showSystemKeyboardReArmsFirstResponderInLiveModeOnly() {
+        let (viewModel, _) = makeViewModel()
+        viewModel.mode = .live
+        viewModel.hideSystemKeyboard()
+        #expect(!viewModel.isSystemKeyboardVisible)
+
+        viewModel.showSystemKeyboard()
+        #expect(viewModel.isSystemKeyboardVisible)
+
+        // Commit mode manages its own (SwiftUI-focus-based) keyboard, so this is a no-op there.
+        viewModel.hideSystemKeyboard()
+        viewModel.mode = .commit
+        viewModel.showSystemKeyboard()
+        #expect(!viewModel.isSystemKeyboardVisible)
+    }
 }

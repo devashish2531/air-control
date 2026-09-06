@@ -87,11 +87,6 @@ public struct RootTabView: View {
             }
             .navigationTitle(Text("Air Mouse", comment: "iPad sidebar navigation title"))
             .toolbar {
-                // On iOS 26, an un-grouped topBarLeading item is otherwise sized/clipped by the
-                // system's shared Liquid Glass toolbar background, which assumes icon-sized
-                // content and truncates our wider capsule label. Opt this item out (API is
-                // iOS 26+ only; deployment target is 18) so it draws its own Capsule background
-                // at its own intrinsic size instead.
                 if #available(iOS 26.0, *) {
                     ToolbarItem(placement: .topBarLeading) {
                         ConnectionPillButton(environment: environment, showDevices: $showDevices)
@@ -181,6 +176,7 @@ public struct RootTabView: View {
 private struct ConnectionPillButton: View {
     let environment: AppEnvironment
     @Binding var showDevices: Bool
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         Button {
@@ -190,9 +186,10 @@ private struct ConnectionPillButton: View {
                 Circle()
                     .fill(dotColor)
                     .frame(width: 8, height: 8)
-                // `ViewThatFits` lets the toolbar shrink to the compact label ("Offline"/host
-                // name) before iOS would otherwise clip the full label; both variants keep
-                // lineLimit(1) so neither ever wraps or truncates mid-word.
+                // `ViewThatFits` prefers the full label ("Connecting…"/host name) but falls back
+                // to the shorter compact label, and finally a hard `truncationMode(.tail)` cut,
+                // before iOS ever needs to clip anything — every variant keeps lineLimit(1) so
+                // the label never wraps or truncates mid-word.
                 ViewThatFits(in: .horizontal) {
                     Text(label)
                         .font(.subheadline.weight(.medium))
@@ -205,30 +202,46 @@ private struct ConnectionPillButton: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
-                // Bound the proposal so `ViewThatFits` can actually fall back; without a cap the toolbar
-                // proposes unlimited width, the full host name always "fits", and a long name pushes the
-                // capsule off the leading edge of the screen.
-                .frame(maxWidth: 190)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(.ultraThinMaterial, in: Capsule())
-            // Hug the label's intrinsic width instead of letting the system's toolbar button
-            // styling (Liquid Glass on iOS 26) collapse this into a fixed circular glyph slot,
-            // which is what was clipping the text down to "t conne".
+            // Fix (not cap) the label's own proposed width — larger on iPad's roomier toolbar —
+            // so a long host name truncates with an ellipsis instead of growing the button (and
+            // thus what the toolbar reports as this item's ideal size, see below). Fixing the
+            // width also keeps that reported size — and so the correction below — the same for
+            // every connection state instead of only for the longest one.
+            .frame(width: maxLabelWidth, alignment: .leading)
+            // iOS 26's shared Liquid Glass toolbar background sizes an un-grouped topBarLeading
+            // item as if it were a small icon-only button, collapsing this capsule down to a
+            // sliver (confirmed on-device: only the dot survived). `.fixedSize` makes the button
+            // report its own (already width-fixed, above) ideal size instead of accepting that
+            // proposal, so the full — or correctly-truncated — label actually renders.
             .fixedSize(horizontal: true, vertical: false)
         }
-        .buttonStyle(.plain)
-        .layoutPriority(1)
+        // With the shared background hidden (below) and a wider-than-icon ideal size (above),
+        // iOS 26 centers this toolbar item on the *icon-sized* slot's midpoint rather than
+        // left-aligning it from the leading safe area — so half of any extra width past that
+        // small slot spills off the left edge of the screen (confirmed on-device: this is what
+        // clipped the leading part of a long host name). `.offset` doesn't change the ideal size
+        // the toolbar centers on, so — unlike padding, which would only claw back half its own
+        // value here — it shifts the whole capsule right by exactly `leadingCorrection`,
+        // calibrated so the fixed width above (the same for every state) lands just inside the
+        // leading safe area instead of straddling the screen edge.
+        .offset(x: leadingCorrection)
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.capsule)
+        .tint(.secondary)
         .minimumTapTarget()
-        // `.sharedBackgroundVisibility(.hidden)` opts this item out of the system's shared
-        // Liquid Glass toolbar background — which also opts it out of that background's usual
-        // leading safe-area inset, so without this the pill's edge is flush with the screen
-        // edge (clipping the leading glyph). Restore a comparable inset by hand.
-        .padding(.leading, 18)
         .accessibilityLabel(Text("Connection: \(label)", comment: "Accessibility label for the connection pill"))
         .accessibilityHint(Text("Opens Devices", comment: "Accessibility hint for the connection pill"))
     }
+
+    private var maxLabelWidth: CGFloat { horizontalSizeClass == .regular ? 260 : 200 }
+
+    /// Calibrated on-device (iOS 26 simulator) against `maxLabelWidth == 200`: at zero offset the
+    /// capsule's leading dot and first few characters render off-screen; +80pt lands its leading
+    /// edge just inside the safe area. The centering this corrects for (see the `.offset` call
+    /// site) scales with the item's fixed ideal width, so this scales the same way for iPad's
+    /// wider `maxLabelWidth` rather than hard-coding a second constant.
+    private var leadingCorrection: CGFloat { 80 + (maxLabelWidth - 200) / 2 }
 
     private var label: String {
         switch environment.connection.connectionState {
@@ -284,10 +297,6 @@ private struct SettingsGearButton: View {
 private extension View {
     func airMouseRootToolbar(showDevices: Binding<Bool>, showSettings: Binding<Bool>, environment: AppEnvironment) -> some View {
         toolbar {
-            // See the matching comment on the iPad split view's toolbar: without this, iOS 26's
-            // shared Liquid Glass toolbar background sizes the leading item as if it were a
-            // small icon button and clips the wider "Not connected" capsule down to a few
-            // characters. The API is iOS 26+ only; deployment target is 18.
             if #available(iOS 26.0, *) {
                 ToolbarItem(placement: .topBarLeading) {
                     ConnectionPillButton(environment: environment, showDevices: showDevices)

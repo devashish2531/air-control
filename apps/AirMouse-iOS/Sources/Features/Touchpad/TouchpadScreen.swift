@@ -1,11 +1,19 @@
 // Features/Touchpad/TouchpadScreen.swift
-// Touchpad tab (spec §4.1.4, §4.2, §4.1.10). Replaces the placeholder. Full-screen `TouchpadView`
-// surface with a subtle dot-grid, mode ribbon (host name / latency dot / drag-lock indicator /
-// elevated-latency banner), optional on-screen click button strip, sensitivity quick-slider
-// (long-press the ribbon), and a latency HUD overlay gated by Labs. iPad regular-width landscape
-// reserves a side region for the (placeholder) Keys/Macros/Presenter panel, collapsing to a 44 pt
-// rail below 700 pt width (spec §4.1.10); portrait regular width and compact width both fall back
-// to the plain surface — see this file's deviation note on the resizable drawer.
+// Touchpad tab (spec §4.1.4, §4.2, §4.1.10). Replaces the placeholder. `TouchpadView` fills the
+// pad area beside a dedicated right-edge scroll strip (`TouchpadScrollStrip`), with a subtle
+// dot-grid behind both, a top-edge overlay (mode ribbon: drag-lock indicator / elevated-latency
+// banner / connection banner for non-connected states / sensitivity quick-slider trigger — see
+// `TouchpadModeRibbon`'s header note), physical-style click buttons reserved via
+// `safeAreaInset(edge: .bottom)` so the pad never renders under them, and a latency HUD overlay
+// gated by Labs. iPad regular-width landscape reserves a side region for the (placeholder)
+// Keys/Macros/Presenter panel, collapsing to a 44 pt rail below 700 pt width (spec §4.1.10);
+// portrait regular width and compact width both fall back to the plain surface — see this file's
+// deviation note on the resizable drawer.
+//
+// Owner UI request: no floating connection-status pill over the pad while connected (the
+// toolbar's connection pill, App/RootTabView.swift, is the single indicator app-wide) — see
+// `TouchpadModeRibbon.swift`'s header note for the full rationale; a right-edge scroll strip
+// (~48 pt) and ~64 pt-tall bottom click buttons per the owner's requested layout.
 //
 // Deviation: spec §4.1.10's "Regular width, portrait: Touchpad above a resizable drawer (drag
 // handle; heights 30 % / 50 %)" is not implemented — this agent's directories own the surface and
@@ -106,25 +114,38 @@ public struct TouchpadScreen: View {
         ZStack {
             Color(uiColor: .systemBackground)
             TouchpadGridBackground()
-            TouchpadView(
-                config: controller.gestureConfig,
-                predictionEnabled: environment.labs.prediction,
-                intentSink: controller
-            )
-            .accessibilityElement(children: .contain)
+
+            HStack(spacing: 0) {
+                TouchpadView(
+                    config: controller.gestureConfig,
+                    predictionEnabled: environment.labs.prediction,
+                    intentSink: controller
+                )
+                .accessibilityElement(children: .contain)
+
+                TouchpadScrollStrip(controller: controller)
+                    .padding(.vertical, 6)
+                    .padding(.trailing, 6)
+            }
 
             VStack(spacing: 0) {
                 TouchpadModeRibbon(controller: controller)
                     .padding(.top, 8)
-                Spacer()
-                if controller.showClickButtons {
-                    TouchpadClickButtonStrip(
-                        controller: controller,
-                        leftHanded: environment.userSettings.snapshot.appearance.handedness == .left
-                    )
                     .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
-                }
+                #if DEBUG
+                TouchpadDebugMotionLabel(environment: environment, controller: controller)
+                #endif
+                Spacer()
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if controller.showClickButtons {
+                TouchpadClickButtonStrip(
+                    controller: controller,
+                    leftHanded: environment.userSettings.snapshot.appearance.handedness == .left
+                )
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
             }
         }
         .latencyHUD(diagnostics: environment.diagnostics, isEnabled: environment.labs.latencyHUD)

@@ -1,116 +1,370 @@
 /*
- * Sections — owned by Sections.tsx (Spotlights, Stats, HowItWorks, Security,
- * OpenSource, Faq, FinalCta).
+ * Sections — owned by Sections.tsx (Features, Devices, Stats, HowItWorks,
+ * Security, OpenSource, Faq, FinalCta).
  *
  * Reuses globals.css tokens/classes (.container, .tile, .tile--outline,
  * .grouped, .grouped__row, .section, .section__head, .section--tint,
- * .band--dark, .link-arrow, .badge, .button, [data-reveal]) — nothing here
- * redefines them.
+ * .band--dark, .link-arrow, .badge, .button, .grad-text, [data-reveal]) —
+ * nothing here redefines them.
  */
 
 /* -------------------------------------------------------------------------- */
-/* Spotlights — alternating full-width feature rows + a 3-up compact row     */
+/* Feature card strip (DESIGN-SPEC-v3.md §A) — replaces the v2 bento grid.    */
+/* Apple's apple.com/apps "Health & Fitness" strip: one horizontal row of     */
+/* tall portrait cards that scroll sideways with prev/next round buttons.    */
 /* -------------------------------------------------------------------------- */
 
-.spotlight-row {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(1.5rem, 4vw, 2rem);
-  background: var(--bg-secondary);
-  border-radius: var(--r-xl);
-  padding: clamp(2rem, 5vw, 4rem);
+/* Left-aligned section head variant — the strip's head is left-aligned in
+   the container, unlike the centered default `.section__head`. Chained onto
+   `.section__head` (rather than a bare `.section__head--start` rule) so its
+   two-class specificity beats globals.css's `.section__head` regardless of
+   import order (`@import`s are inlined at the top of globals.css, ahead of
+   its own later same-specificity rules). */
+.section__head.section__head--start {
+  margin-inline: 0;
+  text-align: left;
 }
 
-.spotlight-row + .spotlight-row {
-  margin-top: clamp(1.25rem, 3vw, 1.75rem);
+/*
+ * So the first card's left edge lines up with `.container--wide`'s content
+ * edge while the row itself is full-bleed (not confined to the container),
+ * letting it bleed to the viewport's right edge. Scoped to :root (rather
+ * than inlined into each declaration below) because it's read from both
+ * `padding-inline` and `scroll-padding-inline` on `.strip`.
+ */
+:root {
+  --strip-inset: max(var(--gutter), calc((100vw - var(--wide-max)) / 2));
 }
 
-@media (min-width: 56rem) {
-  .spotlight-row {
-    flex-direction: row;
-    align-items: center;
-    gap: clamp(2rem, 5vw, 3.5rem);
-  }
-
-  .spotlight-row--reverse {
-    flex-direction: row-reverse;
-  }
-
-  .spotlight-row__text {
-    flex: 0 0 40%;
-  }
-
-  .spotlight-row__illustration {
-    flex: 1 1 auto;
-  }
-}
-
-.spotlight-row__text {
-  min-width: 0;
-}
-
-.spotlight-row__eyebrow {
-  margin-bottom: 0.25rem;
-}
-
-.spotlight-row__heading {
-  margin: 0.35rem 0 0.85rem;
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-  font-weight: 700;
-  text-wrap: balance;
-}
-
-.spotlight-row__illustration {
-  min-width: 0;
-  color: var(--accent);
-}
-
-.spotlight-row__illustration svg {
-  display: block;
+.strip-shell {
   width: 100%;
-  height: auto;
-  max-height: 340px;
-  margin-inline: auto;
-}
-
-.tile-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: clamp(1rem, 2.5vw, 1.5rem);
   margin-top: clamp(1.5rem, 3vw, 2rem);
 }
 
-@media (min-width: 48rem) {
-  .tile-row {
+/* The track is the ONLY horizontal scroller — the document itself must
+   never gain horizontal scroll from this strip. */
+.strip {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--strip-inset);
+  padding-inline: var(--strip-inset);
+  padding-block: 0.5rem; /* room for the focus ring and hover lift */
+  scrollbar-width: none;
+}
+
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+.strip:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+  border-radius: var(--r-xl);
+}
+
+.strip-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 78vw;
+  aspect-ratio: 300 / 540;
+  padding: 1.5rem;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  color: var(--text);
+  scroll-snap-align: start;
+}
+
+@media (min-width: 40rem) {
+  .strip-card {
+    flex-basis: min(320px, 44vw);
+  }
+}
+
+@media (min-width: 64rem) {
+  .strip-card {
+    flex-basis: clamp(272px, 23vw, 300px);
+  }
+}
+
+.strip-card__top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.strip-card__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-sm);
+}
+
+.strip-card__name {
+  margin: 0;
+  font-size: 1.375rem;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+
+.strip-card__headline {
+  margin: 0 0 0.375rem;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.strip-card__benefit {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+/* Fills the remaining vertical space between the copy above and the
+   compatibility footer below, centering the (enlarged) illustration. */
+.strip-card__illustration {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-height: 0;
+}
+
+.strip-card__illustration svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.strip-card__compat {
+  margin: 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--separator);
+}
+
+.strip-card__compat-label,
+.strip-card__compat-value {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.strip-card__compat-label {
+  font-weight: 600;
+}
+
+.strip-card__compat-value {
+  color: var(--text-secondary);
+}
+
+/* Hover lift: pointer devices with real hover only, and never under reduced
+   motion — transform/opacity(+shadow) only, 180ms ease-out. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .strip-card {
+    transition:
+      transform var(--dur-ui) var(--ease-out),
+      box-shadow var(--dur-ui) var(--ease-out);
+  }
+
+  .strip-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-2);
+  }
+}
+
+/* Card tones — background + local text tokens + glyph/illustration tint.
+   Light cards (blue/peach/mint) keep default --text but need a darker local
+   --text-secondary (measured below 4.5:1 for the default #6e6e73 against
+   these gradients — see globals.css's --text-secondary-on-card). Dark cards
+   (violet/black) go white per spec: "the glyph square is
+   rgba(255,255,255,0.14) with white glyph" and --text/--text-secondary/
+   --separator swap to their white equivalents so children need no special
+   casing. */
+
+.strip-card--blue {
+  background: var(--card-blue);
+  --text-secondary: var(--text-secondary-on-card);
+}
+
+.strip-card--blue .strip-card__glyph {
+  background: rgba(10, 132, 255, 0.14);
+  color: var(--blue);
+}
+
+.strip-card--blue .strip-card__illustration {
+  color: var(--blue);
+}
+
+.strip-card--peach {
+  background: var(--card-peach);
+  --text-secondary: var(--text-secondary-on-card);
+  --ill-a: var(--pink);
+  --ill-b: var(--orange);
+}
+
+.strip-card--peach .strip-card__glyph {
+  background: rgba(255, 55, 95, 0.14);
+  color: var(--pink);
+}
+
+.strip-card--violet {
+  background: var(--card-violet);
+  --text: #fff;
+  --text-secondary: rgba(255, 255, 255, 0.78);
+  --separator: rgba(255, 255, 255, 0.16);
+  --ill-a: #fff;
+  --ill-b: var(--teal);
+}
+
+.strip-card--violet .strip-card__glyph {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.strip-card--black {
+  background: var(--card-black);
+  --text: #fff;
+  --text-secondary: rgba(255, 255, 255, 0.78);
+  --separator: rgba(255, 255, 255, 0.16);
+  --ill-a: var(--orange);
+  --ill-b: var(--orange);
+}
+
+.strip-card--black .strip-card__glyph {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.strip-card--mint {
+  background: var(--card-mint);
+  --text-secondary: var(--text-secondary-on-card);
+  --ill-a: var(--green);
+  --ill-b: var(--teal);
+}
+
+.strip-card--mint .strip-card__glyph {
+  background: rgba(48, 209, 88, 0.14);
+  color: var(--green);
+}
+
+.strip-card--gray {
+  background: var(--card-gray);
+  --ill-a: var(--blue);
+}
+
+.strip-card--gray .strip-card__glyph {
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Strip nav — two 36px round prev/next buttons, right-aligned in the        */
+/* container (not full-bleed like the track above).                          */
+/* -------------------------------------------------------------------------- */
+
+.strip-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  max-width: var(--wide-max);
+  margin: 1.5rem auto 0;
+  padding-inline: var(--gutter);
+}
+
+.strip-nav__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    opacity var(--dur-ui) var(--ease-out);
+}
+
+.strip-nav__btn:active {
+  transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strip-nav__btn {
+    transition: opacity var(--dur-ui) var(--ease-out);
+  }
+
+  .strip-nav__btn:active {
+    transform: none;
+  }
+}
+
+.strip-nav__btn[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Devices row — three 64px line icons + label + OS requirement (spec §4)     */
+/* -------------------------------------------------------------------------- */
+
+.devices-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.75rem, 4vw, 2.5rem);
+  margin-bottom: clamp(2rem, 4vw, 2.5rem);
+  text-align: center;
+}
+
+@media (min-width: 40rem) {
+  .devices-row {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-.tile-row .tile {
+.devices-row__item {
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
-.tile-row .tile h3 {
-  margin-bottom: 0.5rem;
+.devices-row__icon {
+  display: inline-flex;
+  color: var(--text);
+  margin-bottom: 0.75rem;
 }
 
-.tile-row .tile p {
+.devices-row__label {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+}
+
+.devices-row__requirement {
+  margin: 0;
   color: var(--text-secondary);
 }
 
-.tile__glyph {
-  display: inline-flex;
-  align-items: center;
+.devices-row__links {
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 1rem;
-  border-radius: var(--r-sm);
-  background: var(--accent-tint);
-  color: var(--accent);
+  gap: 0.75rem 2rem;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -132,12 +386,12 @@
 
 .stat-item__value {
   margin: 0;
+  display: inline-block;
   font-size: clamp(2.75rem, 6vw, 4.5rem);
   line-height: 1.05;
   font-weight: 700;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
-  color: var(--text);
 }
 
 .stat-item__caption {
@@ -177,22 +431,90 @@
 .step__num {
   display: block;
   margin-bottom: 0.75rem;
-  font-size: 2.5rem;
+  font-size: 3rem;
   line-height: 1;
-  font-weight: 600;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary);
+  /* Solid --blue, not gradient text (DESIGN-SPEC-v3.md §D). */
+  color: var(--blue);
 }
 
 /* -------------------------------------------------------------------------- */
-/* Security — --bg-secondary section, three pillars                          */
+/* Security — two-up value cards + three pillars (spec §7)                    */
 /* -------------------------------------------------------------------------- */
+
+.value-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.25rem, 3vw, 2rem);
+  margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+@media (min-width: 48rem) {
+  .value-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.value-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 420px;
+  padding: clamp(2rem, 4vw, 3rem);
+  border-radius: var(--r-xl);
+  color: #fff;
+}
+
+.value-card--aurora {
+  background: var(--card-aurora);
+}
+
+.value-card--solid-blue {
+  background: var(--card-solid-blue);
+}
+
+.value-card__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1.5rem;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.value-card__headline {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: #fff;
+  text-wrap: balance;
+}
+
+.value-card__body {
+  margin: 0 0 1.5rem;
+  max-width: 42ch;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Higher-specificity descendant selector, not a source-order dependency —
+   wins regardless of where .link-arrow's own rule sits in the cascade. */
+.value-card .link-arrow {
+  color: #fff;
+}
 
 .pillar-row {
   display: grid;
   grid-template-columns: 1fr;
   gap: clamp(1rem, 2.5vw, 1.5rem);
-  margin-bottom: clamp(2rem, 4vw, 2.5rem);
 }
 
 @media (min-width: 48rem) {
@@ -209,8 +531,21 @@
   height: 56px;
   margin-bottom: 1rem;
   border-radius: var(--r-sm);
-  background: var(--accent-tint);
-  color: var(--accent);
+}
+
+.pillar__glyph--blue {
+  background: rgba(10, 132, 255, 0.14);
+  color: var(--blue);
+}
+
+.pillar__glyph--indigo {
+  background: rgba(94, 92, 230, 0.14);
+  color: var(--indigo);
+}
+
+.pillar__glyph--green {
+  background: rgba(48, 209, 88, 0.14);
+  color: var(--green);
 }
 
 .pillar h3 {
@@ -221,55 +556,53 @@
   color: var(--text-secondary);
 }
 
-.security__links {
+/* -------------------------------------------------------------------------- */
+/* Open source — slim facts strip + Homebrew command (spec §8)               */
+/* -------------------------------------------------------------------------- */
+
+.facts-strip {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 2rem;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Open source — wide tile, copy + facts                                     */
-/* -------------------------------------------------------------------------- */
-
-.opensource {
+.facts-strip__grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: clamp(2rem, 4vw, 3rem);
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem 1.5rem;
 }
 
-@media (min-width: 48rem) {
-  .opensource {
-    grid-template-columns: 1.1fr 1fr;
-    align-items: center;
+@media (min-width: 40rem) {
+  .facts-strip__grid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
-/*
- * min-width: 0 overrides the grid item's default `min-width: auto`, which
- * would otherwise floor this column at its content's min-content size. The
- * Homebrew <code> below is `white-space: nowrap` (its min-content width IS
- * its full one-line width), so without this the grid track — and the whole
- * document — gets pulled wider than the viewport (same failure mode as the
- * comment on .hero__brew in the old hero.css).
- */
-.opensource__copy {
-  min-width: 0;
+.facts-strip__item dt {
+  margin: 0 0 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
 }
 
-.opensource__copy .eyebrow {
-  margin-bottom: 0.75rem;
+.facts-strip__item dd {
+  margin: 0;
+  font-weight: 500;
 }
 
-.opensource__copy h2 {
-  margin-bottom: 1rem;
+/* Invisible hit-area extension so the "MIT" / "Open a report" links clear
+   44px tall without growing their visible size. */
+.facts-strip__item dd a {
+  position: relative;
 }
 
-.opensource__copy .lede {
-  margin-bottom: 1.5rem;
+.facts-strip__item dd a::before {
+  content: "";
+  position: absolute;
+  inset: -12px 0;
 }
 
-.opensource__copy .actions {
-  margin-bottom: 1rem;
+.facts-strip__brew {
+  margin: 0;
 }
 
 .opensource__brew {
@@ -295,37 +628,7 @@
   color: var(--text-secondary);
 }
 
-.facts.grouped {
-  align-self: stretch;
-}
-
-.facts .grouped__row {
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.facts dt {
-  color: var(--text-secondary);
-}
-
-.facts dd {
-  text-align: right;
-  font-weight: 500;
-}
-
-/* Invisible hit-area extension so the "MIT" / "Open a report" links clear
-   44px tall without growing their visible size. */
-.facts dd a {
-  position: relative;
-}
-
-.facts dd a::before {
-  content: "";
-  position: absolute;
-  inset: -12px 0;
-}
-
-/* Shared button row: Open source's tile actions and the final CTA. */
+/* Shared button row: the final CTA's actions. */
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -415,11 +718,39 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* Final CTA                                                                  */
+/* Final CTA — full-bleed gradient band (spec §10)                           */
 /* -------------------------------------------------------------------------- */
 
 .cta {
   text-align: center;
+}
+
+.cta--band {
+  position: relative;
+  background: var(--band-cta);
+  color: #fff;
+  overflow: hidden;
+}
+
+/* Faint radial highlight layered on the gradient, top-left. */
+.cta__highlight {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    40% 50% at 20% 0%,
+    rgba(255, 255, 255, 0.18),
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.cta--band .container {
+  position: relative;
+  z-index: 1;
+}
+
+.cta--band h2 {
+  color: #fff;
 }
 
 .cta__inner {
@@ -431,6 +762,11 @@
   margin-inline: auto;
 }
 
+.cta__lede {
+  color: rgba(255, 255, 255, 0.85);
+}
+
 .cta__proof {
   margin-top: 0.25rem;
+  color: rgba(255, 255, 255, 0.75);
 }

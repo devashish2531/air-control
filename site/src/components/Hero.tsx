@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { HeroDevice } from "@/components/HeroDevice";
+import { HeroQR } from "@/components/HeroQR";
 import { site } from "@/site.config";
 
 /**
@@ -42,7 +43,9 @@ export function Hero() {
             Download for Mac
           </a>
 
-          <span className="hero__waitlist">
+          {/* id="get-iphone": the hero QR card's scan target (spec §C) —
+              scanning it should land right on this action. */}
+          <span className="hero__waitlist" id="get-iphone">
             <a
               className="link-arrow"
               href={site.links.iosWaitlist}
@@ -63,6 +66,7 @@ export function Hero() {
 
         <div className="hero__stage">
           <HeroDevice />
+          <HeroQR />
         </div>
       </div>
     </section>

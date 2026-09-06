@@ -3,6 +3,11 @@
 // brightness"; spec §4.4.5: "Media buttons send `mediaKey{key, tap}`; volume up/down hold → down/
 // up for host repeat"). Previous/Next/Play-Pause/Mute are single taps; Volume/Brightness up/down
 // repeat while held (`KeyboardViewModel.beginMediaKeyRepeat`/`endMediaKeyRepeat`).
+//
+// Every button draws its own fixed-size background (a plain `Button` label, never
+// `.buttonStyle(.bordered)`) so its visible bounds match its 44×44 tap target exactly — the
+// system bordered/"glass" button style pads its chrome well past the label's frame, which at the
+// 8 pt spacing this row uses made consecutive circular transport buttons visually overlap.
 
 import SwiftUI
 import AirMouseProtocol
@@ -15,7 +20,7 @@ struct MediaKeyBarView: View {
             Text("Media", comment: "Keyboard screen: media key bar section header")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
-            HStack(spacing: 8) {
+            AdaptiveKeyRow(spacing: 8) {
                 tapButton(.previous, symbol: "backward.end.fill", label: String(localized: "Previous", comment: "Keyboard media bar: Previous track button"))
                 tapButton(.playPause, symbol: "playpause.fill", label: String(localized: "Play or Pause", comment: "Keyboard media bar: Play/Pause button"))
                 tapButton(.next, symbol: "forward.end.fill", label: String(localized: "Next", comment: "Keyboard media bar: Next track button"))
@@ -33,16 +38,19 @@ struct MediaKeyBarView: View {
             viewModel.tapMediaKey(key)
         } label: {
             Image(systemName: symbol)
-                .frame(minWidth: 44, minHeight: 44)
+                .frame(width: 44, height: 44)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.plain)
+        .background(Circle().fill(.quaternary.opacity(0.3)))
+        .clipShape(Circle())
+        .contentShape(Circle())
         .minimumTapTarget()
         .accessibleButton(label: LocalizedStringKey(label))
     }
 
     private func holdButton(_ key: MediaKey, symbol: String, label: String) -> some View {
         Image(systemName: symbol)
-            .frame(minWidth: 44, minHeight: 44)
+            .frame(width: 44, height: 44)
             .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(.quaternary.opacity(0.3)))
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .contentShape(Rectangle())

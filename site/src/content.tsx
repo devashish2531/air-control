@@ -6,7 +6,7 @@ import { site } from "@/site.config";
 /* Features — one sentence each, drawn from docs/01-requirements.md §3.        */
 /* -------------------------------------------------------------------------- */
 
-/** One of the six bento card color surfaces defined in globals.css (`--card-*`). */
+/** One of the six card-strip color surfaces defined in globals.css (`--card-*`). */
 export type FeatureCardTone = "blue" | "peach" | "violet" | "black" | "mint" | "gray";
 
 export type Feature = {
@@ -21,22 +21,23 @@ export type Feature = {
   /** Decorative: the card header already names the feature. */
   icon: ReactNode;
   /**
-   * Line-art shown at the bottom of the card (`.card__illustration`,
-   * `margin-top: auto`), aria-hidden by the caller. Recolored per card via
-   * the `--ill-a`/`--ill-b` custom properties set in sections.css.
+   * Line-art shown filling the middle of the card
+   * (`.strip-card__illustration`, `flex: 1`), aria-hidden by the caller.
+   * Recolored per card via the `--ill-a`/`--ill-b` custom properties set in
+   * sections.css.
    */
   illustration?: ReactNode;
-  /** Which `--card-*` gradient/surface this feature's bento tile uses. */
+  /** Which `--card-*` gradient/surface this feature's strip card uses. */
   card: FeatureCardTone;
-  /** Spans 2 columns of the bento grid (3 cols >=64rem, 2 cols 40-64rem). */
-  wide?: boolean;
+  /** Compatibility footer value, e.g. "iPhone, iPad" (spec A). */
+  compat: string;
 };
 
 /**
- * Bento grid order (spec §3): 3x3 at >=64rem reads
- *   [Touchpad Touchpad Keyboard] [Air Air Presenter] [Macros Macros iPad]
- * which this array's order produces directly under CSS grid auto-placement
- * (each `wide` card spans 2 columns) — keep this order if reshuffled.
+ * Card strip order (spec A, DESIGN-SPEC-v3.md): Touchpad, Air mouse,
+ * Keyboard, Presenter & media remote, Macros, iPad layout — paired with
+ * surfaces --card-blue, --card-violet, --card-peach, --card-black,
+ * --card-mint, --card-gray in that same order. Keep this order if reshuffled.
  */
 
 /** 24×24 stroke icons, inlined so the page loads no external assets. */
@@ -71,6 +72,7 @@ function TouchpadIllustration() {
       width="280"
       height="140"
       fill="none"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       focusable="false"
     >
@@ -123,6 +125,7 @@ function AirMouseIllustration() {
       width="280"
       height="140"
       fill="none"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       focusable="false"
     >
@@ -165,6 +168,7 @@ function MacrosIllustration() {
       width="280"
       height="140"
       fill="none"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       focusable="false"
     >
@@ -202,19 +206,25 @@ function MacrosIllustration() {
 
 /**
  * A row of five key caps for the modifier row plus return — ⌘ ⌥ ⌃ ⇧ ⏎ — so
- * the Keyboard tile shows the one row of keys that is unique to this app.
+ * the Keyboard card shows the one row of keys that is unique to this app.
+ * Drawn on the same 280x140 canvas as the other five illustrations (vs. a
+ * short 280x48 strip) so it fills the card's illustration area (spec A)
+ * instead of reading as a thin sliver once scaled to the card's full width.
  */
 function KeyRowIllustration() {
   const glyphs = ["⌘", "⌥", "⌃", "⇧", "⏎"];
   const gap = 10;
   const keyWidth = (280 - gap * (glyphs.length - 1)) / glyphs.length;
+  const keyHeight = 48;
+  const y = (140 - keyHeight) / 2;
 
   return (
     <svg
-      viewBox="0 0 280 48"
+      viewBox="0 0 280 140"
       width="280"
-      height="48"
+      height="140"
       fill="none"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       focusable="false"
       style={{ fontFamily: "var(--font-sans)" }}
@@ -226,15 +236,15 @@ function KeyRowIllustration() {
           <g key={glyph}>
             <rect
               x={x}
-              y="0"
+              y={y}
               width={keyWidth}
-              height="48"
+              height={keyHeight}
               rx="10"
               stroke={tint}
               strokeOpacity="0.55"
               strokeWidth="1.5"
             />
-            <text x={x + keyWidth / 2} y="30" textAnchor="middle" fontSize="18" fill={tint}>
+            <text x={x + keyWidth / 2} y={y + 30} textAnchor="middle" fontSize="18" fill={tint}>
               {glyph}
             </text>
           </g>
@@ -246,20 +256,24 @@ function KeyRowIllustration() {
 
 /**
  * Three rounded media-remote buttons — previous / play / next — standing in
- * for the presenter's playback controls.
+ * for the presenter's playback controls. Drawn on the same 280x140 canvas as
+ * the other five illustrations (see the KeyRowIllustration note above) so it
+ * fills the card's illustration area instead of a thin 280x64 sliver.
  */
 function MediaRowIllustration() {
   const glyphs = ["⏮︎", "▶︎", "⏭︎"];
   const size = 56;
   const gap = 16;
   const startX = (280 - (glyphs.length * size + (glyphs.length - 1) * gap)) / 2;
+  const y = (140 - size) / 2;
 
   return (
     <svg
-      viewBox="0 0 280 64"
+      viewBox="0 0 280 140"
       width="280"
-      height="64"
+      height="140"
       fill="none"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       focusable="false"
       style={{ fontFamily: "var(--font-sans)" }}
@@ -270,7 +284,7 @@ function MediaRowIllustration() {
           <g key={glyph}>
             <rect
               x={x}
-              y="4"
+              y={y}
               width={size}
               height={size}
               rx="16"
@@ -280,7 +294,7 @@ function MediaRowIllustration() {
             />
             <text
               x={x + size / 2}
-              y={4 + size / 2 + 7}
+              y={y + size / 2 + 7}
               textAnchor="middle"
               fontSize="20"
               fill="var(--ill-b, currentColor)"
@@ -308,6 +322,7 @@ function IPadIllustration() {
       width="280"
       height="140"
       fill="none"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       focusable="false"
     >
@@ -364,23 +379,7 @@ export const features: Feature[] = [
     ),
     illustration: <TouchpadIllustration />,
     card: "blue",
-    wide: true,
-  },
-  {
-    id: "keyboard",
-    title: "Keyboard",
-    headline: "Type from the couch.",
-    benefit:
-      "Types straight into whatever app is frontmost, with modifier chords, arrow and function keys, and a dedicated row for ⌘ ⌥ ⌃ ⇧.",
-    body: "Type from the phone straight into whatever app is frontmost on the Mac, with modifier chords, arrow and function keys, and a dedicated row for ⌘, ⌥, ⌃ and ⇧.",
-    icon: (
-      <Glyph>
-        <rect x="2" y="6" width="20" height="12" rx="2" />
-        <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
-      </Glyph>
-    ),
-    illustration: <KeyRowIllustration />,
-    card: "peach",
+    compat: "iPhone, iPad",
   },
   {
     id: "air-mouse",
@@ -398,7 +397,24 @@ export const features: Feature[] = [
     ),
     illustration: <AirMouseIllustration />,
     card: "violet",
-    wide: true,
+    compat: "iPhone, iPad",
+  },
+  {
+    id: "keyboard",
+    title: "Keyboard",
+    headline: "Type from the couch.",
+    benefit:
+      "Types straight into whatever app is frontmost, with modifier chords, arrow and function keys, and a dedicated row for ⌘ ⌥ ⌃ ⇧.",
+    body: "Type from the phone straight into whatever app is frontmost on the Mac, with modifier chords, arrow and function keys, and a dedicated row for ⌘, ⌥, ⌃ and ⇧.",
+    icon: (
+      <Glyph>
+        <rect x="2" y="6" width="20" height="12" rx="2" />
+        <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
+      </Glyph>
+    ),
+    illustration: <KeyRowIllustration />,
+    card: "peach",
+    compat: "iPhone, iPad",
   },
   {
     id: "presenter",
@@ -416,6 +432,7 @@ export const features: Feature[] = [
     ),
     illustration: <MediaRowIllustration />,
     card: "black",
+    compat: "iPhone, iPad",
   },
   {
     id: "macros",
@@ -434,7 +451,7 @@ export const features: Feature[] = [
     ),
     illustration: <MacrosIllustration />,
     card: "mint",
-    wide: true,
+    compat: "iPhone, iPad",
   },
   {
     id: "ipad",
@@ -451,6 +468,7 @@ export const features: Feature[] = [
     ),
     illustration: <IPadIllustration />,
     card: "gray",
+    compat: "iPad",
   },
 ];
 
@@ -553,6 +571,85 @@ export const steps = [
   {
     title: "Take control",
     body: "The phone lands on the touchpad and reconnects on its own from then on, every time.",
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/* Value cards — two-up trust cards above the security pillars (spec §7)      */
+/* -------------------------------------------------------------------------- */
+
+/** Which `--card-*` surface a value card uses: dark aurora gradient or the solid blue. */
+export type ValueCardTone = "aurora" | "solid-blue";
+
+export type ValueCard = {
+  id: string;
+  tone: ValueCardTone;
+  icon: ReactNode;
+  headline: string;
+  body: string;
+  linkLabel: string;
+  href: string;
+};
+
+function LockIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x="5" y="11" width="14" height="9" rx="2.2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+      <circle cx="12" cy="15.3" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** A "</>" glyph standing in for "open source". */
+function OpenSourceIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M9 6.5l-5.5 5.5L9 17.5M15 6.5l5.5 5.5-5.5 5.5" />
+    </svg>
+  );
+}
+
+export const valueCards: ValueCard[] = [
+  {
+    id: "privacy",
+    tone: "aurora",
+    icon: <LockIcon />,
+    headline: "Your keystrokes never leave your network.",
+    body: "Local Wi‑Fi only, mutual TLS 1.3, and a one-time pairing secret — nothing about what you type or click is ever sent anywhere else.",
+    linkLabel: "Read the threat model",
+    href: site.links.security,
+  },
+  {
+    id: "open-source",
+    tone: "solid-blue",
+    icon: <OpenSourceIcon />,
+    headline: "Open. Free. Yours.",
+    body: "MIT licensed and native Swift throughout — both apps and the wire protocol they speak are public, so you can read every line that touches your Mac.",
+    linkLabel: "View on GitHub",
+    href: site.links.github,
   },
 ];
 

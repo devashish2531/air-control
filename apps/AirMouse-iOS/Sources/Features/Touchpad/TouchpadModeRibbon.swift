@@ -1,7 +1,22 @@
 // Features/Touchpad/TouchpadModeRibbon.swift
-// Mode ribbon (spec §4.1.4): host name, latency dot, "Dragging" indicator when drag-lock is
-// active, "Elevated latency" banner; long-press reveals the 1–10 sensitivity quick-slider with
-// live preview (sends `settings` immediately on change).
+// Top-edge overlay (spec §4.1.4): a connection banner (host name + latency dot), "Dragging"
+// indicator when drag-lock is active, and "Elevated latency" banner; long-press reveals the 1–10
+// sensitivity quick-slider with live preview (sends `settings` immediately on change).
+//
+// Owner UI request: the toolbar's connection pill (`ConnectionPillButton`, App/RootTabView.swift,
+// another agent's file, not modified here) is the single connection-status indicator app-wide —
+// this view must never float a second, redundant host-name/dot pill over the pad while
+// `connectionState == .connected`. So the connection banner below only renders for the
+// non-connected states (browsing/connecting/pairing/reconnecting/suspended/failed/idle), matching
+// spec §4.1.4's "Paused on Mac" / error-banner language; while connected it disappears entirely.
+// The "Dragging" and "Elevated latency" badges are independent of connection state and can still
+// appear while connected. A small always-present quick-settings affordance (not a pill — a plain
+// circular icon button, carrying no connection-status text) keeps the sensitivity slider (spec
+// §4.1.4, kept per owner item 5) reachable via long-press even when the banner is hidden.
+//
+// The whole row is leading/trailing-anchored (`Spacer()` between banner content and the
+// quick-settings icon, `.frame(maxWidth: .infinity, alignment: .leading)`), never centered over
+// the pad — owner item 5: "move any overlays off the pad centre to the top edge of the pad".
 
 import SwiftUI
 
@@ -17,13 +32,26 @@ public struct TouchpadModeRibbon: View {
 
     public var body: some View {
         VStack(spacing: 6) {
+            topRow
+            if showSensitivitySlider {
+                sensitivitySlider
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var topRow: some View {
+        if hasBannerContent {
             HStack(spacing: 8) {
-                Circle()
-                    .fill(latencyDotColor)
-                    .frame(width: 8, height: 8)
-                SwiftUI.Text(hostLabel)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
+                if showConnectionBanner {
+                    Circle()
+                        .fill(latencyDotColor)
+                        .frame(width: 8, height: 8)
+                    SwiftUI.Text(hostLabel)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                }
                 if controller.isDragLockEngaged {
                     Label {
                         SwiftUI.Text("Dragging", comment: "Touchpad mode ribbon drag-lock indicator")
@@ -39,23 +67,38 @@ public struct TouchpadModeRibbon: View {
                         .font(.caption2)
                         .foregroundStyle(.orange)
                 }
+                Spacer(minLength: 8)
+                quickSettingsButton
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(.ultraThinMaterial, in: Capsule())
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(bannerAccessibilityLabel)
+        } else {
+            HStack {
+                Spacer()
+                quickSettingsButton
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+    }
+
+    private var quickSettingsButton: some View {
+        Image(systemName: "slider.horizontal.3")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(8)
+            .background(Circle().fill(.ultraThinMaterial))
+            .contentShape(Circle())
+            .minimumTapTarget()
             .onLongPressGesture {
                 withAnimation { showSensitivitySlider.toggle() }
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(SwiftUI.Text("\(hostLabel), \(controller.isDragLockEngaged ? "dragging" : "idle")", comment: "Accessibility label for the touchpad mode ribbon"))
+            .accessibilityLabel(SwiftUI.Text("Pointer sensitivity", comment: "Accessibility label for the touchpad sensitivity slider"))
             .accessibilityHint(SwiftUI.Text("Long press to adjust sensitivity", comment: "Accessibility hint for the touchpad mode ribbon"))
-
-            if showSensitivitySlider {
-                sensitivitySlider
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .minimumTapTarget()
+            .accessibilityAddTraits(.isButton)
     }
 
     private var sensitivitySlider: some View {
@@ -84,6 +127,21 @@ public struct TouchpadModeRibbon: View {
                 controller.pushSettingsToHost()
             }
         )
+    }
+
+    private var hasBannerContent: Bool {
+        showConnectionBanner || controller.isDragLockEngaged || isElevatedLatency
+    }
+
+    /// Owner UI request: the banner is shown only for non-connected states — the toolbar
+    /// connection pill already covers `connected` (see this file's header note).
+    private var showConnectionBanner: Bool {
+        if case .connected = environment.connection.connectionState { return false }
+        return true
+    }
+
+    private var bannerAccessibilityLabel: SwiftUI.Text {
+        SwiftUI.Text("\(hostLabel), \(controller.isDragLockEngaged ? "dragging" : "idle")", comment: "Accessibility label for the touchpad mode ribbon")
     }
 
     private var hostLabel: String {

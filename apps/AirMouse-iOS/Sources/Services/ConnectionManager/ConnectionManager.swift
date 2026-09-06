@@ -128,6 +128,23 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
     private var browseStateTask: Task<Void, Never>?
     private var settingsObservationStarted = false
 
+    /// spec §4.5.5 fast-resume: `willResignActive` schedules a suspend under this task rather than
+    /// tearing the session down immediately; `didBecomeActive` cancels it if it fires first. Tagged
+    /// with `suspendGeneration` so a stale, already-scheduled suspend can never land after a newer
+    /// scene-phase transition has moved on (see `handleScenePhaseInactive`).
+    private var pendingSuspendTask: Task<Void, Never>?
+    private var suspendGeneration = 0
+    /// How long `.inactive`/`.background` must persist before the session is actually torn down. A
+    /// Control Center swipe or notification banner resolves well inside this window.
+    private static let suspendDebounceNanoseconds: UInt64 = 1_000_000_000
+
+    #if DEBUG
+    /// Test-only network substitute (Tests/ConnectionManagerTests.swift): when set,
+    /// `connectToKnownHost` hands off to this closure instead of dialing a real `NWConnection`.
+    /// Returning `nil` simulates every candidate failing. Always `nil` outside tests.
+    var testConnectHook: ((TrustedDeviceRecord) async -> (any ClientSessioning, String)?)?
+    #endif
+
     private var backoff = Backoff()
     private var reconnectBeganAt: TimeInterval?
 
@@ -330,6 +347,32 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
 
     public func connectToKnownHost(_ record: TrustedDeviceRecord) async {
         guard session == nil else { return }
+        #if DEBUG
+        // Test-only seam (Tests/ConnectionManagerTests.swift): lets a suspend→resume test drive
+        // this method's real state transitions with a mock `ClientSessioning` instead of a real
+        // `NWConnection`, so the fix above can be verified reconnecting all the way to `.connected`
+        // without real networking. Always `nil` outside tests.
+        if let hook = testConnectHook {
+            await disconnectCurrentSessionQuietly()
+            coreState = .connecting
+            connectionState = .connecting
+            if let (newSession, hostName) = await hook(record) {
+                session = newSession
+                currentFingerprint = record.fingerprint
+                currentDisplayName = hostName
+                backoff.reset()
+                coreState = .connected
+                connectionState = .connected(hostName: hostName)
+                idleTimer.acquire("connected")
+                startTickers()
+                await refreshKnownHostRows()
+            } else {
+                coreState = .failed(.allCandidatesFailed)
+                connectionState = .failed(reason: "test hook returned nil")
+            }
+            return
+        }
+        #endif
         await disconnectCurrentSessionQuietly()
         coreState = .connecting
         connectionState = .connecting
@@ -775,6 +818,27 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
         await connectToKnownHost(record)
     }
 
+    #if DEBUG
+    // MARK: - Test-only seams (Tests/ConnectionManagerTests.swift)
+
+    /// Installs `session` as if a connect/reconnect had just succeeded, without driving a real
+    /// TLS/UDP handshake, so app-lifecycle suspend/resume (spec §4.5.5) can be exercised
+    /// deterministically. Never compiled into a release build.
+    func installConnectedSessionForTesting(_ session: any ClientSessioning, hostName: String = "Test Mac") {
+        self.session = session
+        coreState = .connected
+        connectionState = .connected(hostName: hostName)
+        currentDisplayName = hostName
+    }
+
+    /// Drives `handleScenePhaseInactive`/`handleScenePhaseActive` directly rather than through
+    /// `NotificationCenter` — every live `ConnectionManager` observes the *global*
+    /// `UIApplication` lifecycle notifications (`object: nil`), so posting them from a test would
+    /// also reach any other manager instance alive concurrently elsewhere in the test process.
+    func triggerScenePhaseInactiveForTesting() { handleScenePhaseInactive() }
+    func triggerScenePhaseActiveForTesting() async { await handleScenePhaseActive() }
+    #endif
+
     // MARK: - App lifecycle (spec §4.5.5)
 
     private func observeAppLifecycle() {
@@ -786,20 +850,64 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
         }
     }
 
+    /// spec §4.5.5 + fast-resume ("a quick inactive→active flip... must not tear the session down
+    /// at all if it lasts under ~1-2 s"): `willResignActive` no longer suspends synchronously.
+    /// Instead it schedules a debounced suspend tagged with `suspendGeneration`; if
+    /// `handleScenePhaseActive` follows inside the debounce window it cancels this task and the
+    /// session is never touched — `coreState`/`connectionState` stay `.connected` throughout.
+    ///
+    /// This also closes the original race (spec deliverable): the old code set `coreState =
+    /// .suspended` synchronously here but only assigned `connectionState = .suspended` inside a
+    /// detached `Task` (`teardownSession`). A fast `didBecomeActive` would see the synchronous
+    /// `coreState` flip, call `connect()`, and then have that stale `Task` land afterwards and
+    /// clobber the fresh connecting/connected state back to `.suspended`. Now the *only* place that
+    /// assigns `.suspended` is `performSuspend`, which runs both assignments synchronously in the
+    /// same hop as tearing down `session`/timers — so `handleScenePhaseActive`'s `coreState ==
+    /// .suspended` check and `connect()`'s `session == nil` check always agree.
     private func handleScenePhaseInactive() {
         guard case .connected = coreState else { return }
+        suspendGeneration += 1
+        let generation = suspendGeneration
+        pendingSuspendTask?.cancel()
+        pendingSuspendTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: Self.suspendDebounceNanoseconds)
+            guard !Task.isCancelled else { return }
+            self?.performSuspend(generation: generation)
+        }
+    }
+
+    /// The actual suspend, run only after `willResignActive` has persisted past the debounce.
+    /// Cancels the reconnect loop and tickers, drops `session`, and flips `coreState`/
+    /// `connectionState` to `.suspended` — all synchronously, no `await` in between — then fires
+    /// the goodbye/close network I/O off separately since it never needs to observe or mutate
+    /// state itself.
+    private func performSuspend(generation: Int) {
+        guard generation == suspendGeneration, case .connected = coreState else { return }
         reconnectTask?.cancel()
         reconnectTask = nil
+        tickerTask?.cancel()
+        tickerTask = nil
+        eventsTask?.cancel()
+        eventsTask = nil
         let sessionToClose = session
+        session = nil
+        idleTimer.release("connected")
+        currentFingerprint = nil
+        currentDisplayName = nil
+        currentResolvedHost = nil
+        coreState = .suspended
+        connectionState = .suspended
         Task {
             try? await sessionToClose?.sendGoodbye(.background)
             await sessionToClose?.close(reason: .background)
         }
-        Task { await self.teardownSession(nextState: .suspended) }
-        coreState = .suspended
+        Task { await self.refreshKnownHostRows() }
     }
 
     private func handleScenePhaseActive() async {
+        pendingSuspendTask?.cancel()
+        pendingSuspendTask = nil
+        suspendGeneration += 1
         guard case .suspended = coreState else { return }
         await connect()
     }

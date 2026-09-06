@@ -15,6 +15,7 @@ say "Air Mouse".
 | Fonts / CDNs | None. System font stack, no external requests of any kind |
 | Analytics | None |
 | JavaScript | Two small client components (`SiteHeader` for scroll/menu state, `Reveal` for scroll-triggered reveals) — no other JS of the page's own. `prefers-reduced-motion`, `prefers-reduced-transparency` and `prefers-contrast` are all honored |
+| Dependencies | `qrcode` is used only at build time inside a server component (`HeroQR`) to inline the hero QR SVG; no JS ships to the browser for it |
 | Hosting | GitHub Pages, via `.github/workflows/site.yml` |
 
 Full background, deploy steps and the custom-domain switch:

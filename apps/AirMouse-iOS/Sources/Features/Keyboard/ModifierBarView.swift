@@ -12,7 +12,7 @@ struct ModifierBarView: View {
     let viewModel: KeyboardViewModel
 
     var body: some View {
-        HStack(spacing: 8) {
+        AdaptiveKeyRow(spacing: 8) {
             ForEach(ModifierKey.allCases, id: \.self) { key in
                 ModifierKeyButton(
                     symbolName: symbolName(for: key),

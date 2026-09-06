@@ -2305,7 +2305,15 @@
       }
     },
     "Scroll strip" : {
-
+      "comment" : "Gyro tab scroll strip accessibility label\nTouchpad right-edge scroll strip accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll strip"
+          }
+        }
+      }
     },
     "Searching for your Mac…" : {
 
@@ -2464,6 +2472,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skip onboarding"
+          }
+        }
+      }
+    },
+    "Slide up or down to scroll" : {
+      "comment" : "Touchpad right-edge scroll strip accessibility hint",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide up or down to scroll"
           }
         }
       }

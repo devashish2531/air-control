@@ -14,6 +14,7 @@
 // when reached directly from the root sidebar.
 
 import SwiftUI
+import UIKit
 import AirMouseProtocol
 
 public struct KeyboardScreen: View {
@@ -21,6 +22,11 @@ public struct KeyboardScreen: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var viewModel: KeyboardViewModel?
     @FocusState private var isCommitFieldFocused: Bool
+    /// Tracked purely so `keyboardPanel`'s `ScrollView` can add matching bottom inset (UI fix: the
+    /// Media/Shortcuts rows were unreachable — hidden behind the software keyboard — once it was
+    /// showing, since this screen's first responder is a raw `UIViewRepresentable`, not a SwiftUI
+    /// `@FocusState` field, so SwiftUI's own automatic keyboard-avoidance inset doesn't apply).
+    @State private var keyboardHeight: CGFloat = 0
 
     /// Default initializer used by `RootTabView` and SwiftUI previews; the view model is built
     /// lazily from `environment` on first appearance (see file header).
@@ -77,6 +83,19 @@ public struct KeyboardScreen: View {
         .onDisappear { viewModel.onDisappear() }
         .navigationTitle(Text("Keyboard", comment: "Root tab title"))
         .toolbar { toolbarContent(viewModel) }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
+            keyboardHeight = (note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect)?.height ?? 0
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
+        }
+    }
+
+    /// Dismisses whichever keyboard is currently up (Live mode's hidden host view or Commit
+    /// mode's visible text editor) without changing `mode` or any bridge/sink semantics.
+    private func dismissKeyboard(_ viewModel: KeyboardViewModel) {
+        isCommitFieldFocused = false
+        viewModel.hideSystemKeyboard()
     }
 
     private var touchpadPlaceholder: some View {
@@ -105,9 +124,18 @@ public struct KeyboardScreen: View {
                 ExtendedKeyBarView(viewModel: viewModel)
                 MediaKeyBarView(viewModel: viewModel)
                 ShortcutRowView(viewModel: viewModel)
+                // Tapping the empty area below the last row dismisses the keyboard (UI fix), the
+                // same way tapping outside a text field does elsewhere in the app.
+                Color.clear
+                    .frame(maxWidth: .infinity, minHeight: 60, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture { dismissKeyboard(viewModel) }
+                    .accessibilityHidden(true)
             }
             .padding()
+            .padding(.bottom, keyboardHeight)
         }
+        .scrollDismissesKeyboard(.interactively)
         .airMouseDynamicTypeRange()
     }
 
@@ -144,6 +172,17 @@ public struct KeyboardScreen: View {
                 .autocorrectionDisabled(viewModel.isSecureEntry)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator))
                 .accessibilityLabel(Text("Commit mode text", comment: "Accessibility label for the commit-mode text editor"))
+                // UI fix: Commit mode's text editor had no way to dismiss its keyboard either.
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button {
+                            isCommitFieldFocused = false
+                        } label: {
+                            Text("Done", comment: "Keyboard screen: dismisses the commit-mode text editor's software keyboard")
+                        }
+                    }
+                }
             Button {
                 viewModel.sendCommit()
             } label: {
@@ -158,6 +197,27 @@ public struct KeyboardScreen: View {
 
     @ToolbarContentBuilder
     private func toolbarContent(_ viewModel: KeyboardViewModel) -> some ToolbarContent {
+        if viewModel.mode == .live {
+            ToolbarItem(placement: .topBarLeading) {
+                // UI fix: the software keyboard previously had no Done/hide affordance once shown
+                // in Live mode (this hidden host view's first responder isn't SwiftUI-focus-based,
+                // so the system never adds its own accessory chrome for it beyond `doneAccessory`
+                // above the keyboard itself — this toolbar button covers hide *and* re-show).
+                Button {
+                    if viewModel.isSystemKeyboardVisible {
+                        dismissKeyboard(viewModel)
+                    } else {
+                        viewModel.showSystemKeyboard()
+                    }
+                } label: {
+                    Image(systemName: viewModel.isSystemKeyboardVisible ? "keyboard.chevron.compact.down" : "keyboard")
+                }
+                .minimumTapTarget()
+                .accessibleButton(
+                    label: LocalizedStringKey(viewModel.isSystemKeyboardVisible ? "Hide keyboard" : "Show keyboard")
+                )
+            }
+        }
         ToolbarItemGroup(placement: .topBarTrailing) {
             Toggle(isOn: Binding(get: { viewModel.isSecureEntry }, set: { viewModel.isSecureEntry = $0 })) {
                 Image(systemName: viewModel.isSecureEntry ? "eye.slash.fill" : "eye.slash")

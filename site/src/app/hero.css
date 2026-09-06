@@ -121,6 +121,7 @@
  * is deliberately static (no motion of its own).
  */
 .hero__stage {
+  position: relative; /* anchors .hero__qr below (spec v3 §C) */
   width: 100%;
   max-width: 1160px;
   margin-inline: auto;
@@ -131,6 +132,64 @@
      flat --bg-secondary plinth — subtle, not saturated; the device mock
      above it is unchanged. */
   background: var(--stage);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Hero QR card (design spec v3 §C, components/HeroQR.tsx)                   */
+/*                                                                             */
+/* A floating white card badge-pinned to the stage's top-right corner,       */
+/* overlapping its edge. `.hero__stage` has no other absolutely-positioned   */
+/* children, and `.hero__device` is unpositioned (static), so plain          */
+/* `position: absolute` here paints above it with no z-index needed (the     */
+/* z-scale in globals.css is reserved for the header/menu/skip-link).        */
+/* -------------------------------------------------------------------------- */
+
+.hero__qr {
+  position: absolute;
+  top: -1.25rem;
+  right: clamp(0.5rem, 2vw, 1.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 176px;
+  padding: 1rem;
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  border: 1px solid var(--separator);
+  box-shadow: var(--shadow-2);
+  text-align: center;
+}
+
+.hero__qr .qr {
+  width: 112px;
+  height: 112px;
+}
+
+.hero__qr .qr svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hero__qr-caption {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.hero__qr-subcaption {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Phone users tap the "Get it for iPhone" link directly — no QR needed. */
+@media (max-width: 48rem) {
+  .hero__qr {
+    display: none;
+  }
 }
 
 .hero__device {

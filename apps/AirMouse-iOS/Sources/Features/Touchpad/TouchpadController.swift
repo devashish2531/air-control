@@ -27,6 +27,7 @@
 
 import Foundation
 import Observation
+import QuartzCore
 import AirMouseFilters
 import AirMouseProtocol
 
@@ -40,6 +41,17 @@ public final class TouchpadController: TouchpadIntentSink {
     /// `UserSettings.GestureSettings` has no `showClickButtons` field (see this file's deviation
     /// note) — so this is a per-session, in-memory toggle the screen can wire to a control.
     public var showClickButtons = true
+
+    #if DEBUG
+    /// DEBUG-only counters for `TouchpadDebugMotionLabel` (Features/Touchpad): isolates which
+    /// stage of touch → `TouchpadIntent` → `MotionEnqueuing` is (or isn't) receiving data,
+    /// independent of `MotionPublisher.stats` — if `debugIntentCount` never increases while
+    /// dragging the pad, `TouchpadUIView`/`GestureRecognizer` never produced an intent in the
+    /// first place; if it increases but `debugMoveIntentCount` doesn't, drags are being
+    /// recognized as something other than `.move` (e.g. rejected as a tap/palm/edge touch).
+    public private(set) var debugIntentCount = 0
+    public private(set) var debugMoveIntentCount = 0
+    #endif
 
     private let userSettings: UserSettings
     private let motion: any MotionEnqueuing
@@ -133,6 +145,10 @@ public final class TouchpadController: TouchpadIntentSink {
     }
 
     private func process(_ intent: TouchpadIntent, timestamp: TimeInterval, predicted: Bool) async {
+        #if DEBUG
+        debugIntentCount += 1
+        if case .move = intent { debugMoveIntentCount += 1 }
+        #endif
         switch intent {
         case .move(let delta):
             let flags: MotionFlags = predicted ? [.predicted] : []
@@ -225,5 +241,55 @@ public final class TouchpadController: TouchpadIntentSink {
         case .middle: .middle
         }
         controlSink.sendClick(Click(button: wireButton, action: .up, count: 1, modifiers: []))
+    }
+
+    // MARK: Right-edge scroll strip (owner UI request: a dedicated one-finger vertical scroll
+    // region alongside the pad, distinct from `TouchpadUIView`'s own two-finger scroll gesture —
+    // spec §4.2.3's finger-count state machine is unmodified). Reuses the exact same intent path
+    // as the pad's `GestureRecognizer`-driven scroll (`.scrollPhaseBegan`/`.scrollChanged`/
+    // `.scrollPhaseEnded` → `MotionEnqueuing.enqueueScroll` + `ControlMessageSink.sendScrollPhase`,
+    // spec §4.2.5) rather than inventing a new wire path — mirrors `AirMouseViewModel.scrollChanged
+    // /scrollEnded` (Features/AirMouse, another agent's file, not modified here)'s translation-
+    // tracking pattern for a `DragGesture` that only reports cumulative translation, not per-frame
+    // deltas.
+    private var isScrollStripActive = false
+    private var lastScrollStripTranslationY: Double = 0
+
+    /// Sync entry point for `TouchpadScrollStrip`'s `DragGesture.onChanged` (SwiftUI gesture
+    /// callbacks, like UIKit's `touchesMoved`, are synchronous) — mirrors `handle(_:timestamp:
+    /// predicted:)`'s `Task` hop onto the awaitable seam below.
+    public func scrollStripChanged(translationY: Double) {
+        Task { await processScrollStripChange(translationY: translationY) }
+    }
+
+    /// Sync entry point for `TouchpadScrollStrip`'s `DragGesture.onEnded`.
+    public func scrollStripEnded(velocityY: Double) {
+        Task { await processScrollStripEnd(velocityY: velocityY) }
+    }
+
+    /// The testable seam (see `process(_:timestamp:predicted:)`'s doc comment for the pattern this
+    /// mirrors): directly awaitable, so a test can call it and assert on the sink spies
+    /// immediately afterwards.
+    func processScrollStripChange(translationY: Double) async {
+        if !isScrollStripActive {
+            isScrollStripActive = true
+            lastScrollStripTranslationY = 0
+            await process([.scrollPhaseBegan], timestamp: CACurrentMediaTime(), predicted: false)
+        }
+        let delta = translationY - lastScrollStripTranslationY
+        lastScrollStripTranslationY = translationY
+        guard delta != 0 else { return }
+        await process([.scrollChanged(Delta(dx: 0, dy: delta))], timestamp: CACurrentMediaTime(), predicted: false)
+    }
+
+    func processScrollStripEnd(velocityY: Double) async {
+        guard isScrollStripActive else { return }
+        isScrollStripActive = false
+        lastScrollStripTranslationY = 0
+        await process(
+            [.scrollPhaseEnded(velocity: Vector2(x: 0, y: velocityY), momentum: gestureConfig.momentumEnabled)],
+            timestamp: CACurrentMediaTime(),
+            predicted: false
+        )
     }
 }

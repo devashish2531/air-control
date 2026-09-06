@@ -220,4 +220,47 @@ private final class RecordingHapticsService: HapticsService {
         controller.pushSettingsToHost()
         #expect(control.settingsMessages.last?.acceleration == .default)
     }
+
+    // MARK: Scroll strip (owner UI request: right-edge vertical scroll strip, spec §4.2.5's
+    // existing scroll intent path reused via `TouchpadController.processScrollStripChange/End` —
+    // the directly-awaitable seam behind `scrollStripChanged/scrollStripEnded`'s `Task` hop).
+
+    @Test func scrollStripChangeSendsBeganThenIncrementalDeltas() async {
+        let (controller, motion, control, _, _) = makeController()
+
+        await controller.processScrollStripChange(translationY: 10)
+        await controller.processScrollStripChange(translationY: 25)
+
+        let calls = await motion.calls
+        #expect(calls.count == 3)
+        #expect(calls[0].flags.contains(.scrollBegan))
+        #expect(calls[0].dy == 0)
+        #expect(calls[1].dy == 10) // 10 - 0
+        #expect(calls[2].dy == 15) // 25 - 10
+        #expect(calls[0].isScroll && calls[1].isScroll && calls[2].isScroll)
+        #expect(control.scrollPhases.last?.phase == .began)
+    }
+
+    @Test func scrollStripEndSendsEndedWithVelocityAndConfiguredMomentum() async {
+        let (controller, motion, control, _, settings) = makeController()
+        settings.snapshot.gestures.momentum = true
+
+        await controller.processScrollStripChange(translationY: 5)
+        await controller.processScrollStripEnd(velocityY: -200)
+
+        let calls = await motion.calls
+        #expect(calls.last?.flags.contains(.scrollEnded) == true)
+        #expect(control.scrollPhases.last?.phase == .ended)
+        #expect(control.scrollPhases.last?.vx == 0)
+        #expect(control.scrollPhases.last?.vy == -200)
+        #expect(control.scrollPhases.last?.momentum == true)
+    }
+
+    @Test func scrollStripEndWithoutAPriorChangeIsANoOp() async {
+        let (controller, motion, control, _, _) = makeController()
+        await controller.processScrollStripEnd(velocityY: 42)
+        let calls = await motion.calls
+        #expect(calls.isEmpty)
+        #expect(control.scrollPhases.isEmpty)
+    }
 }

@@ -1,5 +1,15 @@
+import { CardStrip } from "@/components/CardStrip";
 import { Reveal } from "@/components/Reveal";
-import { faqs, features, securityPillars, stats, steps } from "@/content";
+import {
+  devices,
+  faqs,
+  features,
+  securityPillars,
+  stats,
+  steps,
+  valueCards,
+  type Feature,
+} from "@/content";
 import { site } from "@/site.config";
 
 /** Stagger delay for the Nth sibling in a revealed group, capped per spec (~300ms). */
@@ -28,65 +38,128 @@ function ChevronIcon({ className }: { className?: string }) {
 }
 
 /**
- * The landing page's centerpiece: three full-width alternating "spotlight"
- * rows (Touchpad, Air mouse, Keyboard) followed by a 3-up row of compact
- * cards (Presenter, Macros, iPad). `features` is ordered so the first three
- * entries are the spotlights and the rest are the compact cards.
+ * One card in the feature strip: glyph + name row, punchy headline,
+ * one-sentence benefit, illustration filling the middle, and a
+ * "Compatibility" footer (spec A). Server-rendered — `CardStrip` only owns
+ * the scroll mechanics around it, so this copy stays in the initial HTML.
  */
-export function Spotlights() {
-  const spotlightFeatures = features.slice(0, 3);
-  const compactFeatures = features.slice(3);
+function FeatureCard({ feature }: { feature: Feature }) {
+  return (
+    <article className={`strip-card strip-card--${feature.card}`}>
+      <div className="strip-card__top">
+        <span className="strip-card__glyph">{feature.icon}</span>
+        <h3 className="strip-card__name">{feature.title}</h3>
+      </div>
+      <p className="strip-card__headline">{feature.headline}</p>
+      <p className="strip-card__benefit">{feature.benefit}</p>
+      {feature.illustration && (
+        <div className="strip-card__illustration" aria-hidden="true">
+          {feature.illustration}
+        </div>
+      )}
+      <p className="strip-card__compat">
+        <span className="strip-card__compat-label">Compatibility</span>
+        <span className="strip-card__compat-value">{feature.compat}</span>
+      </p>
+    </article>
+  );
+}
 
+/**
+ * The landing page's centerpiece: a horizontal strip of six tall portrait
+ * cards that scroll sideways with prev/next buttons, Apple's apple.com/apps
+ * "Health & Fitness" strip style (spec A). `features` is already ordered
+ * Touchpad, Air mouse, Keyboard, Presenter & media remote, Macros, iPad
+ * layout — see the ordering note on `features` in content.tsx. The whole
+ * strip reveals once (no per-card stagger — a scroll container makes
+ * staggering odd).
+ */
+export function Features() {
   return (
     <section className="section" id="features" aria-labelledby="features-title">
       <div className="container--wide">
-        <Reveal as="div" className="section__head">
+        <Reveal as="div" className="section__head section__head--start">
           <span className="eyebrow">What it does</span>
           <h2 className="h2" id="features-title">
             One phone. <span className="muted">Every way to drive your Mac.</span>
           </h2>
         </Reveal>
+      </div>
 
-        {spotlightFeatures.map((feature, index) => (
-          <Reveal
-            as="article"
-            key={feature.id}
-            delay={stagger(index)}
-            className={
-              index % 2 === 1 ? "spotlight-row spotlight-row--reverse" : "spotlight-row"
-            }
-          >
-            <div className="spotlight-row__text">
-              <span className="eyebrow spotlight-row__eyebrow">{feature.title}</span>
-              <h3 className="spotlight-row__heading">{feature.headline}</h3>
-              <p className="lede">{feature.benefit}</p>
-            </div>
-            <div className="spotlight-row__illustration" aria-hidden="true">
-              {feature.illustration}
-            </div>
-          </Reveal>
-        ))}
+      <Reveal as="div">
+        <CardStrip>
+          {features.map((feature) => (
+            <FeatureCard feature={feature} key={feature.id} />
+          ))}
+        </CardStrip>
+      </Reveal>
+    </section>
+  );
+}
 
-        <div className="tile-row">
-          {compactFeatures.map((feature, index) => (
+/** Three device columns (iPhone, iPad, Mac): 64px line icon, label, OS requirement. */
+export function Devices() {
+  return (
+    <section
+      className="section section--tint"
+      id="devices"
+      aria-labelledby="devices-title"
+    >
+      <div className="container">
+        <Reveal as="div" className="section__head">
+          <h2 className="h2" id="devices-title">
+            Works on the devices{" "}
+            <span className="muted">you already own.</span>
+          </h2>
+        </Reveal>
+
+        <div className="devices-row">
+          {devices.map((device, index) => (
             <Reveal
-              as="article"
-              key={feature.id}
-              delay={stagger(spotlightFeatures.length + index)}
-              className="tile tile--outline"
+              as="div"
+              key={device.id}
+              delay={stagger(index)}
+              className="devices-row__item"
             >
-              <div className="tile__glyph">{feature.icon}</div>
-              <h3>{feature.headline}</h3>
-              <p>{feature.benefit}</p>
+              <span className="devices-row__icon">{device.icon}</span>
+              <h3 className="devices-row__label">{device.label}</h3>
+              <p className="small devices-row__requirement">{device.requirement}</p>
             </Reveal>
           ))}
         </div>
+
+        <Reveal
+          as="div"
+          className="devices-row__links"
+          delay={stagger(devices.length)}
+        >
+          <a
+            className="link-arrow"
+            href={site.links.latestRelease}
+            rel="noreferrer noopener"
+          >
+            Download for Mac
+            <span className="link-arrow__chevron" aria-hidden="true">
+              ›
+            </span>
+          </a>
+          <a
+            className="link-arrow"
+            href={site.links.iosWaitlist}
+            rel="noreferrer noopener"
+          >
+            Join the iPhone waitlist
+            <span className="link-arrow__chevron" aria-hidden="true">
+              ›
+            </span>
+          </a>
+        </Reveal>
       </div>
     </section>
   );
 }
 
-/** Full-bleed black band: four proof points as giant tabular numbers. */
+/** Full-bleed black band: four proof points, each a solid white number. */
 export function Stats() {
   return (
     <section
@@ -138,7 +211,12 @@ export function HowItWorks() {
 
         <ol className="steps">
           {steps.map((step, index) => (
-            <Reveal as="li" key={step.title} delay={stagger(index)} className="tile">
+            <Reveal
+              as="li"
+              key={step.title}
+              delay={stagger(index)}
+              className="tile"
+            >
               <span className="step__num">
                 {String(index + 1).padStart(2, "0")}
               </span>
@@ -152,6 +230,9 @@ export function HowItWorks() {
   );
 }
 
+const pillarTones = ["blue", "indigo", "green"] as const;
+
+/** Two-up trust cards (privacy + open source) followed by the three security pillars. */
 export function Security() {
   return (
     <section
@@ -163,114 +244,75 @@ export function Security() {
         <Reveal as="div" className="section__head">
           <span className="eyebrow">Privacy &amp; security</span>
           <h2 className="h2" id="security-title">
-            Your keystrokes never leave your network.{" "}
-            <span className="muted">Everything else stays local too.</span>
+            Built like it has to earn your trust.
           </h2>
-          <p className="lede">
-            An app that types for you and clicks for you has to earn that.
-            Here is exactly how Air Control is built.
-          </p>
         </Reveal>
+
+        <div className="value-cards">
+          {valueCards.map((card, index) => (
+            <Reveal
+              as="article"
+              key={card.id}
+              delay={stagger(index)}
+              className={`value-card value-card--${card.tone}`}
+            >
+              <span className="value-card__glyph" aria-hidden="true">
+                {card.icon}
+              </span>
+              <h3 className="value-card__headline">{card.headline}</h3>
+              <p className="value-card__body">{card.body}</p>
+              <a className="link-arrow" href={card.href} rel="noreferrer noopener">
+                {card.linkLabel}
+                <span className="link-arrow__chevron" aria-hidden="true">
+                  ›
+                </span>
+              </a>
+            </Reveal>
+          ))}
+        </div>
 
         <div className="pillar-row">
           {securityPillars.map((pillar, index) => (
             <Reveal
               as="div"
               key={pillar.title}
-              delay={stagger(index)}
+              delay={stagger(valueCards.length + index)}
               className="tile tile--outline pillar"
             >
-              <span className="pillar__glyph">{pillar.icon}</span>
+              <span
+                className={`pillar__glyph pillar__glyph--${pillarTones[index % pillarTones.length]}`}
+              >
+                {pillar.icon}
+              </span>
               <h3>{pillar.title}</h3>
               <p>{pillar.body}</p>
             </Reveal>
           ))}
         </div>
-
-        <Reveal as="div" className="security__links" delay={300}>
-          <p className="small">
-            Full threat model and disclosure process:{" "}
-            <a
-              className="link-arrow"
-              href={site.links.security}
-              rel="noreferrer noopener"
-            >
-              SECURITY.md
-              <span className="link-arrow__chevron" aria-hidden="true">
-                ›
-              </span>
-            </a>
-          </p>
-          <p className="small">
-            Wire format:{" "}
-            <a
-              className="link-arrow"
-              href={site.links.protocol}
-              rel="noreferrer noopener"
-            >
-              docs/protocol.md
-              <span className="link-arrow__chevron" aria-hidden="true">
-                ›
-              </span>
-            </a>
-          </p>
-        </Reveal>
       </div>
     </section>
   );
 }
 
+/** Slim facts strip (License, Language, Platforms, Issues) + the Homebrew command. */
 export function OpenSource() {
   return (
     <section
-      className="section"
+      className="section section--tint"
       id="open-source"
       aria-labelledby="open-source-title"
     >
       <div className="container--wide">
-        <Reveal as="article" className="tile tile--wide opensource">
-          <div className="opensource__copy">
-            <span className="eyebrow">Open source</span>
-            <h2 className="h2" id="open-source-title">
-              Read it, build it. <span className="muted">Change it.</span>
-            </h2>
-            <p className="lede">
-              Both apps and the shared protocol package are native Swift, MIT
-              licensed, and public. Clone the repo, compile what you&rsquo;re
-              running, or build your own client against the documented wire
-              protocol.
-            </p>
-            <div className="actions">
-              <a
-                className="button button--primary"
-                href={site.links.github}
-                rel="noreferrer noopener"
-              >
-                View on GitHub
-              </a>
-              <a
-                className="button button--secondary"
-                href={site.links.contributing}
-                rel="noreferrer noopener"
-              >
-                Contribute
-              </a>
-            </div>
-            <p className="small">
-              <code className="opensource__brew">{site.homebrew.command}</code>
-              {!site.homebrew.available && (
-                <>
-                  {" "}
-                  <span className="opensource__brew-note">
-                    — Homebrew cask, not published yet; use the buttons above.
-                  </span>
-                </>
-              )}
-            </p>
-          </div>
+        <Reveal as="article" className="tile tile--outline facts-strip">
+          {/* The facts speak for themselves visually — this heading exists for
+              the accessibility tree and the h1 -> h2 -> h3 outline, same
+              pattern as the Stats band's hidden heading above. */}
+          <h2 className="visually-hidden" id="open-source-title">
+            Open source facts
+          </h2>
 
-          <dl className="grouped facts">
-            <div className="grouped__row">
+          <dl className="facts-strip__grid">
+            <div className="facts-strip__item">
               <dt>License</dt>
               <dd>
                 <a href={site.links.license} rel="noreferrer noopener">
@@ -278,17 +320,17 @@ export function OpenSource() {
                 </a>
               </dd>
             </div>
-            <div className="grouped__row">
+            <div className="facts-strip__item">
               <dt>Language</dt>
               <dd>Swift 6 · SwiftUI</dd>
             </div>
-            <div className="grouped__row">
+            <div className="facts-strip__item">
               <dt>Platforms</dt>
               <dd>
                 {site.minimumOS.ios} · {site.minimumOS.macos}
               </dd>
             </div>
-            <div className="grouped__row">
+            <div className="facts-strip__item">
               <dt>Issues</dt>
               <dd>
                 <a href={site.links.issues} rel="noreferrer noopener">
@@ -297,6 +339,18 @@ export function OpenSource() {
               </dd>
             </div>
           </dl>
+
+          <p className="small facts-strip__brew">
+            <code className="opensource__brew">{site.homebrew.command}</code>
+            {!site.homebrew.available && (
+              <>
+                {" "}
+                <span className="opensource__brew-note">
+                  — Homebrew cask, not published yet; see View on GitHub above.
+                </span>
+              </>
+            )}
+          </p>
         </Reveal>
       </div>
     </section>
@@ -338,18 +392,20 @@ export function Faq() {
   );
 }
 
+/** Full-bleed gradient closing band (spec §10). */
 export function FinalCta() {
   return (
-    <section className="section cta section--tint" id="cta" aria-labelledby="cta-title">
+    <section className="section cta cta--band" id="cta" aria-labelledby="cta-title">
+      <div className="cta__highlight" aria-hidden="true" />
       <div className="container">
         <Reveal as="div" className="cta__inner">
           <h2 className="display" id="cta-title">
-            Ready <span className="muted">when you are.</span>
+            Ready when you are.
           </h2>
-          <p className="lede">Free, open source, and yours to inspect.</p>
+          <p className="lede cta__lede">Free, open source, and yours to inspect.</p>
           <div className="actions">
             <a
-              className="button button--primary"
+              className="button button--light"
               href={site.links.latestRelease}
               rel="noreferrer noopener"
             >
@@ -366,7 +422,7 @@ export function FinalCta() {
               </span>
             </a>
           </div>
-          <p className="cta__proof small muted">
+          <p className="cta__proof small">
             Free · MIT licensed · No accounts · Local Wi‑Fi only
           </p>
         </Reveal>

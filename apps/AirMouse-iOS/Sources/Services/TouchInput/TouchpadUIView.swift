@@ -23,7 +23,23 @@
 import UIKit
 import QuartzCore
 import Foundation
+import os
 import AirMouseFilters
+
+#if DEBUG
+/// DEBUG-only, process-wide touch-delivery counters (read by `TouchpadDebugMotionLabel`,
+/// Features/Touchpad) — proves whether `touchesBegan`/`touchesMoved` are ever invoked on this
+/// UIKit view at all, independent of everything downstream (`GestureRecognizer`,
+/// `TouchpadIntentSink`, `MotionPublisher`). `nonisolated`/lock-backed like
+/// `MotionPublisher.stats` so it can be read from the SwiftUI (`@MainActor`) debug label without
+/// caring about `TouchpadUIView`'s own isolation.
+enum TouchpadUIViewDebugCounters {
+    private static let box = OSAllocatedUnfairLock(initialState: (began: 0, moved: 0))
+    static func recordBegan() { box.withLock { $0.began += 1 } }
+    static func recordMoved() { box.withLock { $0.moved += 1 } }
+    static var snapshot: (began: Int, moved: Int) { box.withLock { $0 } }
+}
+#endif
 
 @MainActor
 public final class TouchpadUIView: UIView {
@@ -116,10 +132,16 @@ public final class TouchpadUIView: UIView {
     // MARK: Touch delivery (spec §4.2.1)
 
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        #if DEBUG
+        TouchpadUIViewDebugCounters.recordBegan()
+        #endif
         emit(samples(for: touches, event: event, overridingPhase: .began))
     }
 
     public override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        #if DEBUG
+        TouchpadUIViewDebugCounters.recordMoved()
+        #endif
         emit(samples(for: touches, event: event, overridingPhase: .moved))
         if predictionEnabled {
             emitPrediction(for: touches, event: event)

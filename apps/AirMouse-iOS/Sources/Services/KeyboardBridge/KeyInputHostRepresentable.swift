@@ -61,5 +61,9 @@ public struct KeyInputHostRepresentable: UIViewRepresentable {
         public func keyInputHost(_ view: KeyInputHostView, hardwareKeyEvent event: HardwareKeyEvent) {
             bridge.handleHardwareKeyEvent(event)
         }
+
+        public func keyInputHostDidRequestHide(_ view: KeyInputHostView) {
+            bridge.wantsFirstResponder = false
+        }
     }
 }

@@ -25,6 +25,10 @@ final class DeviceRegressionUITests: XCTestCase {
     private func launchAndWaitForConnected(timeout: TimeInterval = 45) -> XCUIApplication {
         let app = XCUIApplication()
         self.app = app
+        // Test hook: pair from a launch URL when provided (simulator has no persistent identity).
+        if let url = ProcessInfo.processInfo.environment["AIRMOUSE_PAIR_URL"], !url.isEmpty {
+            app.launchEnvironment["AIRMOUSE_PAIR_URL"] = url
+        }
         addUIInterruptionMonitor(withDescription: "System permission alert") { alert in
             for label in ["Allow", "OK", "Allow While Using App"] {
                 let button = alert.buttons[label]

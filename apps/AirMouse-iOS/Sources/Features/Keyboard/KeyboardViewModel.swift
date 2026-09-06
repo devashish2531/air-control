@@ -88,6 +88,27 @@ public final class KeyboardViewModel {
         cancelMediaRepeat()
     }
 
+    // MARK: - Software keyboard visibility (UI fix: hide/show affordance)
+
+    /// Whether the hidden host view currently holds first responder — i.e. whether the software
+    /// keyboard is (or would be) on screen for Live mode's typing capture.
+    public var isSystemKeyboardVisible: Bool { bridge.wantsFirstResponder }
+
+    /// Resigns the hidden host view's first responder status, dismissing the software keyboard.
+    /// Live-mode typing capture (`KeyInputHostView.insertText`/`deleteBackward`) simply stops
+    /// receiving events until `showSystemKeyboard()` re-arms it — this does not change `mode` or
+    /// any bridge/sink semantics, only whether the view is first responder.
+    public func hideSystemKeyboard() {
+        bridge.wantsFirstResponder = false
+    }
+
+    /// Re-arms first responder so the software keyboard reappears (Live mode only — Commit mode's
+    /// visible text editor manages its own focus).
+    public func showSystemKeyboard() {
+        guard mode == .live else { return }
+        bridge.wantsFirstResponder = true
+    }
+
     // MARK: - Modifier row
 
     public func tapModifier(_ key: ModifierKey) {

@@ -30,6 +30,11 @@ public protocol KeyInputHostViewDelegate: AnyObject {
     func keyInputHostDidDeleteBackward(_ view: KeyInputHostView)
     /// A resolved hardware key press or release (spec §4.4.6).
     func keyInputHost(_ view: KeyInputHostView, hardwareKeyEvent event: HardwareKeyEvent)
+    /// The view's own "Done" input accessory was tapped (UI fix: the software keyboard otherwise
+    /// has no way to dismiss itself while this hidden view holds first responder). The delegate
+    /// is responsible for the corresponding `KeyboardBridge.wantsFirstResponder = false`; this
+    /// view only resigns its own first-responder status.
+    func keyInputHostDidRequestHide(_ view: KeyInputHostView)
 }
 
 /// One resolved hardware key press or release, ready for `KeyboardEventSink.sendKey` routing
@@ -137,6 +142,30 @@ public final class KeyInputHostView: UITextView {
 
     public func resetToSentinel() {
         text = Self.sentinel
+    }
+
+    // MARK: - Keyboard dismissal (UI fix: no way to hide the software keyboard once shown)
+
+    /// A one-item "Done" toolbar shown above the software keyboard while this view is first
+    /// responder, mirroring the standard `UITextField`/`UITextView` "Done" accessory pattern —
+    /// this view has none by default since it never shows the system return key affordance.
+    private lazy var doneAccessory: UIToolbar = {
+        let toolbar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
+        toolbar.items = [
+            UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
+            UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(handleDoneTapped)),
+        ]
+        return toolbar
+    }()
+
+    public override var inputAccessoryView: UIView? {
+        get { doneAccessory }
+        set { /* fixed; no external accessory injection needed */ }
+    }
+
+    @objc private func handleDoneTapped() {
+        hostDelegate?.keyInputHostDidRequestHide(self)
+        resignFirstResponder()
     }
 
     // MARK: - UIKeyInput capture (spec §4.4.2)

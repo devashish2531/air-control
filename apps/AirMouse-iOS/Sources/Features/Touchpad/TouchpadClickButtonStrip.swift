@@ -3,6 +3,13 @@
 // left-handed)); press = click{down}, release = click{up}". Drag-to-move on the surface while
 // held is handled by the surface itself (`TouchpadUIView`'s gesture engine) — this strip only
 // emits the down/up pair on press/release.
+//
+// Owner UI request: physical-style buttons along the bottom, ~64 pt tall, with haptics (already
+// fired by `TouchpadController.clickButtonPressed/Released` via `HapticsService`, unchanged here)
+// and a pressed-state visual (fill + inset shadow + slight scale). Press-and-hold on either button
+// while a separate finger moves on the pad above is tap-and-drag: this strip and `TouchpadUIView`
+// are distinct hit regions (an `HStack` beside the pad in `TouchpadScreen`), each delivering its
+// own touches independently — no extra plumbing is needed for the two to compose.
 
 import SwiftUI
 import AirMouseFilters
@@ -23,7 +30,7 @@ public struct TouchpadClickButtonStrip: View {
                 button(.right, width: proxy.size.width * 0.4, label: String(localized: "Right click", comment: "Touchpad click button accessibility label"))
             }
         }
-        .frame(height: 56)
+        .frame(height: 64)
         .environment(\.layoutDirection, leftHanded ? .rightToLeft : .leftToRight)
     }
 
@@ -48,8 +55,15 @@ private struct TouchpadClickButton: View {
     @State private var isPressed = false
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 10, style: .continuous)
-            .fill(isPressed ? Color.secondary.opacity(0.35) : Color.secondary.opacity(0.15))
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .fill(isPressed ? Color.secondary.opacity(0.32) : Color.secondary.opacity(0.14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.secondary.opacity(isPressed ? 0.06 : 0.20), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(isPressed ? 0 : 0.10), radius: isPressed ? 0 : 3, y: isPressed ? 0 : 1.5)
+            .scaleEffect(isPressed ? 0.98 : 1)
+            .animation(.easeOut(duration: 0.08), value: isPressed)
             .minimumTapTarget()
             .gesture(
                 DragGesture(minimumDistance: 0)

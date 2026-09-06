@@ -114,6 +114,107 @@ private func waitUntil(timeout: TimeInterval = 2.0, _ predicate: () -> Bool) asy
     }
 }
 
+// MARK: - Suspend/resume race fix (spec §4.5.5 + fast-resume): a quick inactive→active flip must
+// not tear the session down at all; a flip that persists past the debounce must suspend cleanly;
+// and resuming from a real suspend must land on `.connected`, never get stuck on `.suspended`.
+
+/// Minimal no-op `ClientSessioning` double (the seam `ClientSessioning.swift` documents as existing
+/// precisely so tests can substitute a fake session instead of driving a real TLS/UDP handshake).
+/// `@unchecked Sendable`: every access happens on `MainActor`, same as `ConnectionManager` itself.
+private final class MockClientSession: ClientSessioning, @unchecked Sendable {
+    nonisolated var events: AsyncStream<ClientEvent> {
+        AsyncStream { continuation in continuation.finish() }
+    }
+
+    private(set) var goodbyesSent: [GoodbyeReason] = []
+    private(set) var closeReasons: [GoodbyeReason] = []
+
+    private static func connectedInfo(hostName: String) -> ConnectedInfo {
+        let host = HelloAck.Host(name: hostName, model: "Mac15,6", os: "macOS 15.0", helper: "1.0", id: B64UData(Data(repeating: 0, count: 16)))
+        let ack = HelloAck(protocol: 1, capabilities: [], host: host, udpPort: 47801, heartbeatMs: 500, sessionTimeoutMs: 2000, maxTextBytes: 16384, sessionCount: 0)
+        return ConnectedInfo(ack: ack)
+    }
+
+    func connect(macroRevision: Int?) async throws -> ConnectedInfo { Self.connectedInfo(hostName: "Test Mac") }
+    func pair(url: PairingURL, macroRevision: Int?) async throws -> ConnectedInfo { Self.connectedInfo(hostName: "Test Mac") }
+
+    func sendClick(_ click: Click) async throws {}
+    func sendScrollPhase(_ phase: ScrollPhase) async throws {}
+    func sendModifiers(_ modifiers: Modifiers) async throws {}
+    func sendKey(_ key: Key) async throws {}
+    func sendText(_ text: AirMouseProtocol.Text) async throws {}
+    func sendDeleteBackward(_ deleteBackward: DeleteBackward) async throws {}
+    func sendMediaKey(_ mediaKey: MediaKeyMessage) async throws {}
+    func sendVolume(_ volume: Volume) async throws {}
+    func invokeMacro(id: UUID, confirmed: Bool) async throws {}
+    func sendRecenter() async throws {}
+    func sendSettings(_ settings: Settings) async throws {}
+
+    func sendHeartbeat() async throws {}
+    func sendProbe() async throws {}
+    func expireOutstandingProbeIfNeeded() async -> ProbeController.Mode { .normal }
+
+    func sendGoodbye(_ reason: GoodbyeReason) async throws { goodbyesSent.append(reason) }
+    func sendMotion(_ payload: MotionPayload) async throws {}
+    func flushPendingMotionBatch() async throws {}
+    func currentStats() async -> SessionStats { SessionStats() }
+    func close(reason: GoodbyeReason) async { closeReasons.append(reason) }
+}
+
+@MainActor
+@Suite struct ConnectionManagerSuspendResumeTests {
+    @Test func quickInactiveActiveFlipKeepsSessionConnected() async {
+        let manager = makeManager()
+        let session = MockClientSession()
+        manager.installConnectedSessionForTesting(session, hostName: "Test Mac")
+
+        manager.triggerScenePhaseInactiveForTesting()
+        try? await Task.sleep(nanoseconds: 200_000_000) // well under the 1 s debounce
+        await manager.triggerScenePhaseActiveForTesting()
+        _ = await waitUntil(timeout: 0.5) { false } // let everything settle
+
+        #expect(manager.connectionState == .connected(hostName: "Test Mac"))
+        #expect(manager.activeSession != nil)
+        #expect(session.goodbyesSent.isEmpty) // never actually torn down
+    }
+
+    @Test func inactiveLongerThanDebounceSuspends() async {
+        let manager = makeManager()
+        let session = MockClientSession()
+        manager.installConnectedSessionForTesting(session, hostName: "Test Mac")
+
+        manager.triggerScenePhaseInactiveForTesting()
+        let suspended = await waitUntil(timeout: 2.0) { manager.connectionState == .suspended }
+
+        #expect(suspended)
+        #expect(manager.activeSession == nil)
+        #expect(session.goodbyesSent == [.background])
+    }
+
+    @Test func activeAfterSuspendReconnectsAndEndsUpConnectedNeverStuckSuspended() async {
+        let manager = makeManager()
+        manager.installConnectedSessionForTesting(MockClientSession(), hostName: "Test Mac")
+
+        let fingerprint = Fingerprint(bytes: [UInt8](repeating: 9, count: 32))!
+        let record = TrustedDeviceRecord(fingerprint: fingerprint, name: "Test Mac", model: "Mac15,6", osVersion: "macOS 15.0", firstPaired: Date(), lastSeen: Date())
+        await manager.knownHosts.add(record)
+        manager.knownHosts.setLastUsedHost(fingerprint: fingerprint)
+        manager.testConnectHook = { _ in (MockClientSession(), "Test Mac") }
+
+        manager.triggerScenePhaseInactiveForTesting()
+        let suspended = await waitUntil(timeout: 2.0) { manager.connectionState == .suspended }
+        #expect(suspended)
+
+        await manager.triggerScenePhaseActiveForTesting()
+        let connected = await waitUntil(timeout: 2.0) { manager.connectionState == .connected(hostName: "Test Mac") }
+        #expect(connected)
+
+        // No stale suspend task claws this back — it must still read `.connected` afterwards.
+        _ = await waitUntil(timeout: 1.5) { false }
+        #expect(manager.connectionState == .connected(hostName: "Test Mac"))
+    }
+}
+
 // MARK: - Diagnostics-and-UX deliverable: link-local filtering + error mapping
 
 @Suite struct AddressFilteringTests {

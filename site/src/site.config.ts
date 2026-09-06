@@ -8,6 +8,23 @@
 
 const GITHUB_REPO = "https://github.com/devashish2531/air-control";
 
+/**
+ * Scheme + host only. The path under it comes from `NEXT_PUBLIC_BASE_PATH`,
+ * so `ORIGIN` is the single thing to change when a custom domain is added
+ * (see docs/07-landing-page.md).
+ */
+const ORIGIN = "https://devashish2531.github.io";
+
+/**
+ * Same basePath computation `src/lib/urls.ts` uses for `canonicalUrl`
+ * (duplicated, not imported — `urls.ts` already imports `site` from this
+ * file, and importing it back here would be a cycle).
+ */
+const QR_BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(
+  /\/+$/,
+  "",
+);
+
 export const site = {
   name: "Air Control",
   tagline:
@@ -16,12 +33,7 @@ export const site = {
     "Air Control turns your iPhone or iPad into a trackpad, air mouse, keyboard and presenter remote for your Mac. Free, open source, and it never leaves your local Wi-Fi network.",
   subline: "Free and open source · Local Wi‑Fi only · No accounts",
 
-  /**
-   * Scheme + host only. The path under it comes from `NEXT_PUBLIC_BASE_PATH`,
-   * so `origin` is the single thing to change when a custom domain is added
-   * (see docs/07-landing-page.md).
-   */
-  origin: "https://devashish2531.github.io",
+  origin: ORIGIN,
 
   minimumOS: {
     ios: "iOS 18 / iPadOS 18",
@@ -51,5 +63,17 @@ export const site = {
   homebrew: {
     available: false,
     command: "brew install --cask devashish2531/tap/air-control",
+  },
+
+  /**
+   * Hero QR code (spec C). Points at the hero's iPhone link
+   * (`id="get-iphone"` on its wrapper) rather than the bare origin, so
+   * scanning drops the visitor straight onto the action that matters.
+   *
+   * TODO: swap `target` for the App Store URL once the iPhone app ships —
+   * the GitHub issue link above is too long to QR-encode cleanly.
+   */
+  qr: {
+    target: `${ORIGIN}${QR_BASE_PATH}/#get-iphone`,
   },
 } as const;
