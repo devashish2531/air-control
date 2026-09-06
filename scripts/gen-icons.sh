@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 #
-# gen-icons.sh — regenerate every app-icon asset from the two source images in
-# design/icons. Idempotent: it wipes the generated PNGs and Contents.json in both
-# appiconsets and rewrites them from scratch. The sources are never modified.
+# gen-icons.sh — regenerate every app-icon asset, end to end.
+#
+# Step 1 draws the three 1024x1024 source images in design/icons as vector
+# shapes (scripts/icon-tools/IconDraw.swift); step 2 turns them into the two
+# AppIcon.appiconsets (scripts/icon-tools/IconTool.swift). Idempotent: it
+# rewrites the sources, the generated PNGs and both Contents.json from scratch.
 #
 # See design/icons/README.md for the crop/mask rules this implements.
 #
@@ -12,12 +15,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 
 IOS_SOURCE="$ROOT/design/icons/ios-icon-source.png"
+IOS_DARK_SOURCE="$ROOT/design/icons/ios-icon-source-dark.png"
 MAC_SOURCE="$ROOT/design/icons/mac-icon-source.png"
 IOS_SET="$ROOT/apps/AirMouse-iOS/Resources/Assets.xcassets/AppIcon.appiconset"
 MAC_SET="$ROOT/apps/AirMouse-Mac/Resources/Assets.xcassets/AppIcon.appiconset"
 TOOL_SOURCE="$ROOT/scripts/icon-tools/IconTool.swift"
+DRAW_SOURCE="$ROOT/scripts/icon-tools/IconDraw.swift"
 
-for f in "$IOS_SOURCE" "$MAC_SOURCE" "$TOOL_SOURCE"; do
+for f in "$TOOL_SOURCE" "$DRAW_SOURCE"; do
   [[ -f "$f" ]] || { echo "gen-icons: missing $f" >&2; exit 1; }
 done
 mkdir -p "$IOS_SET" "$MAC_SET"
@@ -25,20 +30,31 @@ mkdir -p "$IOS_SET" "$MAC_SET"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-echo "==> building IconTool"
+echo "==> building the icon tools"
+swiftc -O -o "$WORK/icondraw" "$DRAW_SOURCE"
 swiftc -O -o "$WORK/icontool" "$TOOL_SOURCE"
+DRAW="$WORK/icondraw"
 TOOL="$WORK/icontool"
+
+echo "==> drawing the sources"
+# Vector artwork, 1024x1024, full-bleed and opaque: no baked corner radius, no
+# white margin. The masks and the macOS body shape are applied downstream.
+"$DRAW" ios "$IOS_SOURCE"
+"$DRAW" ios-dark "$IOS_DARK_SOURCE"
+"$DRAW" mac "$MAC_SOURCE"
 
 echo "==> iOS icons"
 rm -f "$IOS_SET"/*.png
+# The sources are already edge-to-edge artwork, so nothing is cropped away
+# (--inset 0); iOS applies its own squircle mask on top.
 # Light: the blue artwork, full-bleed and opaque (App Store rejects alpha).
-"$TOOL" ios "$IOS_SOURCE" "$IOS_SET/AppIcon-1024.png"
-# Dark (iOS 18+): the navy artwork.
-"$TOOL" ios "$MAC_SOURCE" "$IOS_SET/AppIcon-1024-Dark.png"
+"$TOOL" ios "$IOS_SOURCE" "$IOS_SET/AppIcon-1024.png" --inset 0
+# Dark (iOS 18+): the same composition on the navy ground.
+"$TOOL" ios "$IOS_DARK_SOURCE" "$IOS_SET/AppIcon-1024-Dark.png" --inset 0
 # Tinted (iOS 18+): grayscale; the system applies the user's tint to it. Derived
 # from the navy artwork, whose darker background gives the tint more contrast to
 # work with than the bright blue one does.
-"$TOOL" ios "$MAC_SOURCE" "$IOS_SET/AppIcon-1024-Tinted.png" --grayscale
+"$TOOL" ios "$IOS_DARK_SOURCE" "$IOS_SET/AppIcon-1024-Tinted.png" --inset 0 --grayscale
 
 cat > "$IOS_SET/Contents.json" <<'JSON'
 {

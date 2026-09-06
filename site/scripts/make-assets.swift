@@ -1,8 +1,11 @@
 // make-assets.swift — regenerates the landing page's static images.
 //
-// Inputs : design/icons/{ios,mac}-icon-source.png (1254x1254, artwork on a white ground)
-// Outputs: site/public/icon-ios.png          transparent-cornered app icon, 384 (bright)
-//          site/public/icon-mac.png          transparent-cornered app icon, 384 (dark)
+// Inputs : design/icons/{ios,mac}-icon-source.png — 1024x1024 full-bleed artwork,
+//          drawn by scripts/icon-tools/IconDraw.swift (see design/icons/README.md).
+//          Neither source carries a corner radius, so this file applies the shape
+//          each platform would apply itself.
+// Outputs: site/public/icon-ios.png          iOS squircle, 384 (bright)
+//          site/public/icon-mac.png          macOS body shape + shadow, 384 (dark)
 //          site/src/app/icon.png             favicon (512)
 //          site/src/app/apple-icon.png       touch icon (180)
 //          site/public/og.png                1200x630 Open Graph card
@@ -15,6 +18,7 @@ import AppKit
 import CoreGraphics
 import CoreText
 import Foundation
+import SwiftUI
 
 // MARK: - Small helpers
 
@@ -63,95 +67,52 @@ func writePNG(_ image: CGImage, to path: String) {
     print("  wrote \(path) (\(image.width)x\(image.height))")
 }
 
-/// RGBA8 pixel buffer for a CGImage, so we can measure the artwork inside its white margin.
-struct Pixels {
-    let width: Int
-    let height: Int
-    let bytes: [UInt8]
-
-    init(_ image: CGImage) {
-        width = image.width
-        height = image.height
-        let ctx = newContext(width: width, height: height)
-        ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        guard let data = ctx.data else { die("could not read pixels") }
-        let rowBytes = ctx.bytesPerRow
-        var out = [UInt8](repeating: 0, count: width * height * 4)
-        for y in 0..<height {
-            let src = data.advanced(by: y * rowBytes).assumingMemoryBound(to: UInt8.self)
-            for x in 0..<(width * 4) { out[y * width * 4 + x] = src[x] }
-        }
-        bytes = out
-    }
-
-    /// True when the pixel is part of the artwork rather than the white/transparent surround.
-    func isArtwork(_ x: Int, _ y: Int) -> Bool {
-        let i = (y * width + x) * 4
-        let a = bytes[i + 3]
-        if a < 200 { return false }
-        return !(bytes[i] > 243 && bytes[i + 1] > 243 && bytes[i + 2] > 243)
-    }
+/// Apple's continuous ("squircle") rounded rectangle — the shape both platforms use.
+func squirclePath(_ rect: CGRect, radius: CGFloat) -> CGPath {
+    SwiftUI.Path(roundedRect: rect, cornerRadius: radius, style: .continuous).cgPath
 }
 
-/// The artwork's bounding box plus the corner radius of its own rounded-square shape.
-/// The top row of a rounded rect spans [minX + r, maxX - r], which gives r directly.
-func measureArtwork(_ px: Pixels) -> (rect: CGRect, radius: CGFloat) {
-    var minX = px.width, minY = px.height, maxX = -1, maxY = -1
-    for y in 0..<px.height {
-        for x in 0..<px.width where px.isArtwork(x, y) {
-            if x < minX { minX = x }
-            if x > maxX { maxX = x }
-            if y < minY { minY = y }
-            if y > maxY { maxY = y }
-        }
-    }
-    guard maxX > minX, maxY > minY else { die("found no artwork in the source image") }
-
-    // Walk a few rows below the top edge and take the smallest inset seen, which is the
-    // flattest part of the corner arc; averaging a few rows shrugs off anti-aliasing.
-    var insets: [Int] = []
-    for probe in 0..<4 {
-        let y = minY + probe
-        guard y <= maxY else { break }
-        var first = -1
-        for x in minX...maxX where px.isArtwork(x, y) {
-            first = x
-            break
-        }
-        if first >= 0 { insets.append(first - minX) }
-    }
-    let inset = insets.min() ?? 0
-    let side = CGFloat(max(maxX - minX + 1, maxY - minY + 1))
-    // The measured inset is the radius at the very top of the arc; nudge it up slightly so the
-    // clip eats the source's anti-aliased rim instead of leaving a white hairline.
-    let radius = min(side * 0.5, CGFloat(inset) * 1.06)
-
-    return (
-        CGRect(
-            x: CGFloat(minX), y: CGFloat(minY),
-            width: CGFloat(maxX - minX + 1), height: CGFloat(maxY - minY + 1)
-        ),
-        radius
-    )
+/// The iOS home-screen shape: the full-bleed artwork masked by the system
+/// squircle. Radius 0.2237 x side is the iOS app-icon proportion.
+func iosIcon(from image: CGImage, size: Int) -> CGImage {
+    let side = CGFloat(size)
+    let square = CGRect(x: 0, y: 0, width: side, height: side)
+    let ctx = newContext(width: size, height: size)
+    ctx.addPath(squirclePath(square, radius: side * 0.2237))
+    ctx.clip()
+    ctx.draw(image, in: square)
+    guard let out = ctx.makeImage() else { die("iOS icon render failed") }
+    return out
 }
 
-/// Crops the artwork out of its white margin and re-rounds it, leaving transparent corners so
-/// the icon sits on any page background.
-func roundedIcon(from image: CGImage, size: Int) -> CGImage {
-    let px = Pixels(image)
-    let (box, radius) = measureArtwork(px)
-
-    // CGImage cropping is in top-left coordinates, same as the pixel scan.
-    guard let cropped = image.cropping(to: box) else { die("crop failed") }
-    let scale = CGFloat(size) / max(box.width, box.height)
+/// The macOS 11+ icon shape: an 824/1024 body inside a transparent canvas, with
+/// the same continuous radius and drop shadows as scripts/icon-tools/IconTool.swift.
+func macIcon(from image: CGImage, size: Int) -> CGImage {
+    let scale = CGFloat(size) / 1024
+    let body = 824 * scale
+    let origin = (CGFloat(size) - body) / 2
+    let rect = CGRect(x: origin, y: origin, width: body, height: body)
+    let path = squirclePath(rect, radius: 215 * scale)
 
     let ctx = newContext(width: size, height: size)
-    let square = CGRect(x: 0, y: 0, width: CGFloat(size), height: CGFloat(size))
-    let r = radius * scale
-    ctx.addPath(CGPath(roundedRect: square, cornerWidth: r, cornerHeight: r, transform: nil))
+    for (offsetY, blur, alpha) in [(-14.0, 30.0, 0.16), (-5.0, 10.0, 0.14)] {
+        ctx.saveGState()
+        ctx.setShadow(
+            offset: CGSize(width: 0, height: offsetY * scale), blur: blur * scale,
+            color: hex(0x000000, alpha: alpha)
+        )
+        ctx.setFillColor(hex(0x000000))
+        ctx.addPath(path)
+        ctx.fillPath()
+        ctx.restoreGState()
+    }
+    ctx.saveGState()
+    ctx.addPath(path)
     ctx.clip()
-    ctx.draw(cropped, in: square)
-    guard let out = ctx.makeImage() else { die("icon render failed") }
+    ctx.draw(image, in: rect)
+    ctx.restoreGState()
+
+    guard let out = ctx.makeImage() else { die("macOS icon render failed") }
     return out
 }
 
@@ -253,13 +214,12 @@ print("Generating landing page assets…")
 
 // The hero renders these at 168 CSS px at most, so 384 covers a 2x display with
 // room to spare and keeps the page's image payload small.
-let iosIcon = roundedIcon(from: iosSource, size: 384)
-let macIcon = roundedIcon(from: macSource, size: 384)
-
-writePNG(iosIcon, to: "\(root)/site/public/icon-ios.png")
-writePNG(macIcon, to: "\(root)/site/public/icon-mac.png")
-writePNG(roundedIcon(from: iosSource, size: 512), to: "\(root)/site/src/app/icon.png")
-writePNG(roundedIcon(from: iosSource, size: 180), to: "\(root)/site/src/app/apple-icon.png")
-makeOpenGraphCard(icon: roundedIcon(from: macSource, size: 512), to: "\(root)/site/public/og.png")
+writePNG(iosIcon(from: iosSource, size: 384), to: "\(root)/site/public/icon-ios.png")
+writePNG(macIcon(from: macSource, size: 384), to: "\(root)/site/public/icon-mac.png")
+writePNG(iosIcon(from: iosSource, size: 512), to: "\(root)/site/src/app/icon.png")
+writePNG(iosIcon(from: iosSource, size: 180), to: "\(root)/site/src/app/apple-icon.png")
+// The card's ground is navy, so the bright iOS icon carries it; the navy macOS
+// body would disappear into the background.
+makeOpenGraphCard(icon: iosIcon(from: iosSource, size: 512), to: "\(root)/site/public/og.png")
 
 print("Done.")
