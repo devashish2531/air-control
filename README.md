@@ -1,165 +1,130 @@
 <p align="center">
-  <img src="site/public/icon-ios.png" width="112" height="112" alt="Air Control app icon">
+  <img src="site/public/icon-ios.png" width="96" height="96" alt="Air Control app icon">
 </p>
 
 <h1 align="center">Air Control</h1>
 
 <p align="center">
-  <strong>Your iPhone. Now a trackpad for your Mac.</strong><br>
-  Also an air pointer, keyboard and presenter remote, all over your own Wi‑Fi.
+  <strong>Turn your iPhone into a trackpad, air pointer, keyboard and remote for your Mac.</strong>
 </p>
 
 <p align="center">
-  <a href="https://www.devashish.cc/air-control">Website</a> ·
+  Free and open source · Local Wi‑Fi only · No accounts
+</p>
+
+<p align="center">
+  <a href="https://github.com/devashish2531/air-control/actions/workflows/ci.yml"><img src="https://github.com/devashish2531/air-control/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"></a>
+</p>
+
+<p align="center">
+  <a href="https://devashish2531.github.io/air-control/">Landing page</a> ·
   <a href="https://github.com/devashish2531/air-control/releases/latest">Download for Mac</a> ·
   <a href="https://github.com/devashish2531/air-control/issues/new?title=iOS+waitlist&body=Please+let+me+know+when+the+Air+Control+iPhone+app+is+available+for+testing.">iPhone waitlist</a> ·
   <a href="docs/protocol.md">Protocol</a> ·
   <a href="SECURITY.md">Security</a>
 </p>
 
-<p align="center">
-  <a href="https://github.com/devashish2531/air-control/actions/workflows/ci.yml"><img src="https://github.com/devashish2531/air-control/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/devashish2531/air-control/actions/workflows/site.yml"><img src="https://github.com/devashish2531/air-control/actions/workflows/site.yml/badge.svg" alt="Site"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white" alt="Swift 6">
-  <img src="https://img.shields.io/badge/iOS-18%2B-000000?logo=apple&logoColor=white" alt="iOS 18+">
-  <img src="https://img.shields.io/badge/macOS-15%2B-000000?logo=apple&logoColor=white" alt="macOS 15+">
-</p>
+> The landing page link goes live once the repository owner enables GitHub Pages
+> (Settings → Pages → Build and deployment → Source: **GitHub Actions**).
 
 Air Control turns your iPhone or iPad into a trackpad, air pointer, keyboard and presenter
-remote for your Mac. It is free, open source, and never leaves your local network: no relay,
-no cloud, no account, no telemetry.
+remote for your Mac. It's free, open source, and it never leaves your local Wi‑Fi network:
+no relay, no cloud, no account, no telemetry.
 
 ---
-
-## A look inside
-
-Every mode, in light and dark. Screenshots from the iPhone app.
-
-| Touchpad | Air Pointer | Keyboard |
-| :---: | :---: | :---: |
-| <img src="site/public/screenshots/touchpad-light-480.png" width="220" alt="Touchpad screen, light mode"> | <img src="site/public/screenshots/air-pointer-light-480.png" width="220" alt="Air Pointer screen, light mode"> | <img src="site/public/screenshots/keyboard-light-480.png" width="220" alt="Keyboard screen, light mode"> |
-| <img src="site/public/screenshots/touchpad-dark-480.png" width="220" alt="Touchpad screen, dark mode"> | <img src="site/public/screenshots/air-pointer-dark-480.png" width="220" alt="Air Pointer screen, dark mode"> | <img src="site/public/screenshots/keyboard-dark-480.png" width="220" alt="Keyboard screen, dark mode"> |
-
-| Remote | Macros | Settings |
-| :---: | :---: | :---: |
-| <img src="site/public/screenshots/remote-light-480.png" width="220" alt="Remote screen, light mode"> | <img src="site/public/screenshots/macros-light-480.png" width="220" alt="Macros screen, light mode"> | <img src="site/public/screenshots/settings-light-480.png" width="220" alt="Settings screen, light mode"> |
-| <img src="site/public/screenshots/remote-dark-480.png" width="220" alt="Remote screen, dark mode"> | <img src="site/public/screenshots/macros-dark-480.png" width="220" alt="Macros screen, dark mode"> | <img src="site/public/screenshots/settings-dark-480.png" width="220" alt="Settings screen, dark mode"> |
 
 ## What it does
 
 | Mode | In one line |
 | --- | --- |
-| **Touchpad** | Slide to move the cursor, tap to click, two-finger scroll with momentum, pinch to zoom, three-finger swipes for Mission Control. |
-| **Air Pointer** | Point the phone and the cursor follows. Gyroscope and accelerometer fusion with drift correction and a clutch button that holds the pointer still while you gesture. |
-| **Keyboard** | Type straight into whatever app is frontmost on the Mac, with modifier chords, arrow and function keys, and a dedicated row for ⌘ ⌥ ⌃ ⇧. |
-| **Presenter & media remote** | Big next, previous and blank-screen buttons you can hit without looking, plus volume, play-pause and track skip. |
-| **Macros** | Define buttons on the Mac, such as a key combo, an app to launch or a Shortcut to run, and they appear as a one-tap deck on the phone. Scripts stay behind an explicit opt-in. |
-| **iPad layout** | Landscape iPad shows an oversized touchpad beside a persistent keyboard and shortcut bar, and passes an attached hardware keyboard straight through. |
+| **Touchpad** | Slide to move the cursor, tap to click, two-finger scroll, pinch to zoom, and three-finger swipes for Mission Control. |
+| **Air Pointer** | Point the phone and the cursor follows. Gyroscope and accelerometer fusion with drift correction and a clutch button hold the pointer still while you gesture. |
+| **Keyboard** | Types straight into whatever app is frontmost, with modifier chords, arrow and function keys, and a dedicated row for ⌘ ⌥ ⌃ ⇧. |
+| **Presenter & media remote** | Large next, previous and blank-screen buttons you can hit without looking, plus volume, play-pause and track skip. |
+| **Macros** | Define a key combo, an app or a Shortcut on the Mac, and it appears as a button on the phone. Scripts stay behind an explicit opt-in. |
+| **iPad layout** | An oversized touchpad plus a persistent keyboard and shortcut bar in landscape, with hardware keyboard pass-through. |
 
-Everything is in the box. Nothing sits behind a subscription, an account or an upgrade prompt.
+## Screenshots
+
+Every mode, in light and dark.
+
+<table>
+<tr><th align="center">Touchpad</th></tr>
+<tr><td align="center">
+  <img src="site/public/screenshots/touchpad-light-480.png" width="240" alt="Touchpad screen, light mode">
+  <img src="site/public/screenshots/touchpad-dark-480.png" width="240" alt="Touchpad screen, dark mode">
+</td></tr>
+<tr><td align="center">Slide. Tap. Scroll. Pinch.</td></tr>
+
+<tr><th align="center">Air Pointer</th></tr>
+<tr><td align="center">
+  <img src="site/public/screenshots/air-pointer-light-480.png" width="240" alt="Air Pointer screen, light mode">
+  <img src="site/public/screenshots/air-pointer-dark-480.png" width="240" alt="Air Pointer screen, dark mode">
+</td></tr>
+<tr><td align="center">Point the phone. The cursor follows.</td></tr>
+
+<tr><th align="center">Keyboard</th></tr>
+<tr><td align="center">
+  <img src="site/public/screenshots/keyboard-light-480.png" width="240" alt="Keyboard screen, light mode">
+  <img src="site/public/screenshots/keyboard-dark-480.png" width="240" alt="Keyboard screen, dark mode">
+</td></tr>
+<tr><td align="center">Type from the couch.</td></tr>
+
+<tr><th align="center">Remote</th></tr>
+<tr><td align="center">
+  <img src="site/public/screenshots/remote-light-480.png" width="240" alt="Remote screen, light mode">
+  <img src="site/public/screenshots/remote-dark-480.png" width="240" alt="Remote screen, dark mode">
+</td></tr>
+<tr><td align="center">Next slide, without looking.</td></tr>
+
+<tr><th align="center">Macros</th></tr>
+<tr><td align="center">
+  <img src="site/public/screenshots/macros-light-480.png" width="240" alt="Macros screen, light mode">
+  <img src="site/public/screenshots/macros-dark-480.png" width="240" alt="Macros screen, dark mode">
+</td></tr>
+<tr><td align="center">Your shortcuts, as buttons.</td></tr>
+
+<tr><th align="center">Settings</th></tr>
+<tr><td align="center">
+  <img src="site/public/screenshots/settings-light-480.png" width="240" alt="Settings screen, light mode">
+  <img src="site/public/screenshots/settings-dark-480.png" width="240" alt="Settings screen, dark mode">
+</td></tr>
+<tr><td align="center">Every mode, in light or dark.</td></tr>
+</table>
+
+The Mac app screenshot is coming — it's a regular Dock app now, with a main window
+(Overview, Devices, Macros, Diagnostics, Settings) alongside the menu-bar extra.
 
 ## How it works
 
-1. **Install the Mac helper.** A small menu-bar app. Grant it Accessibility once, its only permission, and it starts at login and stays out of the way.
-2. **Scan the QR code.** The helper shows a QR code carrying its address, its certificate fingerprint and a one-time secret that expires in 60 seconds.
-3. **Take control.** The phone lands on the touchpad and reconnects on its own from then on.
+1. **Install the Mac helper.** It asks for Accessibility once, its only permission, then
+   starts at login and stays out of the way.
+2. **Scan the QR code.** Point your phone at the QR code the helper shows, carrying a
+   one-time secret that expires in 60 seconds.
+3. **Take control.** The phone lands on the touchpad and reconnects on its own from
+   then on.
 
-The project measures itself against a design target of **under 20 ms** end-to-end motion
-latency on 5 GHz Wi‑Fi. That is a target, not a guarantee: your router and your distance from
-it get a vote. The app ships a latency HUD so you can see the real number on your own network.
+Under the hood: a mutual-TLS 1.3 control channel (both sides hold a self-signed P-256
+identity, pinned by the fingerprint exchanged in the QR code) plus an authenticated,
+encrypted UDP path for motion, with an automatic fallback to the TCP channel when UDP
+is blocked.
 
-## Requirements
-
-| | Minimum |
-| --- | --- |
-| Mac | macOS 15 Sequoia |
-| iPhone / iPad | iOS 18 / iPadOS 18 |
-| Network | Both devices on the same Wi‑Fi, or the Mac joined to the phone's hotspot. No internet needed. |
-
-Bluetooth is not used. iOS does not let an app act as a Bluetooth HID peripheral, and Wi‑Fi
-is considerably faster anyway.
-
-## Get Air Control
+## Download
 
 **Mac.** Download the latest release from
-[GitHub Releases](https://github.com/devashish2531/air-control/releases/latest), open the
-`.dmg`, and drag `AirControlHelper.app` to Applications. A Homebrew cask
-(`brew install --cask devashish2531/tap/air-control`) is planned; the cask definition lives
-in [`Formula/Casks`](Formula/Casks) and the tap is not published yet.
+[GitHub Releases](https://github.com/devashish2531/air-control/releases/latest). Requires
+macOS 15 Sequoia or later. On first launch, grant Accessibility when prompted — it's the
+only permission the helper asks for.
 
 **iPhone and iPad.** Not on the App Store yet.
 [Join the waitlist](https://github.com/devashish2531/air-control/issues/new?title=iOS+waitlist&body=Please+let+me+know+when+the+Air+Control+iPhone+app+is+available+for+testing.)
-to hear when it ships, or build it from source (below) and install it on your own device with
-Xcode.
+to hear when it ships. In the meantime, build it from source (below) and install it on
+your own device with Xcode.
 
-## Privacy and security
+## Build from source
 
-Built like it has to earn your trust.
-
-- **Local Wi‑Fi only.** The phone talks to your Mac directly. There is no relay, no cloud,
-  no server in the middle, and nothing to sign in to.
-- **Mutual TLS 1.3.** Both ends hold their own self-signed P-256 identity and each verifies
-  the other's certificate, pinned by the SHA-256 fingerprint exchanged in the pairing QR
-  code. There is no certificate authority and no "trust any device" mode.
-- **Authenticated encryption on every motion packet.** The low-latency UDP path uses
-  ChaCha20-Poly1305 with per-session keys derived via HKDF and a sliding replay window, so a
-  LAN attacker can neither read nor inject pointer or keyboard input.
-- **One-time pairing.** The QR secret is valid for 60 seconds and used exactly once. Only
-  paired devices are accepted, and you can revoke a device from either end.
-- **One permission: Accessibility.** The helper never requests Input Monitoring or Screen
-  Recording, so it cannot read your keystrokes or see your screen.
-- **Zero telemetry.** Nothing is collected, counted or phoned home. The latency HUD and the
-  diagnostics export exist for you.
-
-The full threat model is in [`SECURITY.md`](SECURITY.md) and
-[`docs/03-specifications.md`](docs/03-specifications.md) §7. Please report vulnerabilities
-through the process in `SECURITY.md`.
-
----
-
-## For engineers
-
-Native Swift on both ends. No Electron, no web views.
-
-### Stack
-
-| | |
-| --- | --- |
-| Language | Swift 6, strict concurrency on, actors and `Sendable` value types throughout |
-| UI | SwiftUI on iOS, iPadOS and macOS |
-| Crypto | CryptoKit (P-256 identities, HKDF, ChaCha20-Poly1305), [swift-certificates](https://github.com/apple/swift-certificates) for X.509 |
-| Transport | Network.framework: TLS 1.3 control channel plus an authenticated UDP motion path |
-| Motion | CoreMotion sensor fusion for air-pointer mode |
-| Tests | Swift Testing with golden vectors under `Tests/*/Vectors/*.json` |
-| Tooling | XcodeGen for the app projects, `swift-argument-parser` for the CLI, a Makefile for every loop |
-| Website | Next.js static export in [`site/`](site), deployed to GitHub Pages by [`site.yml`](.github/workflows/site.yml) |
-
-### Architecture
-
-```
-Packages/AirControlKit/            SwiftPM kit, layered strictly bottom-up:
-  AirControlProtocol               wire format, byte layouts, constants (Foundation only)
-  AirControlCrypto                 identities, pairing, TLS + packet encryption
-  AirControlFilters                sensor fusion, smoothing, acceleration curves
-  AirControlCore                   session state machines, macros, diagnostics (never imports Network)
-  aircontrol-cli                   headless client/host for tests and debugging
-apps/AirControl-iOS/               SwiftUI app: Touchpad, Air Pointer, Keyboard, Remote, Macros
-apps/AirControl-Mac/               menu-bar helper: pairing window, input posting, macro host
-site/                            landing page (Next.js, static export)
-docs/                            decisions, requirements, research, spec, architecture, plan
-```
-
-Only the CLI and the two apps import Network.framework; the kit stays platform-agnostic so
-the protocol and crypto are testable without a device. Module boundaries, threading and every
-architecture decision record are in [`docs/04-architecture.md`](docs/04-architecture.md).
-The wire protocol, byte layouts and state machines are in
-[`docs/03-specifications.md`](docs/03-specifications.md), with a shorter contributor-facing
-extract in [`docs/protocol.md`](docs/protocol.md) for anyone implementing a client or host.
-
-### Build and test
-
-Requires Xcode 26 and macOS 15. No `sudo`, no `xcode-select`.
+Requires Xcode and macOS. No `sudo`, no `xcode-select`.
 
 ```sh
 scripts/bootstrap.sh   # fetches XcodeGen into tools/bin
@@ -168,55 +133,67 @@ make kit-test          # fastest loop: the SwiftPM kit's Swift Testing suites
 make ios-build         # iOS app, simulator, unsigned
 make mac-build         # Mac helper, unsigned
 make build             # all three
-make test              # kit + app test bundles
-make mac-run           # build and launch the helper
 ```
 
-There are no code-signing identities in CI; builds run with `CODE_SIGNING_ALLOWED=NO`. For
-on-device testing add your team to the git-ignored `Config/Local.xcconfig`.
+Builds run with `CODE_SIGNING_ALLOWED=NO` — there are no code-signing identities on a
+stock checkout. For on-device testing, add your team ID and bundle identifier to the
+git-ignored `Config/Local.xcconfig` (`DEVELOPMENT_TEAM`, `IOS_BUNDLE_ID`).
 
-### Website
+## Security model
 
-```sh
-cd site
-npm install
-npm run dev            # http://localhost:3000
-npm run build          # static export to site/out
-```
+Built like it has to earn your trust.
 
-Every push to `main` that touches `site/` builds the export with the `/air-control` base path
-and publishes it to GitHub Pages. Details in [`site/README.md`](site/README.md).
+- **Local Wi‑Fi only.** Nothing leaves your network.
+- **Mutual TLS 1.3.** Both ends verify each other's certificate.
+- **One-time pairing code.** Valid for 60 seconds, used exactly once.
+- **Zero telemetry.** Nothing is collected, counted or phoned home.
+- **Open source.** Every line is public and MIT licensed.
 
-### Repository map
-
-| Path | What lives there |
-| --- | --- |
-| [`docs/00-decisions.md`](docs/00-decisions.md) | Fixed decisions and addenda. Read first; it overrides everything else. |
-| [`docs/01-requirements.md`](docs/01-requirements.md) | Product requirements per mode. |
-| [`docs/02-technical-research.md`](docs/02-technical-research.md) | Platform constraints and research notes. |
-| [`docs/03-specifications.md`](docs/03-specifications.md) | Wire protocol, byte layouts, state machines, constants, security spec. |
-| [`docs/04-architecture.md`](docs/04-architecture.md) | Module boundaries, threading, build and release architecture, ADRs. |
-| [`docs/05-plan.md`](docs/05-plan.md) | Milestone roadmap. |
-| [`docs/07-landing-page.md`](docs/07-landing-page.md) | Landing page design and deployment notes. |
-| [`CHANGELOG.md`](CHANGELOG.md) | Release history. |
+The full threat model and disclosure process are in [`SECURITY.md`](SECURITY.md); the
+wire format is in [`docs/protocol.md`](docs/protocol.md).
 
 ## Project status
 
-Air Control is in active development. The Mac helper and the iOS app pair and work on real
-devices today; there is no App Store listing yet and releases are pre-1.0. Follow
-[`docs/05-plan.md`](docs/05-plan.md) for the roadmap, or pick up a
-[good first issue](docs/ISSUES-initial.md).
+Air Control is in active development. The Mac helper and the iOS app pair and work on
+real devices today. Not yet done:
+
+- Immediate reconnect on a Wi‑Fi path change (it currently falls back to the normal
+  retry path instead of reconnecting right away).
+- Sparkle-based auto-updates for the Mac app (deferred; releases are manual for now).
+- Auto-reconnect to the last-paired Mac on a cold app launch.
+
+## Documentation
+
+| # | File | Purpose |
+| --- | --- | --- |
+| 00 | [`docs/00-decisions.md`](docs/00-decisions.md) | Stakeholder decisions from the requirements interview, plus addenda |
+| 01 | [`docs/01-requirements.md`](docs/01-requirements.md) | PRD: personas, user stories, functional/non-functional requirements, risk register |
+| 02 | [`docs/02-technical-research.md`](docs/02-technical-research.md) | Apple API feasibility research, latency budget, prior art |
+| 03 | [`docs/03-specifications.md`](docs/03-specifications.md) | Wire protocol, byte layouts, state machines, constants, security spec |
+| 04 | [`docs/04-architecture.md`](docs/04-architecture.md) | Module boundaries, threading, build/release architecture, ADRs |
+| 05 | [`docs/05-plan.md`](docs/05-plan.md) | Delivery plan: milestone roadmap, task breakdown, quality gates |
+| 06 | [`docs/06-implementation-log.md`](docs/06-implementation-log.md) | Running record of the build: environment, bootstrap, integration results |
+| 07 | [`docs/07-landing-page.md`](docs/07-landing-page.md) | Landing page: Next.js static export, GitHub Pages deploy, local dev |
+| 08 | [`docs/08-ui-revamp.md`](docs/08-ui-revamp.md) | UI revamp: connection indicators, keyboard tab strip, theming, Mac main window |
+
+## Landing page
+
+The marketing site lives in [`site/`](site) (Next.js, static export) and is published to
+GitHub Pages at <https://devashish2531.github.io/air-control/> by
+[`site.yml`](.github/workflows/site.yml). See [`site/README.md`](site/README.md) and
+[`docs/07-landing-page.md`](docs/07-landing-page.md) for local dev and deploy details.
 
 ## Contributing
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for local setup, how to add a message type or macro
-action, and the PR checklist. Please also read the
-[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+[`CLAUDE.md`](CLAUDE.md) is the agent and contributor guide: module layout, build and test
+commands, and repo conventions (Swift 6 strict concurrency, Swift Testing for tests, one
+type per file). See also [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup steps and the PR
+checklist, and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## License
 
 [MIT](LICENSE).
 
-Air Control is an independent open-source project and is not affiliated with, endorsed by, or
-sponsored by Apple Inc. Apple, iPhone, iPad, Mac, macOS, Swift and SwiftUI are trademarks of
-Apple Inc.
+Air Control is an independent open-source project and is not affiliated with, endorsed by,
+or sponsored by Apple Inc. Apple, iPhone, iPad, Mac, macOS, Swift and SwiftUI are trademarks
+of Apple Inc.
