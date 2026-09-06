@@ -22,11 +22,21 @@ struct TouchpadDebugMotionLabel: View {
             let stats = environment.motionPublisher.stats
             let state = String(describing: environment.connection.connectionState)
             let touch = TouchpadUIViewDebugCounters.snapshot
+            // `sent=` above only proves `ConnectionMotionSink.sendMotion(_:)` was *called* — it
+            // says nothing about whether the datagram/TCP-fallback frame it produced ever reached
+            // the helper. `failures=` is the counterpart: every time that call actually threw
+            // (most commonly `CoreError.channelClosed` while the UDP channel is down), keyed by
+            // kind — see `DiagnosticsModel.motionSendFailureCounts`'s doc comment.
+            let failureCounts = environment.diagnostics.motionSendFailureCounts
+            let failuresSummary = failureCounts.isEmpty
+                ? "none"
+                : failureCounts.sorted(by: { $0.key < $1.key }).map { "\($0.key)×\($0.value)" }.joined(separator: ",")
             let summary = "debug.motion touchesBegan=\(touch.began) touchesMoved=\(touch.moved)"
                 + " intents=\(controller.debugIntentCount) moves=\(controller.debugMoveIntentCount)"
                 + " samples/s=\(String(format: "%.1f", stats.samplesPerSecond))"
                 + " coalesced=\(stats.coalescedCount) sent=\(stats.sentDatagramCount)"
-                + " queued=\(stats.queuedDatagramCount) dropped=\(stats.droppedDatagramCount) state=\(state)"
+                + " queued=\(stats.queuedDatagramCount) dropped=\(stats.droppedDatagramCount)"
+                + " sendMotion failures: \(failuresSummary) state=\(state)"
             Text(summary)
                 .font(.system(size: 6))
                 .foregroundStyle(.secondary)

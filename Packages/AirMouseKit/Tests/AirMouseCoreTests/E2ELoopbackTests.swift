@@ -430,6 +430,60 @@ func withTestTimeout<T: Sendable>(
         }
     }
 
+    /// Regression coverage for the reported "pairs and shows Connected but motion never moves the
+    /// cursor" bug: for each of the three ways a client can end up authenticated — first-time
+    /// pairing, re-pairing an already-trusted peer, and a plain trusted reconnect — asserts that
+    /// `sessionKey` was actually installed (`sendMotion` throwing `CoreError.channelClosed` is
+    /// exactly what happens when `sessionID`/`directionalKeys` are still `nil`, or when the UDP
+    /// channel `installSessionKey` opens never got assigned — see `ClientSession.sendMotion`'s doc
+    /// comment) and that one motion payload sent right after can be sealed and handed to the
+    /// datagram channel without throwing.
+    @Test func sendMotionSucceedsImmediatelyAfterEachPairingFlow() async throws {
+        try await withTestTimeout(seconds: 20) {
+        func motionPayload() -> MotionPayload {
+            MotionPayload(source: .touch, samples: 1, timestamp: 0, dx: 1, dy: 1, scrollX: 0, scrollY: 0)
+        }
+
+        // Flow 1: first-time pairing (unknown peer, full proof round trip).
+        let firstPairFixture = try await Self.makeFixture()
+        _ = try await firstPairFixture.client.pair(url: firstPairFixture.pairingURL)
+        try await firstPairFixture.client.sendMotion(motionPayload())
+
+        // Flow 2: re-pairing a peer the host already trusts (fresh QR/window, known identity).
+        let clock2 = ManualClock(start: 1_700_000_000)
+        let hostFingerprint2 = stubFingerprint(0xCA)
+        let clientFingerprint2 = stubFingerprint(0xCB)
+        var repairWindow = PairingWindow()
+        let repairSecret = try repairWindow.open(now: Date(timeIntervalSince1970: clock2.now()))
+        let hostID2 = Data(repeating: 0x04, count: 16)
+        let (repairHost, repairClient) = await Self.makeSessionPair(
+            clock: clock2, hostFingerprint: hostFingerprint2, clientFingerprint: clientFingerprint2,
+            hostID: hostID2, peerKnowledge: .known, pairingWindow: repairWindow, sharedExporterSecret: nil
+        )
+        let repairURL = try PairingURL(
+            version: ProtocolConstants.protocolVersion, hostID: hostID2, hostName: "Test Mac",
+            addresses: ["127.0.0.1"], tcpPort: 47800, fingerprint: Data(hostFingerprint2.bytes),
+            secret: Data(repairSecret.bytes)
+        )
+        _ = try await repairClient.pair(url: repairURL)
+        try await repairClient.sendMotion(motionPayload())
+        await repairHost.close()
+
+        // Flow 3: plain trusted reconnect (`hello { pairing: false }`).
+        let clock3 = ManualClock(start: 1_700_000_000)
+        let hostFingerprint3 = stubFingerprint(0xDA)
+        let clientFingerprint3 = stubFingerprint(0xDB)
+        let (reconnectHost, reconnectClient) = await Self.makeSessionPair(
+            clock: clock3, hostFingerprint: hostFingerprint3, clientFingerprint: clientFingerprint3,
+            hostID: Data(repeating: 0x05, count: 16), peerKnowledge: .known, pairingWindow: nil,
+            sharedExporterSecret: nil
+        )
+        _ = try await reconnectClient.connect()
+        try await reconnectClient.sendMotion(motionPayload())
+        await reconnectHost.close()
+        }
+    }
+
     // MARK: - Motion: 200 datagrams, counter monotonicity, replay rejection
 
     @Test func twoHundredMotionDatagramsDeliveredWithMonotonicCounters() async throws {
@@ -596,6 +650,54 @@ func withTestTimeout<T: Sendable>(
         }
         stats = await fixture.client.currentStats()
         #expect(!stats.isFallbackEngaged)
+        }
+    }
+
+    /// Regression coverage for the bug where a UDP channel that cannot send at all — closed,
+    /// torn down, or (per `NWDatagramChannel`'s real-device report) never reaching `.ready` — left
+    /// `ProbeController` fed *no* outcomes whatsoever (`sendProbe()` used to just `return` early on
+    /// a nil/failing channel, without recording a loss), so it could never reach the "8 straight
+    /// unanswered" or "≥11 of 12 unanswered" thresholds that engage TCP fallback (spec §3.5.8) —
+    /// motion stayed silently stuck retrying a UDP path that would never come back, forever.
+    /// `InMemoryDatagramChannel.send` throws `CoreError.channelClosed` once `close()`'d, which is
+    /// exactly the "channel throws" half of that fix (`ClientSession.sendProbe`'s new `do`/`catch`
+    /// around `channel.send`).
+    @Test func closedDatagramChannelThrowingOnSendStillTriggersFallback() async throws {
+        try await withTestTimeout(seconds: 20) {
+        let fixture = try await Self.makeFixture()
+        var hostEventIterator = fixture.host.events.makeAsyncIterator()
+        _ = try await fixture.client.pair(url: fixture.pairingURL)
+        _ = await Self.nextEvent(from: &hostEventIterator) {
+            if case .clientAuthenticated = $0 { return true }
+            return false
+        }
+
+        // The channel itself now throws on every `send` — not a dropped-in-flight packet, but the
+        // transport being unusable outright.
+        fixture.clientDatagram.close()
+
+        for _ in 0..<7 {
+            try await fixture.client.sendProbe() // must not throw out of `sendProbe()` itself.
+            #expect(!(await fixture.client.currentStats().isFallbackEngaged))
+        }
+        try await fixture.client.sendProbe() // 8th straight failure -> fallback (spec's ~2 s window).
+        #expect(await fixture.client.currentStats().isFallbackEngaged)
+
+        // Motion now rides the TCP fallback path instead of silently failing forever.
+        for index in 0..<3 {
+            let payload = MotionPayload(source: .touch, samples: 1, timestamp: UInt32(index), dx: 1, dy: 1, scrollX: 0, scrollY: 0)
+            try await fixture.client.sendMotion(payload)
+        }
+        try await fixture.client.flushPendingMotionBatch()
+
+        var tcpMotionCount = 0
+        while tcpMotionCount < 3 {
+            guard let event = await hostEventIterator.next() else { break }
+            if case .motion(let motion) = event, motion.channel == .tcp {
+                tcpMotionCount += 1
+            }
+        }
+        #expect(tcpMotionCount == 3)
         }
     }
 

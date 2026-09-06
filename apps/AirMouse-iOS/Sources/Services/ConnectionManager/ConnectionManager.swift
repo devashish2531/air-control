@@ -712,6 +712,13 @@ public final class ConnectionManager: ConnectionManaging, PairingRouting, @unche
         }
     }
 
+    /// `ConnectionMotionSink.sendMotion(_:)` forwards every swallowed `sendMotion`/`sendProbe`
+    /// failure here instead of dropping it via a bare `try?` — see `DiagnosticsModel.
+    /// motionSendFailureCounts`'s doc comment for why that visibility matters.
+    public func recordMotionSendFailure(kind: String) {
+        diagnostics.recordMotionSendFailure(kind: kind)
+    }
+
     private func ingestStats(_ stats: SessionStats) {
         diagnostics.ingest(LatencySample(
             timestamp: Date(),

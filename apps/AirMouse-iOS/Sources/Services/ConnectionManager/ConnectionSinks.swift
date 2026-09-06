@@ -53,7 +53,47 @@ public final class ConnectionMotionSink: MotionDatagramSink, Sendable {
     public func sendMotion(_ payload: MotionPayload) {
         Task.detached(priority: .high) { [manager] in
             guard let session = await manager.activeSession else { return }
-            try? await session.sendMotion(payload)
+            do {
+                try await session.sendMotion(payload)
+            } catch {
+                // Previously a bare `try?`: every failure here — most commonly `CoreError.
+                // channelClosed` while the UDP channel is still coming up or has gone bad — vanished
+                // with nothing to show for it. `TouchpadDebugMotionLabel`'s `sentDatagramCount`
+                // only proves this method was *called*, never that anything reached the wire, so a
+                // session stuck unable to send motion looked identical to a healthy one from that
+                // counter alone. Surface it instead (see `DiagnosticsModel.motionSendFailureCounts`).
+                await manager.recordMotionSendFailure(kind: Self.errorKind(error))
+            }
+        }
+    }
+
+    /// Short, developer-facing label for a `sendMotion`/`sendProbe` failure — never the error's
+    /// full interpolated description (spec §7: no secrets/text in logs, and this string also feeds
+    /// a DEBUG-only on-screen label the owner might photograph/screenshot).
+    private static func errorKind(_ error: Error) -> String {
+        if let coreError = error as? CoreError {
+            return String(describing: coreError.category) + ":" + Self.caseName(coreError)
+        }
+        return String(describing: type(of: error))
+    }
+
+    private static func caseName(_ error: CoreError) -> String {
+        switch error {
+        case .protocolViolation: "protocolViolation"
+        case .versionMismatch: "versionMismatch"
+        case .pairingExpired: "pairingExpired"
+        case .pairingInvalidProof: "pairingInvalidProof"
+        case .pairingTooManyDevices: "pairingTooManyDevices"
+        case .pairingHostProofInvalid: "pairingHostProofInvalid"
+        case .pairingAlreadyTrusted: "pairingAlreadyTrusted"
+        case .authUntrusted: "authUntrusted"
+        case .authRevoked: "authRevoked"
+        case .rateLimited: "rateLimited"
+        case .macroBlockedByPolicy: "macroBlockedByPolicy"
+        case .sessionTimedOut: "sessionTimedOut"
+        case .channelClosed: "channelClosed"
+        case .protocolMismatch: "protocolMismatch"
+        case .internalFailure: "internalFailure"
         }
     }
 }

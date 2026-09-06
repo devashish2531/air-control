@@ -87,3 +87,136 @@ final class TouchpadMotionPipelineUITests: XCTestCase {
         XCTAssertFalse(after.contains("sent=0"), "No datagrams were ever sent after dragging. after=\(after)")
     }
 }
+
+extension TouchpadMotionPipelineUITests {
+    /// Full end-to-end regression for the reported bug, one level deeper than
+    /// `testDraggingTheSurfaceIncreasesMotionCounters` above: that test only proves
+    /// touches reach `MotionPublisher` (`sentDatagramCount` increases unconditionally, even with
+    /// no Mac connected — see this file's own doc comment). This test pairs against a *real*
+    /// Mac helper running in `--loopback` mode and asserts datagrams actually arrive there —
+    /// i.e. it exercises the exact path (`ConnectionMotionSink.sendMotion` → `ClientSession.
+    /// sendMotion` → `NWDatagramChannel`/`ProbeController` fallback → `HostSession` →
+    /// `EventInjector`) the counter-only test cannot see past.
+    ///
+    /// Reads two fixed paths the harness/CI driver writes/launches before this test runs (neither
+    /// started by this test itself):
+    ///   - `/tmp/am-pair-url.txt`: a fresh, single-use pairing URL (one line, no trailing
+    ///     newline is fine) from a helper started with `--loopback --print-pair-url`
+    ///     (`AIRMOUSE_PAIR_URL=` printed to its stdout once it opens the pairing window — copy
+    ///     just the URL into this file right before running).
+    ///   - `/tmp/am-sim.jsonl`: the `AIRMOUSE_LOOPBACK_LOG` path the same helper was launched
+    ///     with (`HostFeature.make`'s doc comment) — this test reads that file directly rather
+    ///     than through the app under test.
+    ///
+    /// Deviation from the more obvious "pass `AIRMOUSE_PAIR_URL` as an env var" approach every
+    /// other on-device test in this file/`PairingUITests`/`DeviceRegressionUITests` uses: measured
+    /// empirically against this project's actual (XcodeGen-generated, no `environmentVariables:`
+    /// block) scheme, `TEST_RUNNER_AIRMOUSE_PAIR_URL=...` on the `xcodebuild test`/
+    /// `test-without-building` command line never reaches this XCUITest *runner* process's own
+    /// environment for an iOS **Simulator** destination — `ProcessInfo.processInfo.environment`
+    /// here comes back with zero `AIRMOUSE_*` keys regardless of what's set on the command line,
+    /// confirmed with a throwaway `XCTSkip` dump of every such key before writing this. A plain
+    /// `FileManager` read of an absolute `/tmp` path, by contrast, verified working (also
+    /// empirically, via a throwaway marker file) — the runner process is an ordinary, unsandboxed
+    /// process on this same Mac, so it reaches the same `/tmp` the helper (and this test's own
+    /// harness script) write to, no simulator-container translation needed. If this project's
+    /// scheme ever grows an explicit `environmentVariables:` passthrough (XcodeGen scheme option)
+    /// for `TEST_RUNNER_AIRMOUSE_*`, this could switch back to matching the other tests' pattern.
+    @MainActor
+    func testSwipesReachHelperLoopbackLog() throws {
+        let pairURLPath = "/tmp/am-pair-url.txt"
+        let logPath = "/tmp/am-sim.jsonl"
+
+        guard let urlData = FileManager.default.contents(atPath: pairURLPath),
+              let pairURL = String(data: urlData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !pairURL.isEmpty
+        else {
+            throw XCTSkip("\(pairURLPath) not found/empty; skipping loopback E2E test (see this test's doc comment)")
+        }
+        guard FileManager.default.fileExists(atPath: logPath) else {
+            throw XCTSkip("\(logPath) not found; skipping loopback E2E test (see this test's doc comment)")
+        }
+
+        func mouseMovedCount() -> Int {
+            guard let data = FileManager.default.contents(atPath: logPath),
+                  let text = String(data: data, encoding: .utf8)
+            else { return 0 }
+            return text.split(separator: "\n", omittingEmptySubsequences: true)
+                .filter { $0.contains("\"kind\":\"mouseMoved\"") }
+                .count
+        }
+
+        let before = mouseMovedCount()
+
+        let app = XCUIApplication()
+        // `XCUIApplication.launchEnvironment` is a distinct, documented mechanism from the
+        // runner-process `TEST_RUNNER_`/`ProcessInfo` one discussed above — this one reliably
+        // reaches the app-under-test's own process regardless of scheme config, since XCTest's
+        // test manager daemon injects it directly when launching that process.
+        app.launchEnvironment["AIRMOUSE_PAIR_URL"] = pairURL
+        addUIInterruptionMonitor(withDescription: "System permission alert") { alert in
+            for label in ["Allow", "OK", "Allow While Using App"] {
+                let button = alert.buttons[label]
+                if button.exists { button.tap(); return true }
+            }
+            return false
+        }
+        app.launch()
+        app.tap() // trigger any pending interruption monitor
+
+        let skipOnboarding = app.buttons["Skip onboarding"]
+        if skipOnboarding.waitForExistence(timeout: 5) {
+            skipOnboarding.tap()
+        }
+
+        let tabBarButton = app.tabBars.buttons["Touchpad"]
+        if tabBarButton.waitForExistence(timeout: 5) {
+            tabBarButton.tap()
+        } else {
+            app.buttons["Touchpad"].firstMatch.tap()
+        }
+
+        let debugLabel = app.staticTexts["touchpad.debugMotion"]
+        XCTAssertTrue(
+            debugLabel.waitForExistence(timeout: 5),
+            "touchpad.debugMotion debug label not found — is this a DEBUG build?"
+        )
+
+        let connectDeadline = Date().addingTimeInterval(45)
+        while Date() < connectDeadline, !debugLabel.label.contains("state=connected") {
+            app.tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1))
+        }
+        XCTAssertTrue(
+            debugLabel.label.contains("state=connected"),
+            "never reached state=connected within 45 s. label=\(debugLabel.label)"
+        )
+
+        let surface = app.otherElements["touchpad.surface"]
+        XCTAssertTrue(surface.waitForExistence(timeout: 10), "touchpad.surface not found")
+        XCTAssertTrue(surface.isHittable, "touchpad.surface exists but is not hittable")
+
+        // ~20 coordinate drags — the exact gesture the owner reported as producing no motion on
+        // the Mac, this time against a real (loopback) helper instead of just the local pipeline.
+        for i in 0..<20 {
+            let startX = 0.2 + Double(i % 5) * 0.02
+            let start = surface.coordinate(withNormalizedOffset: CGVector(dx: startX, dy: 0.5))
+            let end = surface.coordinate(withNormalizedOffset: CGVector(dx: startX + 0.3, dy: 0.5))
+            start.press(forDuration: 0.05, thenDragTo: end)
+        }
+
+        let deadline = Date().addingTimeInterval(15)
+        var after = mouseMovedCount()
+        while Date() < deadline, after - before < 10 {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+            after = mouseMovedCount()
+        }
+
+        let failuresLabel = debugLabel.label
+        XCTAssertGreaterThanOrEqual(
+            after - before, 10,
+            "helper loopback log at \(logPath) gained only \(after - before) mouseMoved line(s) after 20 drags."
+                + " debug label: \(failuresLabel)"
+        )
+    }
+}

@@ -24,9 +24,24 @@ public final class NWDatagramChannel: DatagramChannel, @unchecked Sendable {
         startReceiveLoop()
     }
 
-    /// Opens (starts) a UDP connection to `host:udpPort`. Resolves once the connection reaches
-    /// `.ready` (for a connected UDP socket this is local-only setup, essentially immediate) or
-    /// throws if it fails first.
+    /// Starts a UDP "connection" to `host:udpPort` and returns immediately — deliberately does
+    /// **not** wait for `.ready`.
+    ///
+    /// This used to `await` a `CheckedContinuation` resolved from `.ready`, mirroring
+    /// `NWControlChannel.connect`'s TCP handshake wait. That is wrong for UDP: there is no
+    /// handshake, so `.ready` only means "a viable local path was found," and on real Wi-Fi that
+    /// path validation can take seconds — or, per an on-device report (touches reaching
+    /// `MotionPublisher`/`ClientSession.sendMotion` with zero datagrams ever observed at the
+    /// helper), effectively never complete, even though the socket would have worked fine had data
+    /// simply been sent on it. Since `datagramProvider` is awaited from `ClientSession.
+    /// installSessionKey`, which gates `sessionKeyReply` and therefore `pair()`/`connect()`
+    /// itself, blocking here could hang the whole session before the UI ever shows "Connected" —
+    /// or, if `.ready` arrived late, silently delay every motion send behind it. Network.framework
+    /// queues sends made before a connectionless path finishes validating and flushes them once it
+    /// does, so starting the connection and handing back the channel right away is both safe and
+    /// the documented idiom for this transport; `ProbeController` (via `ClientSession.sendProbe`)
+    /// is what actually detects an unusable path now, by design, and drives TCP fallback within
+    /// ~2 s (spec §3.5.8) if this path never pans out.
     public static func connect(host: String, udpPort: Int) async throws -> NWDatagramChannel {
         guard let portValue = NWEndpoint.Port(rawValue: UInt16(clamping: udpPort)) else {
             throw TransportError.invalidPort(udpPort)
@@ -36,19 +51,23 @@ public final class NWDatagramChannel: DatagramChannel, @unchecked Sendable {
         parameters.includePeerToPeer = false // spec §3.1.1: "no AWDL" on either channel.
 
         let connection = NWConnection(host: NWEndpoint.Host(host), port: portValue, using: parameters)
-
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let waiter = OneShotContinuation(continuation)
-            connection.stateUpdateHandler = { state in
-                switch state {
-                case .ready: waiter.resume(.success(()))
-                case .failed(let error): waiter.resume(.failure(TransportError.connectionFailed(String(describing: error))))
-                case .cancelled: waiter.resume(.failure(TransportError.cancelled))
-                default: break
-                }
+        connection.stateUpdateHandler = { state in
+            switch state {
+            case .ready:
+                Log.net.debug("motion UDP connection ready")
+            case .waiting(let error):
+                // Not swallowed: previously nothing observed this state at all once nobody was
+                // still awaiting `.ready`, so a path that never recovers left no trace anywhere.
+                Log.net.error("motion UDP connection .waiting: \(String(describing: error), privacy: .public)")
+            case .failed(let error):
+                Log.net.error("motion UDP connection .failed: \(String(describing: error), privacy: .public)")
+            case .cancelled:
+                break
+            default:
+                break
             }
-            connection.start(queue: queue)
         }
+        connection.start(queue: queue)
 
         return NWDatagramChannel(connection: connection)
     }

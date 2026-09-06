@@ -213,8 +213,17 @@ public actor ClientSession {
     /// outstanding probe as unanswered first if no echo arrived for it (the app's timer is the
     /// only source of "time has passed" in this actor, per arch §3.1: no timers in the kit).
     public func sendProbe() async throws {
-        guard let sessionID, let keys = directionalKeys, let channel = datagramChannel else { return }
+        guard let sessionID, let keys = directionalKeys else { return }
         expireOutstandingProbeIfNeeded()
+        // No UDP channel at all (never opened, or torn down): this is not "nothing to report" —
+        // it is an unanswerable probe, so it must count as an immediate loss. Without this,
+        // `ProbeController` never sees a single outcome and can never reach the ≥11-of-12 or
+        // 8-straight-at-connect thresholds that engage TCP fallback (spec §3.5.8), leaving motion
+        // silently stuck trying (and failing) to use a UDP path that will never come back.
+        guard let channel = datagramChannel else {
+            _ = recordProbeOutcome(answered: false)
+            return
+        }
         let timestamp = UInt32(truncatingIfNeeded: nowMicros())
         let payload = MotionPayload(flags: [.probe], source: .probe, samples: 0, timestamp: timestamp)
         var output = [UInt8](repeating: 0, count: MotionCrypto.datagramLength)
@@ -226,7 +235,16 @@ public actor ClientSession {
             into: &output
         )
         c2hCounter += 1
-        try channel.send(Data(output))
+        do {
+            try channel.send(Data(output))
+        } catch {
+            // Same reasoning as the nil-channel case above: a send that throws must still be
+            // recorded as a loss rather than propagating out of `sendProbe()` (the app's ticker
+            // calls this with `try?`, which would otherwise swallow it with no outcome recorded
+            // at all).
+            _ = recordProbeOutcome(answered: false)
+            return
+        }
         outstandingProbeTimestamp = timestamp
     }
 

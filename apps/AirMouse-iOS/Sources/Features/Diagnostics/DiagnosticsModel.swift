@@ -63,6 +63,14 @@ public final class DiagnosticsModel: DiagnosticsReceiving {
     public private(set) var latest: LatencySample?
     public private(set) var history: [LatencySample] = []
 
+    /// `sendMotion`/`sendProbe` failures the Connection agent's sinks would otherwise swallow with
+    /// `try?`, keyed by a short error-kind label (e.g. "channelClosed"). Previously these vanished
+    /// silently — `TouchpadDebugMotionLabel`'s `sentDatagramCount` only proves `sendMotion(_:)` was
+    /// *called*, not that anything reached the network — so a session stuck unable to open its UDP
+    /// channel looked identical, from this counter's perspective, to one working perfectly. See
+    /// `ConnectionMotionSink.sendMotion(_:)`.
+    public private(set) var motionSendFailureCounts: [String: Int] = [:]
+
     private let maxHistory: Int
 
     public init(maxHistory: Int = 60) {
@@ -77,8 +85,14 @@ public final class DiagnosticsModel: DiagnosticsReceiving {
         }
     }
 
+    /// Records one swallowed motion/probe send failure by kind, for `motionSendFailureCounts`.
+    public func recordMotionSendFailure(kind: String) {
+        motionSendFailureCounts[kind, default: 0] += 1
+    }
+
     public func reset() {
         latest = nil
         history.removeAll()
+        motionSendFailureCounts.removeAll()
     }
 }
