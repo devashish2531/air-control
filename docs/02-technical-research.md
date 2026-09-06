@@ -131,7 +131,7 @@ TCC tracks three independent services: `kTCCServiceAccessibility`, `kTCCServiceP
 
 ### A10. Menu bar app (verified)
 
-`MenuBarExtra("Air Control", systemImage: "…") { … }.menuBarExtraStyle(.window)` (macOS 13+) for a popover-style panel that shows status, the QR code, and trusted devices. Set `LSUIElement = YES` so there is no Dock icon; add a `Settings` scene for preferences. Launch at login: `SMAppService.mainApp.register()` (macOS 13+); if `status == .requiresApproval`, call `SMAppService.openSystemSettingsLoginItems()`. Gotcha: `.window` style gives limited control over dismissal and has had focus quirks; if they bite, fall back to `NSStatusItem` + `NSPopover` hosting a SwiftUI view. Render the QR at high contrast in a dedicated window (not just the popover) so a phone camera can scan it from arm's length.
+`MenuBarExtra("Air Control", systemImage: "…") { … }.menuBarExtraStyle(.window)` (macOS 13+) for a popover-style panel that shows status, the QR code, and trusted devices. Set `LSUIElement = YES` so there is no Dock icon; add a `Settings` scene for preferences. (Superseded by `docs/08-ui-revamp.md` §5, 2026-09-06: regular app with Dock icon and main window.) Launch at login: `SMAppService.mainApp.register()` (macOS 13+); if `status == .requiresApproval`, call `SMAppService.openSystemSettingsLoginItems()`. Gotcha: `.window` style gives limited control over dismissal and has had focus quirks; if they bite, fall back to `NSStatusItem` + `NSPopover` hosting a SwiftUI view. Render the QR at high contrast in a dedicated window (not just the popover) so a phone camera can scan it from arm's length.
 
 ---
 

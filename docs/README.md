@@ -19,7 +19,7 @@ Precedence when they disagree: `00-decisions.md` (addenda included) > `04-archit
 See the addenda in `00-decisions.md`. Defaults stand unless overridden:
 - License: MIT vs Apache-2.0 (A7)
 - Transport: TCP+mTLS control + AEAD UDP motion, QUIC deferred (A1–A3)
-- Project name: "Air Control" collides on the App Store (A8)
+- ~~Project name: "Air Control" collides on the App Store (A8)~~ — resolved: "Air Control" is the final public name (Addendum F1; 2026-09-06 rename)
 - Momentum locus: client decides, host runs decay (B1)
 
 ## Next step

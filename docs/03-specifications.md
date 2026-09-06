@@ -186,7 +186,7 @@ In scope for v1 (per `00-decisions.md`): iPhone/iPad client (iOS 18+) and Mac he
 | Component | Target / product | Responsibilities |
 |---|---|---|
 | **AirControl (iOS)** | `AirControl.app`, iOS/iPadOS 18+, SwiftUI + UIKit input views | Discovery, pairing UI, touch/gyro/keyboard engines, connection manager, settings, macro buttons |
-| **AirControlHelper (macOS)** | `AirControlHelper.app`, macOS 15+, `LSUIElement`, SwiftUI `MenuBarExtra` + AppKit windows | Bonjour advertising, TLS listener, UDP listener, session management, event injection (`CGEvent`), macro engine, trusted-device store, permissions onboarding, Sparkle updates |
+| **AirControlHelper (macOS)** | `AirControlHelper.app`, macOS 15+, `LSUIElement` *(superseded by `docs/08-ui-revamp.md` §5, 2026-09-06: regular app, Dock icon, main window)*, SwiftUI `MenuBarExtra` + AppKit windows | Bonjour advertising, TLS listener, UDP listener, session management, event injection (`CGEvent`), macro engine, trusted-device store, permissions onboarding, Sparkle updates |
 | **AirControlProtocol (SPM package)** | `Packages/AirControlProtocol`, platforms `.iOS(.v18)`, `.macOS(.v15)`, deps: Foundation + CryptoKit only | Library targets `AirControlWire` (framing, JSON envelope, message models, motion datagram codec, AEAD framing, replay window, pairing proof), `AirControlInputCore` (One-Euro filter, acceleration curve, gesture state machine, display clamping), `AirControlMacroModel` (macro `Codable` models and validation). **(spec decision)**: one package, three library targets, so `swift test` exercises everything without Xcode. |
 
 ### 2.2 Component diagram
@@ -225,7 +225,7 @@ flowchart LR
 - Both devices on one IP network (same Wi-Fi/AP, or Mac joined to the iPhone's Personal Hotspot). No internet path is ever used except the host's opt-in update check (§5.7.2).
 - Host listens on **TCP 47800** (control) and **UDP 47800** (motion) by default **(spec decision)**; if either port is busy the host binds an ephemeral port for *both* and advertises the real values in TXT and QR. Fixed defaults simplify firewall documentation.
 - iOS `Info.plist`: `NSLocalNetworkUsageDescription` = "Air Control finds and connects to your Mac on your local network. Nothing is sent over the internet."; `NSBonjourServices` = `["_aircontrol._tcp", "_aircontrol._udp"]`; `NSCameraUsageDescription` = "The camera is used only to scan the pairing QR code shown on your Mac."; `CFBundleURLTypes` registers `aircontrol`; `UIRequiresFullScreen` = NO.
-- macOS `Info.plist`: `LSUIElement` = YES, `NSLocalNetworkUsageDescription` (same text), `NSBonjourServices` (same list), `NSAppleEventsUsageDescription` (script macros), `SUFeedURL` (Sparkle, HTTPS), `SUPublicEDKey`.
+- macOS `Info.plist`: `LSUIElement` = YES, `NSLocalNetworkUsageDescription` (same text), `NSBonjourServices` (same list), `NSAppleEventsUsageDescription` (script macros), `SUFeedURL` (Sparkle, HTTPS), `SUPublicEDKey`. Superseded by `docs/08-ui-revamp.md` §5 (2026-09-06): `LSUIElement` = NO, Dock icon shown.
 - Signing: iOS App Store/TestFlight; Mac Developer ID + Hardened Runtime + notarization, not sandboxed (A6), universal binary. Debug builds use a stable Apple Development identity from git-ignored `Config/Local.xcconfig` (A10).
 
 ### 2.4 Repository layout
@@ -704,11 +704,11 @@ Pinch (keys mode), three-finger swipes, four-finger tap are sent as `key` messag
 
 ### 4.1 App structure and navigation map
 
-Root: `TabView` with five tabs — **Touchpad**, **Air Pointer**, **Keyboard**, **Remote**, **Macros** — plus a toolbar with a **connection pill** (host name + status dot, tap → Devices) on the left and **Settings** (gear) on the right. Onboarding and Scan QR are presented as full-screen covers. The Air Pointer tab is hidden when `CMMotionManager().isDeviceMotionAvailable == false` (FR-GY-012). Default tab is configurable (FR-ST-004). Navigation:
+Root: `TabView` with five tabs — **Touchpad**, **Air Pointer**, **Keyboard**, **Remote**, **Macros** — plus a toolbar with a **connection pill** (host name + status dot, tap → Devices) on the left and **Settings** (gear) on the right. *Superseded by `docs/08-ui-revamp.md` §2.1 (2026-09-06): the toolbar pill is replaced by a single status dot.* Onboarding and Scan QR are presented as full-screen covers. The Air Pointer tab is hidden when `CMMotionManager().isDeviceMotionAvailable == false` (FR-GY-012). Default tab is configurable (FR-ST-004). Navigation:
 
 ```
 Onboarding (first launch) → [Local Network pre-prompt] → Scan QR → Touchpad
-Any tab ── connection pill ──► Devices ──► Scan QR
+Any tab ── connection pill (now status dot, docs/08 §2.1) ──► Devices ──► Scan QR
 Any tab ── gear ──► Settings ──► {Pointer, Gestures, Gyro, Keyboard, Remote, Macs, Appearance, Feedback, Tutorial, About}
 ```
 
@@ -1019,7 +1019,7 @@ Effective settings = global ⊕ per-host patch (non-nil fields win). The `settin
 ### 5.1 App structure
 
 #### 5.1.1 Process model
-`LSUIElement = YES` agent app; no Dock icon; no main window after onboarding. Universal binary (arm64 + x86_64), Hardened Runtime, notarized, **not** sandboxed (NFR-MAC-003). Entitlements: `com.apple.security.automation.apple-events` only. Main actor hosts SwiftUI; networking on a dedicated `DispatchQueue("net", qos: .userInteractive)`; injection on `DispatchQueue("inject", qos: .userInteractive)` (NFR-MAC-006).
+`LSUIElement = YES` agent app; no Dock icon; no main window after onboarding. **Superseded by `docs/08-ui-revamp.md` §5 (2026-09-06): regular app with Dock icon and main window.** Universal binary (arm64 + x86_64), Hardened Runtime, notarized, **not** sandboxed (NFR-MAC-003). Entitlements: `com.apple.security.automation.apple-events` only. Main actor hosts SwiftUI; networking on a dedicated `DispatchQueue("net", qos: .userInteractive)`; injection on `DispatchQueue("inject", qos: .userInteractive)` (NFR-MAC-006).
 
 #### 5.1.2 Menu (`MenuBarExtra`, `.menu` style)
 Icon: `cursorarrow.rays` monochrome when idle; filled/tinted variant when ≥ 1 device connected; `exclamationmark.triangle` badge when Accessibility is missing or input is paused.

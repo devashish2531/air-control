@@ -45,7 +45,7 @@ They are marked *provisional*; the owner may override them.
 | A5 | macOS permissions | Request **Accessibility only**. Never request Input Monitoring (no event taps) or Screen Recording. | Posting events needs only the Accessibility/PostEvent TCC bucket (verified). |
 | A6 | Mac distribution | Direct: Developer ID + Hardened Runtime + notarization, GitHub Releases + Homebrew cask, Sparkle (EdDSA-signed) for updates. Not sandboxed. | Sandbox/CGEvent interaction is uncertain and unnecessary for direct distribution. |
 | A7 | License | **MIT** (recommended default). | Maximizes contributor uptake; no patent clauses needed for this project. |
-| A8 | Project name | Keep **"Air Control" as the codename**; do a trademark/App Store name search before the repo goes public. Candidates: Waft, Glidepad, Hover Remote. | Name collides with existing App Store apps. |
+| A8 | Project name | **Superseded by Addendum F1 (2026-09-05) and the 2026-09-06 repo-wide rename: "Air Control" is the product's name, not a placeholder.** Originally provisional pending a trademark/App Store search, with Waft, Glidepad, and Hover Remote as fallback candidates. | Name collides with existing App Store apps. |
 | A9 | Macros | Host-authored only in v1; phone is read-only consumer. AppleScript/shell actions gated behind global + per-device opt-in and on-phone confirmation. | Security lessons from Remote Mouse / Unified Remote CVEs. |
 | A10 | Debug signing | Debug builds signed with a stable Apple Development identity via git-ignored `Local.xcconfig`. | Ad-hoc signing resets TCC Accessibility grant on every rebuild. |
 
@@ -97,6 +97,6 @@ Raised by the specification author in `03-specifications.md`; defaults stand unl
 
 | # | Topic | Decision |
 |---|-------|----------|
-| F1 | Public product name | **Air Control** (matches the GitHub repo `devashish2531/air-control`). Apps, bundle display names and docs still say "Air Control" and will be renamed in a follow-up pass (supersedes the open item in A8). |
+| F1 | Public product name | **Air Control** (matches the GitHub repo `devashish2531/air-control`), superseding the open item in A8. The 2026-09-06 repo-wide rename brought the apps, bundle identifiers, package, and every doc into line with this name; nothing is pending a follow-up pass. |
 | F2 | Site stack & hosting | Next.js with static export in `site/`, published to **GitHub Pages** by a GitHub Actions workflow. The Sparkle appcast (`/appcast.xml`) is served from the same Pages site, so the site build must copy it through untouched. |
 | F3 | Download calls to action | macOS: latest GitHub Release DMG (and Homebrew cask once the tap exists). iOS: "Coming soon" with a waitlist link until TestFlight/App Store are live. |

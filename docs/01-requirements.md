@@ -256,6 +256,7 @@ Format: `ID — As a <persona>, I want <capability> so that <outcome>.` Each has
 
 **AM-MB-01 (P0)** — As any user, I want the helper to be a menu-bar-only app (no Dock icon) that shows connection status at a glance.
 - Given no device is connected, Then the icon is monochrome; Given one or more devices connected, Then the icon changes and the menu lists them with model and signal indicator.
+- Superseded by `docs/08-ui-revamp.md` §5 (2026-09-06): the helper is now a regular app with a Dock icon and a main window.
 
 **AM-MB-02 (P0)** — As a new user, I want an onboarding window that explains and requests Accessibility permission with a "Open System Settings" button and detects when it is granted.
 - Given permission is missing, Then the helper refuses to accept input but still allows pairing, shows a persistent warning in the menu, and polls the permission state every 2 s while the window is open.
@@ -468,7 +469,7 @@ Action kinds: `keyCombo { modifiers: Set<Modifier>, keyCode: UInt16, keyLabel: S
 
 ### 4.8 Mac menu-bar helper (FR-MB)
 
-- **FR-MB-001** The helper SHALL be an `LSUIElement` (agent) app: menu-bar icon only, no Dock icon, no main window on launch after onboarding.
+- **FR-MB-001** The helper SHALL be an `LSUIElement` (agent) app: menu-bar icon only, no Dock icon, no main window on launch after onboarding. Superseded by `docs/08-ui-revamp.md` §5 (2026-09-06): regular app with Dock icon and main window.
 - **FR-MB-002** Menu contents: status line, connected devices (with Disconnect), "Pair new device…", "Pause input" toggle, "Macros…", "Trusted Devices…", "Diagnostics…", "Settings…", "Check for updates…", "Quit".
 - **FR-MB-003** Permissions onboarding: detect `AXIsProcessTrusted()`; show explanation ("Air Control needs Accessibility to move the cursor and type on your behalf; it never reads your screen or your keystrokes"), button to open the Privacy & Security › Accessibility pane, and poll every 2 s. State SHALL survive relaunch and re-prompt if the permission is later revoked (e.g., after an app update changes the code signature).
 - **FR-MB-004** Launch at login via `SMAppService.mainApp` with a checkbox; default on, set during onboarding.
@@ -594,7 +595,7 @@ Action kinds: `keyCombo { modifiers: Set<Modifier>, keyCode: UInt16, keyLabel: S
 
 ### 5.8 macOS-specific (NFR-MAC)
 
-- **NFR-MAC-001** Menu-bar-only agent, macOS 15+, Apple silicon and Intel (universal binary) **(recommended default: universal)**.
+- **NFR-MAC-001** Menu-bar-only agent, macOS 15+, Apple silicon and Intel (universal binary) **(recommended default: universal)**. Superseded by `docs/08-ui-revamp.md` §5 (2026-09-06): regular app with Dock icon and main window.
 - **NFR-MAC-002** Launch at login via `SMAppService`; the user can toggle it from the helper or System Settings › Login Items.
 - **NFR-MAC-003** Permissions: `CGEvent` posting requires Accessibility (Privacy & Security › Accessibility). Note for contributors: a sandboxed Mac App Store app *can* post `CGEvent`s once the user grants Accessibility, but v1 distribution is direct — notarized Developer ID builds via GitHub Releases and a Homebrew cask — so the helper is **not sandboxed (recommended default)**, uses Hardened Runtime, and is notarized. Not sandboxing keeps `launchApp`, `runShortcut`, and optional script macros simple and avoids entitlement negotiations. Mac App Store distribution is a future option and would require sandboxing and removing script macros.
 - **NFR-MAC-004** Local network privacy on macOS 15: the helper SHALL include `NSLocalNetworkUsageDescription` and `NSBonjourServices` in its Info.plist because macOS Sequoia gates local-network access for apps that browse or send to local hosts; advertising and accepting connections should not trigger the prompt, but the update check and Bonjour re-registration paths must not break if it appears.
@@ -672,7 +673,7 @@ Likelihood/Impact: L = Low, M = Medium, H = High.
 | R-06 | **20 ms latency target not achievable** on 2.4 GHz or mesh networks | H | M | Target specified for 5 GHz; in-app latency indicator; coalescing and host prediction bounded at 16 ms; recommend 5 GHz in onboarding. |
 | R-07 | **Pinch/zoom and system gestures** cannot be synthesized natively; keyboard-shortcut mapping feels inconsistent across apps | H | M | Ship shortcut mapping with per-gesture toggles; document; investigate private gesture event fields as a non-default experimental option in a later release. |
 | R-08 | **App Store review** of a "remote control / keyboard" app: reviewer cannot test without the Mac helper; concerns about "hidden features" or running code | M | H | Provide reviewer notes with a demo video and a TestFlight-linked Mac build; keep all functionality visible; no code download; script macros execute only Mac-defined content. Budget one rejection cycle in the plan. |
-| R-09 | **Name collision**: "Air Control" is already used by several App Store apps and a hardware category; potential trademark conflict and App Store name rejection | H | H | **Recommend a trademark search (USPTO, EUIPO, WIPO) before public launch and pick a distinctive working name**; candidates: "Waft", "Glidepad", "Hover Remote" **(recommended: choose one before the repo goes public; keep "Air Control" as the internal codename)**. Also verify the App Store name availability early via App Store Connect. |
+| R-09 | **Name collision** (resolved): "Air Control" was flagged as a possible collision with existing App Store apps and a hardware category | H | H | **Resolved 2026-09-05/06** (`00-decisions.md` Addendum F1): "Air Control" is the final public name; the repo-wide rename is complete. App Store name availability should still be reconfirmed via App Store Connect ahead of submission. |
 | R-10 | **Bonjour service type naming**: `_aircontrol` may already be registered/used by other apps, causing cross-talk | L | M | Register a distinct service type with IANA (e.g., `_aircontrol-oss`) or namespace by host ID in TXT; ignore records without our protocol version tag. |
 | R-11 | **Key-code translation across layouts** (Dvorak, non-US) produces wrong shortcuts | M | M | Translate via the host's current input source (FR-KB-010); Unicode path for text; automated tests with several layouts. |
 | R-12 | **Stuck inputs** if the host crashes mid-drag | L | H | Release-all on every exit path; watchdog thread; integration test. |

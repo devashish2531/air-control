@@ -30,8 +30,9 @@ cask "air-control" do
   # sandboxed (decisions Addendum A6). It requests Accessibility only — never Input
   # Monitoring or Screen Recording (Addendum A5).
   postflight do
-    # Nothing to run post-install today; AirControlHelper is a menu-bar app the user
-    # launches themselves. Placeholder kept for a future login-item registration step.
+    # Nothing to run post-install today; AirControlHelper is a regular app (Dock icon,
+    # main window — docs/08-ui-revamp.md §5, superseding the earlier menu-bar-only design)
+    # the user launches themselves. Placeholder kept for a future login-item registration step.
   end
 
   zap trash: [
@@ -53,8 +54,6 @@ cask "air-control" do
     Developer ID build with a stable signing identity), reset and re-grant it:
       tccutil reset Accessibility com.aircontrol.helper
 
-    "Air Control" is currently a working name (see docs/00-decisions.md Addendum A8) and may
-    be renamed before a stable App Store / production release; bundle identifiers and this
-    cask's token will be updated accordingly if that happens.
+    "Air Control" is the project's name (see docs/00-decisions.md Addendum F1).
   EOS
 end

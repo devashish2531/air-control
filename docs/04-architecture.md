@@ -353,7 +353,7 @@ targets:
         CFBundleDisplayName: Air Control
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        LSUIElement: true                                   # menu-bar only (FR-MB-001)
+        LSUIElement: true                                   # menu-bar only (FR-MB-001); superseded by docs/08-ui-revamp.md §5 (2026-09-06): NO, Dock icon shown
         LSMinimumSystemVersion: "15.0"
         LSApplicationCategoryType: public.app-category.utilities
         NSHumanReadableCopyright: "© 2026 Air Control contributors. MIT License."
@@ -1117,7 +1117,7 @@ Two identifiers are in use upstream: **R-01…R-20** are the PRD risk register (
 | **New B** swift-certificates compile time / binary size in the kit | CI time, app size | M1-01 measures | Keep in `AirControlCrypto` or move identity minting to an `AirControlIdentity` target | Target split is a one-line change |
 | **New C** `MenuBarExtra(.menu)` focus/dismissal quirks for the QR window | Mac UI | M2 | Keep SwiftUI or switch to `NSStatusItem` + `NSPopover` behind `MenuHost` | Protocol seam exists |
 | **New D** Universal-binary build time on CI; Sparkle re-signing under hardened runtime | release.yml | M9-01 dry run | Whether to build Intel only on tags | `ARCHS` is a setting |
-| **R-09** (PRD) name collision "Air Control" | bundle IDs, tap name, App Store | M9 trademark check; bundle IDs use `com.aircontrol.*` as codename | Final name before repo goes public | Rename touches `project.yml` ×2, cask, docs |
+| **R-09** (PRD) name collision "Air Control" — **resolved** | bundle IDs, tap name, App Store | Name finalized as "Air Control" (`00-decisions.md` Addendum F1); 2026-09-06 repo-wide rename complete | Reconfirm App Store name availability before submission | N/A — rename already done |
 | **R-08** (PRD) App Store review of a remote-control app | iOS release | M9 reviewer notes + demo video + TestFlight Mac build link | — | One rejection cycle budgeted in plan §7 |
 
 Everything above is scheduled in `05-plan.md` M1 unless noted; no M2+ work depends on an un-run spike except where a designed fallback exists.
