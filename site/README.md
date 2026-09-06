@@ -121,6 +121,18 @@ white margin, measures the source's own corner radius, and re-renders each icon
 with transparent corners plus the Open Graph card. Requires macOS and Xcode;
 CI never runs it, because the PNGs are committed.
 
+## Regenerating gallery screenshots
+
+```sh
+./scripts/make-screenshots.sh
+```
+
+Reads the 1206×2622 device masters from `design/screenshots/` (not shipped —
+outside `public/`) and, with macOS `sips`, writes `<slug>-<mode>-480.png` and
+`<slug>-<mode>-960.png` into `public/screenshots/` for each of the six screens
+(`touchpad`, `air-mouse`, `keyboard`, `remote`, `macros`, `settings`) in both
+`light` and `dark` mode — 24 files, used by the gallery section's `srcset`.
+
 ## Deploying
 
 Pushing to `main` with anything under `site/**` changed runs

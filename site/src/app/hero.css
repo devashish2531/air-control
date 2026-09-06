@@ -1,9 +1,14 @@
 /*
- * Hero — owned by Hero.tsx / HeroDevice.tsx (design spec: "Hero spec").
+ * Hero — owned by Hero.tsx / HeroDevice.tsx / HeroQR.tsx (DESIGN-SPEC-v6.md
+ * "A. Hero" + "B. Apple-like motion on the first screen").
  *
- * Centered stack: badge, h1, lede, actions, requirements/Homebrew, then the
- * HeroDevice illustration. Reuses tokens/classes from globals.css (.display,
- * .lede, .badge, .button, .link-arrow, .small) — nothing here redefines them.
+ * Left-aligned two-column top block at >= 64rem — copy (~58%) + the
+ * `.hero__qr-card` (~38%, vertically centered); below 64rem the card falls
+ * under the actions in normal flow, full width; below 40rem the card
+ * itself stacks the QR above its text. The HeroDevice composition sits
+ * full-width below, unchanged. Reuses tokens/classes from globals.css
+ * (.display, .lede, .badge, .button, .link-arrow, .glass) — nothing here
+ * redefines them.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -12,221 +17,404 @@
 
 .hero {
   position: relative;
-  padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(3rem, 9vw, 6rem);
+  /* Owner feedback ("more padding among the section"): generous top AND
+     bottom padding, not just top — the bottom value gives the composition
+     room to breathe before whatever section follows. Top is split out
+     (rather than padding-block) so it can be trimmed slightly on its own
+     (polish pass: a touch less air above the eyebrow) without touching the
+     bottom value. */
+  padding-top: clamp(2.5rem, 5vh, 4rem);
+  padding-bottom: clamp(4rem, 8vw, 6rem);
 }
 
 .hero__inner {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: clamp(1.1rem, 2.4vw, 1.5rem);
+  text-align: left;
 }
 
-.hero__eyebrow-line {
-  margin: 0;
+/* spec §A: copy + QR card, one column by default (card falls under the
+   actions in flow), two columns >= 64rem. */
+.hero__top {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
 }
 
-.hero__title {
-  margin: 0;
-  max-width: 18ch;
+@media (min-width: 64rem) {
+  .hero__top {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    column-gap: clamp(2rem, 5vw, 4rem);
+  }
 }
 
-.hero__lede {
+.hero__eyebrow {
   margin: 0;
-  max-width: 52ch;
+  font-size: 1.0625rem;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* `.hero__title.display` / `.hero__lede.lede` (not just `.hero__title` /
+   `.hero__lede`): the h1/lede also carry the shared `.display`/`.lede`
+   utility classes from globals.css, which — because globals.css `@import`s
+   this file at its own top — come later in source order and would win the
+   font-size/line-height tie at equal (0-1-0) specificity otherwise. The
+   compound selector bumps this rule to 0-2-0 so the hero's own sizing
+   actually applies. */
+.hero__title.display {
+  /* Polish pass: eyebrow -> h1 gap tightened to 0.75rem (one gap step below
+     h1 -> lede's 1.25rem, per the rhythm the copy block is meant to read
+     with). */
+  margin: 0.75rem 0 0;
+  max-width: 14ch;
+  /* spec §D: one size larger than the section headings' clamp, same
+     line-height, plus a slightly tighter tracking at this bigger size. */
+  font-size: clamp(2.75rem, 6.5vw, 4.75rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+.hero__lede.lede {
+  margin: 1.25rem 0 0;
+  /* Polish pass (lede orphan): narrowed from 44ch so the sentence wraps to
+     two even lines at 1024/1280/1440 instead of leaving a short dangling
+     line ("…remote, all / over Wi‑Fi."); text-wrap: pretty keeps the wrap
+     from stranding a single short word on its own last line. */
+  max-width: 38ch;
+  text-wrap: pretty;
+  font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
 }
 
 .hero__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.75rem 1.25rem;
-  margin-top: 0.25rem;
+  /* Polish pass: lede -> actions gap widened to 1.75rem (one gap step above
+     h1 -> lede's 1.25rem). */
+  margin-top: 1.75rem;
 }
 
 .hero__waitlist {
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
+  /* Polish pass: 0.5rem gap between the link and the badge (was 0.6rem). */
+  gap: 0.5rem;
 }
 
-.hero__meta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 0.25rem;
-  width: 100%;
+/* Platform-aware CTAs (owner requirement): two full `.hero__actions` rows
+   are always in the DOM (Hero.tsx) so there is no user-agent sniffing —
+   only one is ever in the layout, toggled by viewport width alone. Base
+   state here is the >= 48rem ("desktop") arrangement, matching how this
+   file behaved before the mobile row existed; the < 48rem swap lives in
+   the mobile media query below alongside the rest of the mobile-only
+   rules, so desktop's own CSS path is untouched. */
+.hero__actions--mobile {
+  display: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile (< 48rem): platform-aware CTAs, no QR, compact Built-with, tighter  */
+/* top-block type + rhythm, and the composition-scaling rules further below. */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 47.99rem) {
+  .hero {
+    padding-top: clamp(2rem, 6vw, 3rem);
+  }
+
+  .hero__eyebrow {
+    font-size: 0.9375rem;
+  }
+
+  .hero__title.display {
+    font-size: clamp(2.25rem, 11vw, 3rem);
+  }
+
+  .hero__lede.lede {
+    max-width: 30ch;
+    font-size: 1.0625rem;
+  }
+
+  /* Consistent 0.75/1.25/1.5rem rhythm down the top block: eyebrow -> h1
+     (0.75rem) and h1 -> lede (1.25rem) already match this at the base
+     values above; only lede -> actions (was 1.75rem) needs tightening. */
+  .hero__actions {
+    margin-top: 1.5rem;
+  }
+
+  .hero__actions--desktop {
+    display: none;
+  }
+
+  .hero__actions--mobile {
+    display: flex;
+  }
+
+  /* `.hero__aside` is a flex item of `.hero__top` at every width below
+     64rem (hero.css, unconditional `.hero__top` rule), so its children's
+     margins are contained within it rather than collapsing out through
+     its boundary — meaning `.builtwith`'s own `margin-top: 1.5rem`
+     (builtwith.css) already reaches exactly 1.5rem of space from the
+     actions row once `.hero__top`'s 1.75rem flex `gap` is removed here. */
+  .hero__top {
+    gap: 0;
+  }
+}
+
+/* Polish pass ("quiet the badge"): the shared `.badge` utility (globals.css)
+ * is accent-tinted for use elsewhere on the page; here, next to a plain text
+ * link, that accent colour competed with the primary button for attention.
+ * Scoped override (hero.css owns this composition) trades the accent tint
+ * for the same neutral `--bg-secondary`/`--text-secondary` pairing the QR
+ * card and chips use, so "Coming soon" reads as a quiet status note rather
+ * than a second call to action.
+ */
+.hero__waitlist .badge {
+  height: 24px;
+  padding: 0 0.6rem;
+  background: var(--bg-secondary);
   color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
-.hero__requirements {
-  margin: 0;
-}
+/* Fold budget relaxed (owner feedback: spacing takes priority over showing
+   more of the MacBook) — the >= 64rem tightening this block used to apply
+   to `.hero` padding-block and the title/lede/actions margins is gone;
+   only a >= 60px sliver of the MacBook's top bezel needs to stay visible at
+   1280x800 now (verified with a screenshot), not the old >= 200px budget. */
 
 /* -------------------------------------------------------------------------- */
-/* Text load-in ("hero spec" — 0/80/160/240/320ms stagger)                    */
+/* Text load-in (DESIGN-SPEC-v6.md §B.1 "hero-rise" — 0/90/180/270/360ms      */
+/* stagger across eyebrow/h1/lede/actions/QR card)                            */
 /* -------------------------------------------------------------------------- */
 
-@keyframes hero-in {
+@keyframes hero-rise {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(28px);
+    filter: blur(10px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
   }
 }
 
 .hero__in {
-  animation: hero-in var(--dur-reveal) var(--ease-out) both;
+  animation: hero-rise 760ms var(--ease-out) both;
   animation-delay: var(--in-delay, 0ms);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  @keyframes hero-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+/* Shared reduced-motion fallback (spec §B.1/.3): every hero entrance below
+   collapses to this same opacity-only 300ms fade instead of its full-motion
+   keyframe. */
+@keyframes hero-fade {
+  from {
+    opacity: 0;
   }
+  to {
+    opacity: 1;
+  }
+}
 
+@media (prefers-reduced-motion: reduce) {
   .hero__in {
-    animation-duration: 200ms;
-    animation-timing-function: linear;
+    animation: hero-fade 300ms linear both;
     animation-delay: 0ms;
   }
 }
 
 /* -------------------------------------------------------------------------- */
-/* HeroDevice — entrance                                                     */
-/*                                                                             */
-/* Reveal always renders `data-reveal`, which globals.css already gives an   */
-/* opacity/translateY entrance for every other reveal on the page. The hero  */
-/* device instead fades/scales (0.97 -> 1), so these rules pair the class    */
-/* with the attribute to out-specificity the generic [data-reveal] rule      */
-/* (0-2-0 beats 0-1-0) without touching globals.css.                          */
+/* Gradient shimmer (DESIGN-SPEC-v6.md §B.2) — one-shot sweep on the h1's    */
+/* .grad-text span, after the text has risen in.                             */
 /* -------------------------------------------------------------------------- */
 
-/*
- * Stage panel: a soft --bg-secondary plinth behind the device composition so
- * it reads as a product shot rather than a bare illustration floating on the
- * page. Bigger than .hero__device on every side so the tint bleeds out from
- * behind it; the device itself carries the entrance animation, so the panel
- * is deliberately static (no motion of its own).
- */
-.hero__stage {
-  position: relative; /* anchors .hero__qr below (spec v3 §C) */
-  width: 100%;
-  max-width: 1160px;
-  margin-inline: auto;
-  margin-top: clamp(2.75rem, 6vw, 4.5rem);
-  padding: clamp(1.5rem, 4vw, 3rem);
-  border-radius: var(--r-xl);
-  /* v2: soft blue/lavender/peach mesh (DESIGN-SPEC-v2.md §2) instead of the
-     flat --bg-secondary plinth — subtle, not saturated; the device mock
-     above it is unchanged. */
-  background: var(--stage);
+@keyframes grad-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+.hero__title .grad-text {
+  background-size: 200% 100%;
+  /* Final frame, so a reduced-motion visitor (animation removed below) or
+     any no-animation edge case still shows the gradient in its resting
+     position rather than shifted off to one side. */
+  background-position: 0 0;
+  animation: grad-sweep 1.4s var(--ease-out) both;
+  animation-delay: 500ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__title .grad-text {
+    animation: none;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
-/* Hero QR card (design spec v3 §C, components/HeroQR.tsx)                   */
+/* Hero QR card (spec A — components/HeroQR.tsx)                             */
 /*                                                                             */
-/* A floating white card badge-pinned to the stage's top-right corner,       */
-/* overlapping its edge. `.hero__stage` has no other absolutely-positioned   */
-/* children, and `.hero__device` is unpositioned (static), so plain          */
-/* `position: absolute` here paints above it with no z-index needed (the     */
-/* z-scale in globals.css is reserved for the header/menu/skip-link).        */
+/* A --bg-secondary card: 128px QR (role="img") + a title/description/link   */
+/* stack. Row layout >= 40rem (QR left of the text); below 40rem the QR      */
+/* stacks above the text. Its own entrance uses .hero__in (extended here),   */
+/* not a scroll-triggered reveal — see HeroQR.tsx.                           */
 /* -------------------------------------------------------------------------- */
 
-.hero__qr {
-  position: absolute;
-  top: -1.25rem;
-  right: clamp(0.5rem, 2vw, 1.5rem);
+.hero__qr-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  width: 176px;
-  padding: 1rem;
-  border-radius: var(--r-lg);
-  background: var(--bg);
-  border: 1px solid var(--separator);
-  box-shadow: var(--shadow-2);
-  text-align: center;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.75rem;
+  border-radius: var(--r-xl);
+  background: var(--bg-secondary);
 }
 
-.hero__qr .qr {
-  width: 112px;
-  height: 112px;
+@media (min-width: 40rem) {
+  .hero__qr-card {
+    flex-direction: row;
+    align-items: center;
+  }
 }
 
-.hero__qr .qr svg {
+@media (min-width: 64rem) {
+  .hero__qr-card {
+    align-self: center;
+  }
+}
+
+/* No QR on mobile (owner requirement) — placed after the base/40rem/64rem
+   rules above (same 0-1-0 specificity throughout this file, so source order
+   decides the winner) so this actually wins below 48rem instead of being
+   shadowed by them. The Built-with block (still rendered) becomes the sole
+   `.hero__aside` content and sits directly under whichever actions row is
+   showing (see the `.hero__top`/`.builtwith` rhythm note above). */
+@media (max-width: 47.99rem) {
+  .hero__qr-card {
+    display: none;
+  }
+}
+
+.hero__qr-card .qr {
+  flex: none;
+  width: 128px;
+  height: 128px;
+}
+
+.hero__qr-card .qr svg {
+  display: block;
   width: 100%;
   height: 100%;
-  display: block;
 }
 
-.hero__qr-caption {
+.hero__qr-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.hero__qr-title {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--text);
 }
 
-.hero__qr-subcaption {
+.hero__qr-desc {
   margin: 0;
-  font-size: 0.75rem;
+  max-width: 26ch;
+  font-size: 0.9375rem;
   color: var(--text-secondary);
 }
 
-/* Phone users tap the "Get it for iPhone" link directly — no QR needed. */
-@media (max-width: 48rem) {
-  .hero__qr {
-    display: none;
+/* -------------------------------------------------------------------------- */
+/* HeroDevice — entrance (DESIGN-SPEC-v6.md §B.3)                            */
+/*                                                                             */
+/* The composition's rise-with-depth is a load-triggered CSS keyframe on     */
+/* .hero__composition itself, not the scroll-into-view [data-reveal]/        */
+/* is-inview fade globals.css gives every other reveal — so                  */
+/* .hero__device[data-reveal] is neutralized below (opacity 1, no            */
+/* transition) to out-specificity that generic rule (0-2-0 beats 0-1-0)      */
+/* and avoid a double fade. Reveal's `is-inview` class still gets added      */
+/* on scroll-into-view (it's above the fold, so effectively immediately) —   */
+/* kept only to drive the finger/cursor/tile-flash loops further down.       */
+/* -------------------------------------------------------------------------- */
+
+@keyframes hero-rise-composition {
+  from {
+    opacity: 0;
+    transform: translateY(48px) scale(0.965);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * Composition wrapper. The product mock floats on white with its own
+ * shadows; starts ~2.5rem below the actions/QR row (spec A) and its
+ * MacBook must clear the fold at 1280x800 (verified with a screenshot).
+ */
+.hero__composition {
+  position: relative;
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  /* Owner feedback ("more padding among the section"): a generous, size-only
+     gap above the composition — spacing takes priority over the old
+     fold-visibility budget. */
+  margin-top: clamp(3.5rem, 7vw, 6rem);
+  animation: hero-rise-composition 900ms var(--ease-out) both;
+  animation-delay: 420ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__composition {
+    animation: hero-fade 300ms linear both;
+    animation-delay: 0ms;
+  }
+}
+
+/* Mobile (owner requirement): the composition is the desktop arrangement
+   simply scaled down (see the removed `@container hero-device (max-width:
+   40rem)` re-layout below), so it should be free to use the full width of
+   its container instead of the 1120px desktop cap, with a smaller top gap
+   to match the tightened mobile rhythm above. */
+@media (max-width: 47.99rem) {
+  .hero__composition {
+    max-width: 100%;
+    margin-top: clamp(2rem, 8vw, 3rem);
   }
 }
 
 .hero__device {
   width: 100%;
-  max-width: 1008px;
-  margin-inline: auto;
-  container: hero-device / inline-size;
+  container-type: inline-size;
+  container-name: hero-device;
 }
 
 .hero__device[data-reveal] {
-  opacity: 0;
-  transform: scale(0.97);
-  transition:
-    opacity var(--dur-reveal) var(--ease-out),
-    transform var(--dur-reveal) var(--ease-out);
-  transition-delay: var(--reveal-delay, 0ms);
-}
-
-.hero__device[data-reveal].is-inview {
   opacity: 1;
-  transform: scale(1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero__device[data-reveal] {
-    transform: none;
-    transition: opacity 200ms linear;
-    transition-delay: 0ms;
-  }
-
-  .hero__device[data-reveal].is-inview {
-    transform: none;
-  }
+  transform: none;
+  transition: none;
 }
 
 /* -------------------------------------------------------------------------- */
-/* Device composition                                                        */
+/* Device composition (spec B — device fidelity)                             */
 /* -------------------------------------------------------------------------- */
 
 .device {
@@ -235,36 +423,215 @@
   aspect-ratio: 8 / 5;
 }
 
-.mac {
+/* -------------------------------------------------------------------------- */
+/* MacBook Pro                                                                */
+/*                                                                             */
+/* `--mac-w` is the Mac's width as a percentage of the device container      */
+/* (kept in sync with the `width` below; the narrow container query         */
+/* overrides both together) so every "% of display width/height" measurement */
+/* in the spec can be expressed as an absolute cqw length — necessary        */
+/* because a plain CSS `%` border-radius resolves x/y against the box's OWN  */
+/* width/height independently, which would draw lopsided corners on a       */
+/* non-square box.                                                           */
+/*                                                                             */
+/* `.mac-parallax` (spec B.4) owns the placement (position/width/--mac-w) so */
+/* the scroll-driven view() animation can live on it while `.mac` itself     */
+/* stays free of any animation of its own — everything below still reaches  */
+/* `--mac-w` via inheritance since custom properties pass through .mac       */
+/* untouched.                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/* spec §D: enlarged to ~78% of the composition width (was 60% when the
+   iPad shared the frame) — see .phone-parallax below for the matching
+   overlap math. */
+.mac-parallax {
+  --mac-w: 78;
   position: absolute;
   top: 0;
-  right: 0;
-  width: 84%;
+  left: 16.2%;
+  width: 78%;
+}
+
+.mac {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Display: black bezel, rounded top corners, square bottom (the lid meets
+   the base) — spec B. */
+.mac__display {
+  position: relative;
+  width: 100%;
   aspect-ratio: 16 / 10;
-  border-radius: clamp(12px, 2.4cqw, 18px);
-  background: var(--surface);
-  box-shadow: var(--shadow-3);
+  border-radius: calc(var(--mac-w) * 1cqw * 0.03) calc(var(--mac-w) * 1cqw * 0.03)
+    0 0;
+  padding: calc(var(--mac-w) * 1cqw * 0.03);
+  background: #0c0c0e;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    var(--shadow-3);
+}
+
+.mac__desktop {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: calc(var(--mac-w) * 1cqw * 0.014) calc(var(--mac-w) * 1cqw * 0.014)
+    0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* Sequoia-like layered wallpaper (spec B): deep blue -> violet -> warm
+     peach, with a soft light band, richer than a flat two-stop gradient. */
+  background:
+    radial-gradient(120% 90% at 8% 8%, rgba(27, 58, 138, 0.95) 0%, transparent 55%),
+    radial-gradient(110% 100% at 52% 46%, rgba(106, 74, 216, 0.9) 0%, transparent 60%),
+    radial-gradient(120% 100% at 92% 96%, rgba(242, 165, 138, 0.95) 0%, transparent 60%),
+    linear-gradient(200deg, rgba(255, 255, 255, 0.16) 0%, transparent 42%),
+    linear-gradient(160deg, #23408a 0%, #5b3fae 48%, #e0906f 100%);
+}
+
+/* Notch: a centered cutout in the top bezel (spec B), painted as the last
+   child of .mac__display so it sits on top of the menu bar underneath it —
+   no z-index needed (DOM order alone decides paint order here). */
+.mac__notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10%;
+  /* The top bezel itself is already 0.03 thick (same #0c0c0e colour) — the
+     notch has to reach past that into the menu bar to read as a cutout
+     rather than disappear into the bezel it's flush with. */
+  height: calc(var(--mac-w) * 1cqw * 0.05);
+  background: #0c0c0e;
+  border-radius: 0 0 calc(var(--mac-w) * 1cqw * 0.008)
+    calc(var(--mac-w) * 1cqw * 0.008);
+}
+
+.mac__menubar {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: 9%;
+  padding-inline: 3%;
+  gap: calc(var(--mac-w) * 1cqw * 0.014);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.mac__menubar-left {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--mac-w) * 1cqw * 0.014);
   overflow: hidden;
 }
 
-.mac__bar {
-  position: relative;
+.mac__leaf {
+  flex: none;
+  width: clamp(8px, 1.5cqw, 12px);
+  height: clamp(8px, 1.5cqw, 12px);
+  color: #1d1d1f;
+}
+
+.mac__menubar-app,
+.mac__menubar-item {
+  font-size: calc(var(--mac-w) * 1cqw * 0.0105);
+  color: #1d1d1f;
+  white-space: nowrap;
+}
+
+.mac__menubar-app {
+  font-weight: 700;
+}
+
+.mac__menubar-item {
+  font-weight: 500;
+  opacity: 0.82;
+}
+
+.mac__menubar-spacer {
+  flex: 1;
+}
+
+.mac__menubar-right {
   display: flex;
   align-items: center;
-  gap: 1.4cqw;
-  height: 13%;
-  padding-inline: 3.2cqw;
+  flex: none;
+  gap: calc(var(--mac-w) * 1cqw * 0.014);
+}
+
+.mac__menubar-icon {
+  flex: none;
+  border-radius: 22%;
+}
+
+.mac__menubar-status {
+  font-size: calc(var(--mac-w) * 1cqw * 0.0105);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #1d1d1f;
+  white-space: nowrap;
+}
+
+.mac__menubar-glyph {
+  flex: none;
+  width: calc(var(--mac-w) * 1cqw * 0.018);
+  height: auto;
+  color: #1d1d1f;
+}
+
+.mac__menubar-glyph--battery {
+  width: calc(var(--mac-w) * 1cqw * 0.022);
+}
+
+.mac__menubar-time {
+  font-size: calc(var(--mac-w) * 1cqw * 0.0105);
+  font-weight: 600;
+  color: #1d1d1f;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Finder-like window (~56% of the screen width, centered slightly left). */
+.mac__finder {
+  position: absolute;
+  left: 19%;
+  top: 16%;
+  width: 56%;
+  /* Short of the Dock's top edge (bottom: 4% + its own height) so the two
+     don't visibly collide. */
+  height: 58%;
+  display: flex;
+  flex-direction: column;
+  border-radius: calc(var(--mac-w) * 1cqw * 0.01);
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.mac__finder-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: calc(var(--mac-w) * 1cqw * 0.007);
+  height: 14%;
+  padding-inline: 3%;
   border-bottom: 1px solid var(--separator);
 }
 
 .mac__dot {
-  width: 1.6cqw;
-  height: 1.6cqw;
-  min-width: 6px;
-  min-height: 6px;
-  max-width: 11px;
-  max-height: 11px;
+  width: 1.4cqw;
+  height: 1.4cqw;
+  min-width: 5px;
+  min-height: 5px;
+  max-width: 9px;
+  max-height: 9px;
   border-radius: 50%;
+  flex: none;
 }
 
 .mac__dot--red {
@@ -279,196 +646,607 @@
   background: #28c840;
 }
 
-.mac__bar-spacer {
+.mac__finder-spacer {
   flex: 1;
 }
 
-.mac__bar-icon {
-  border-radius: 22%;
-}
-
-.mac__body {
-  position: relative;
-  height: 87%;
-  padding: 6.5cqw 4.8cqw;
-}
-
-.mac__block {
-  display: block;
-  height: 11%;
-  border-radius: var(--r-sm);
+/* Two grey pill controls (spec B), e.g. back/forward + view toggle. */
+.mac__finder-pill {
+  flex: none;
+  width: 12%;
+  aspect-ratio: 2.6 / 1;
+  border-radius: var(--r-pill);
   background: var(--bg-tertiary);
 }
 
-.mac__block--a {
-  width: 62%;
-  margin-bottom: 8%;
+.mac__finder-body {
+  position: relative;
+  flex: 1;
+  display: flex;
 }
 
-.mac__block--b {
-  width: 42%;
-  margin-bottom: 14%;
+.mac__finder-sidebar {
+  flex: 0 0 30%;
+  display: flex;
+  flex-direction: column;
+  gap: 14%;
+  padding: 10% 8%;
+  background: var(--bg-secondary);
 }
 
-.mac__button {
-  position: absolute;
-  right: 6%;
-  bottom: 10%;
-  width: 20%;
-  aspect-ratio: 2.4 / 1;
-  border-radius: var(--r-pill);
-  background: var(--accent-tint);
+.mac__finder-row {
+  display: flex;
+  align-items: center;
+  gap: 12%;
+  height: 9%;
+}
+
+.mac__finder-dot {
+  flex: none;
+  width: 30%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.mac__finder-dot--blue {
+  background: #0a84ff;
+}
+
+.mac__finder-dot--red {
+  background: #ff453a;
+}
+
+.mac__finder-dot--orange {
+  background: #ff9f0a;
+}
+
+.mac__finder-dot--purple {
+  background: #bf5af2;
+}
+
+.mac__finder-dot--green {
+  background: #30d158;
+}
+
+.mac__finder-bar-fill {
+  flex: 1;
+  height: 60%;
+  border-radius: 3px;
+  background: var(--separator-strong);
+}
+
+.mac__finder-content {
+  flex: 1;
+  display: flex;
+  padding: 8%;
+}
+
+/* 4x2 grid of file tiles (spec B) — one flashes blue at the click moment. */
+.mac__finder-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 10%;
+}
+
+.mac__finder-tile {
+  position: relative;
+  border-radius: calc(var(--mac-w) * 1cqw * 0.006);
+  background: var(--bg-tertiary);
   overflow: hidden;
 }
 
-.mac__button-accent {
+.mac__finder-tile-accent {
   position: absolute;
   inset: 0;
   background: var(--accent);
   opacity: 0;
 }
 
-.phone {
+.cursor {
   position: absolute;
-  left: 2%;
+  top: 42%;
+  left: 24%;
+  width: 20px;
+  height: 20px;
+}
+
+/* Dock: bottom-centred translucent bar with 7 coloured tiles, a separator,
+   and the Air Control icon as the last tile (spec B). Colours are assigned
+   by position rather than inline styles. */
+.mac__dock {
+  position: absolute;
+  bottom: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48%;
+  padding: calc(var(--mac-w) * 1cqw * 0.008);
+  gap: calc(var(--mac-w) * 1cqw * 0.006);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  backdrop-filter: saturate(160%);
+  -webkit-backdrop-filter: saturate(160%);
+}
+
+.mac__dock-tile {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1;
+  border-radius: 24%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.mac__dock-tile:nth-child(1) {
+  background: #0a84ff;
+}
+
+.mac__dock-tile:nth-child(2) {
+  background: #30d158;
+}
+
+.mac__dock-tile:nth-child(3) {
+  background: #ff453a;
+}
+
+.mac__dock-tile:nth-child(4) {
+  background: #ffd60a;
+}
+
+.mac__dock-tile:nth-child(5) {
+  background: #5e5ce6;
+}
+
+.mac__dock-tile:nth-child(6) {
+  background: #64d2ff;
+}
+
+.mac__dock-tile:nth-child(7) {
+  background: #98989d;
+}
+
+.mac__dock-separator {
+  flex: none;
+  align-self: stretch;
+  width: 1px;
+  margin-inline: calc(var(--mac-w) * 1cqw * 0.003);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.mac__dock-tile--icon {
+  display: block;
+  padding: 0;
+}
+
+/* The icon tile's own box (above) is sized identically to the coloured
+   tiles by the same flex+aspect-ratio rules; the <img> inside just fills
+   that square rather than imposing its own 64x64 intrinsic box, which is
+   what previously made this one tile render taller than the rest. */
+.mac__dock-tile-icon-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 24%;
+}
+
+/* Base: an aluminium strip below the display, wider than it on each side,
+   with a darker hinge line at its top (spec B). */
+.mac__base {
+  position: relative;
+  width: 108%;
+  height: calc(var(--mac-w) * 1cqw * 0.0375);
+  border-radius: 0 0 calc(var(--mac-w) * 1cqw * 0.02)
+    calc(var(--mac-w) * 1cqw * 0.02);
+  background: linear-gradient(180deg, #e3e3e8, #b8b8bf);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+.mac__hinge {
+  position: absolute;
+  top: 0;
+  left: 4%;
+  right: 4%;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Wi‑Fi signal burst (owner feedback: "the Wi‑Fi symbol in the graphic can  */
+/* be larger, at the bottom right of the laptop, not the iPhone, and        */
+/* overlapping the laptop") — three sequential arcs (Logo.tsx's arc          */
+/* geometry) + two expanding ripples, anchored at the MacBook's bottom-right */
+/* corner and rotated toward the upper-left so the waves visually lean into */
+/* the devices. `.signals` is nested inside `.mac-parallax`, after `.mac`,  */
+/* in the DOM (HeroDevice.tsx): that puts its coordinate space relative to  */
+/* the MacBook (so `top`/`left`/`inset` below are MacBook-relative, and it  */
+/* inherits the MacBook's scroll parallax + `--mac-w`) while still being    */
+/* the last node inside `.mac-parallax`, so it paints above the MacBook —   */
+/* no z-index needed. Paused until `.is-inview`; the whole group is removed */
+/* under reduced motion.                                                     */
+/* -------------------------------------------------------------------------- */
+
+.signals {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Sized in cqw relative to the MacBook's own width (--mac-w, inherited from
+   `.mac-parallax`) now that the burst rides the MacBook's corner — ~22% of
+   --mac-w (owner feedback: "can be larger"), up from the 30%-of-27
+   phone-relative sizing it had at the iPhone's corner. */
+.signal {
+  position: absolute;
+  width: calc(var(--mac-w) * 1cqw * 0.22);
+  height: calc(var(--mac-w) * 1cqw * 0.1044);
+  min-width: 82px;
+  min-height: 38px;
+  color: var(--blue);
+}
+
+/* Origin (the arcs'/ripple's shared centre, `transform-origin` below) at
+   the MacBook's bottom-right corner: right edge (left: 90% of `.signals`,
+   which is MacBook-width-sized), 88% down the MacBook's height (owner
+   feedback: "at the bottom right of the laptop... overlapping the
+   laptop") — roughly half the burst spills past the MacBook's edge onto
+   the page. Pulled in from the corner's literal 96%/100% edge so the
+   rotated, ripple-inflated bounding box stays inside the viewport (no
+   horizontal scrollbar) — `.mac-parallax`'s own ~6% right-hand margin
+   inside `.device` plus `.device`'s margin to the viewport edge is the
+   budget this has to fit in. `rotate(-32deg)` — counter-clockwise — tilts
+   the waves toward the upper-left, over the devices; the origin itself
+   doesn't move since it sits exactly on `transform-origin`. `.signal--mac`
+   carries the rotation and has no animation of its own — only its
+   `.signal__arc`/`.signal__ripple` children animate (one animation per
+   element). */
+.signal--mac {
+  left: 90%;
+  top: 88%;
+  transform: rotate(-32deg);
+  transform-origin: 50% 82%;
+}
+
+.signal__arcs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+@keyframes arc-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.signal__arc {
+  opacity: 0.25;
+  animation: arc-pulse 1.8s var(--ease-in-out) infinite;
+  animation-play-state: paused;
+}
+
+.signal__arc--1 {
+  animation-delay: 0s;
+}
+
+.signal__arc--2 {
+  animation-delay: 0.2s;
+}
+
+.signal__arc--3 {
+  animation-delay: 0.4s;
+}
+
+@keyframes signal-ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.6);
+    opacity: 0;
+  }
+}
+
+.signal__ripple {
+  position: absolute;
+  left: 50%;
+  top: 82%;
+  width: calc(var(--mac-w) * 1cqw * 0.122);
+  height: calc(var(--mac-w) * 1cqw * 0.122);
+  min-width: 45px;
+  min-height: 45px;
+  border: 2px solid var(--blue);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.5);
+  transform-origin: center;
+  opacity: 0.45;
+  animation: signal-ripple 2.4s linear infinite;
+  animation-play-state: paused;
+}
+
+.signal__ripple--1 {
+  animation-delay: 0s;
+}
+
+.signal__ripple--2 {
+  animation-delay: 1.2s;
+}
+
+/* Mobile (owner requirement: show the burst below 48rem too, it now scales
+   with --mac-w): its min-width/min-height floor above is sized for
+   desktop, where there's ample margin between the MacBook's corner and the
+   viewport edge for the burst to spill into. Below 48rem the composition
+   spans the full container width (see .hero__composition's own mobile
+   override), shrinking that margin to just the page gutter — not enough
+   room for the full-size floor, which pushed the document wider than the
+   viewport (verified at 320/390). Halving the floor and pulling the
+   anchor in a little (90%/88% -> 82%/82%) keeps the burst anchored at the
+   MacBook's corner without growing the document past the viewport; placed
+   after the base rules above so it wins at this specificity (0-1-0
+   throughout this file, so source order decides). --mac-w-driven sizing
+   for wider containers, and the desktop rule itself, are untouched. */
+@media (max-width: 47.99rem) {
+  .signal--mac {
+    left: 82%;
+    top: 82%;
+  }
+
+  .signal {
+    min-width: 44px;
+    min-height: 20px;
+  }
+
+  .signal__ripple {
+    min-width: 24px;
+    min-height: 24px;
+  }
+}
+
+/* Menu-bar Wi‑Fi glyph, pulsing in sync (spec: "gentle 2.4s opacity pulse"). */
+@keyframes wifi-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.mac__menubar-glyph--wifi {
+  animation: wifi-pulse 2.4s var(--ease-in-out) infinite;
+  animation-play-state: paused;
+}
+
+.hero__device.is-inview .signal__arc,
+.hero__device.is-inview .signal__ripple,
+.hero__device.is-inview .mac__menubar-glyph--wifi {
+  animation-play-state: running;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal__arc,
+  .signal__ripple,
+  .mac__menubar-glyph--wifi {
+    animation: none;
+  }
+
+  .signal__ripple {
+    opacity: 0;
+  }
+
+  .mac__menubar-glyph--wifi {
+    opacity: 1;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* iPhone (Pro look)                                                          */
+/*                                                                             */
+/* `--phone-w` mirrors `--mac-w` above: the phone's width as a percentage of */
+/* the device container, so every "% of phone width" measurement in the      */
+/* spec (continuous corners, frame/bezel thickness, side buttons, dynamic    */
+/* island) becomes an absolute cqw length instead of a lopsided CSS `%`      */
+/* border-radius.                                                            */
+/*                                                                             */
+/* `.phone-parallax` (spec B.4) owns the placement, same split as            */
+/* `.mac-parallax` above. `.phone` itself carries its own extra entrance     */
+/* offset (spec B.3 "depth") below, settling after the Mac.                  */
+/* -------------------------------------------------------------------------- */
+
+/* spec §D: enlarged to ~27% of the composition width (was 22%), flush with
+   the composition's own left edge and overlapping the Mac's lower-left
+   (left: 16.2%, spec's "~40% of the phone's own width": 16.2 + 27 - 0 =
+   10.8, which is 40% of 27) so the phone reads as sitting in front of the
+   Mac rather than merely beside it. */
+.phone-parallax {
+  --phone-w: 27;
+  position: absolute;
+  left: 0%;
   bottom: 0;
   width: 27%;
+}
+
+@keyframes hero-phone-settle {
+  from {
+    transform: translateY(24px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.phone {
+  position: relative;
+  width: 100%;
   aspect-ratio: 9 / 19.5;
-  padding: 3.2cqw;
-  border-radius: clamp(20px, 8cqw, 44px);
+  border-radius: calc(var(--phone-w) * 1cqw * 0.17);
+  padding: calc(var(--phone-w) * 1cqw * 0.024);
+  background: linear-gradient(180deg, #3a3a3c, #1c1c1e);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    var(--shadow-3);
+  /* Arrives after the Mac (composition delay 420ms) — the extra offset that
+     reads as depth (spec B.3). */
+  animation: hero-phone-settle 900ms var(--ease-out) both;
+  animation-delay: 560ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone {
+    animation: none;
+  }
+}
+
+/* Side buttons as pseudo-elements (spec B) — no extra DOM nodes. Two live on
+   `.phone` (the titanium frame), two on `.phone__bezel` (the black bezel),
+   so all 4 (Action + 2 volume on the left, sleep/wake on the right) exist
+   without needing more than 2 pseudo-elements per box. */
+.phone::before,
+.phone::after,
+.phone__bezel::before,
+.phone__bezel::after {
+  content: "";
+  position: absolute;
+  width: calc(var(--phone-w) * 1cqw * 0.015);
+  background: #2c2c2e;
+}
+
+.phone::before {
+  left: calc(var(--phone-w) * 1cqw * -0.015);
+  top: 13%;
+  height: 5%;
+  border-radius: calc(var(--phone-w) * 1cqw * 0.01) 0 0
+    calc(var(--phone-w) * 1cqw * 0.01);
+}
+
+.phone::after {
+  left: calc(var(--phone-w) * 1cqw * -0.015);
+  top: 21%;
+  height: 8.5%;
+  border-radius: calc(var(--phone-w) * 1cqw * 0.01) 0 0
+    calc(var(--phone-w) * 1cqw * 0.01);
+}
+
+/* These two live one layer deeper than `.phone::before/::after` above — inside
+   the titanium frame's padding (0.024) — so their offset has to clear that
+   padding *and* the 0.015 protrusion, or they'd land inside the frame instead
+   of poking out past it. */
+.phone__bezel::before {
+  left: calc(var(--phone-w) * 1cqw * -0.039);
+  top: 31.5%;
+  height: 8.5%;
+  border-radius: calc(var(--phone-w) * 1cqw * 0.01) 0 0
+    calc(var(--phone-w) * 1cqw * 0.01);
+}
+
+.phone__bezel::after {
+  right: calc(var(--phone-w) * 1cqw * -0.039);
+  top: 22%;
+  height: 11%;
+  border-radius: 0 calc(var(--phone-w) * 1cqw * 0.01)
+    calc(var(--phone-w) * 1cqw * 0.01) 0;
+}
+
+.phone__bezel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: calc(var(--phone-w) * 1cqw * 0.155);
+  padding: calc(var(--phone-w) * 1cqw * 0.028);
   background: #000;
-  border: 1px solid var(--separator-strong);
-  box-shadow: var(--shadow-3);
 }
 
 .phone__screen {
   position: relative;
+  width: 100%;
   height: 100%;
-  border-radius: clamp(14px, 6cqw, 34px);
-  background: var(--bg);
+  border-radius: calc(var(--phone-w) * 1cqw * 0.14);
+  background: #000;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
-/*
- * The island sits in its own flex row, sized in container-query units, so it
- * always reserves real space above the title row. (Percentage padding on
- * .phone__titlebar used to try to reserve that space instead, but padding
- * percentages resolve against the containing block's *width* even for
- * padding-top/bottom — on a phone silhouette that is much taller than it is
- * wide, that meant the reserved gap was too small and the island overlapped
- * the title row. cqw sidesteps that mismatch entirely.)
- */
-.phone__inset {
-  display: flex;
-  flex: none;
-  justify-content: center;
-  padding-block: 2.4cqw 1.6cqw;
+/* The real Touchpad screenshot (spec B follow-up: "show the real app
+   screenshot instead of the CSS mock UI"), filling `.phone__screen` edge to
+   edge. `object-fit: cover` crops it to the frame's 9/19.5 aspect ratio
+   instead of letterboxing. */
+.phone__shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
+/* Dynamic island: kept as its own overlay (not part of the screenshot) so it
+   sits crisply above the image. spec §D: the phone now shows the LIGHT
+   Touchpad screenshot, whose status bar is light too, so the black pill has
+   to carry the hardware notch entirely on its own — sized to real screen
+   geometry (32% of screen width, 4.3% of screen height, 1.3% of screen
+   height from the top) rather than the frame's overall width, since
+   `.phone__screen` is narrower than `.phone` by the titanium frame (0.024)
+   and black bezel (0.028) padding on every side: screen width =
+   phone-w * (1 - 2*0.024 - 2*0.028) = phone-w * 0.896, screen height =
+   phone-w * (19.5/9 - 2*0.024 - 2*0.028) = phone-w * 2.0627 (in the same
+   cqw-per-phone-w unit `--phone-w` already establishes). 32% of the former
+   is phone-w * 0.2867cqw; 4.3%/1.3% of the latter are phone-w * 0.0887cqw /
+   phone-w * 0.0268cqw. */
 .phone__island {
-  width: 9cqw;
-  height: 2.3cqw;
-  min-width: 22px;
-  min-height: 7px;
-  max-width: 58px;
-  max-height: 16px;
+  position: absolute;
+  top: calc(var(--phone-w) * 1cqw * 0.0268);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(var(--phone-w) * 1cqw * 0.2867);
+  height: calc(var(--phone-w) * 1cqw * 0.0887);
+  min-height: 6px;
   border-radius: var(--r-pill);
   background: #000;
 }
 
-.phone__titlebar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.8cqw;
-  padding: 0 6% 3%;
-}
-
-.phone__app-icon {
-  border-radius: 22%;
-}
-
-.phone__app-name {
-  font-size: clamp(0.55rem, 2.6cqw, 0.8125rem);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--text);
-  white-space: nowrap;
-}
-
-.phone__tabs {
-  display: flex;
-  gap: 1%;
-  margin: 0 6% 5%;
-  padding: 0.8cqw;
-  border-radius: var(--r-sm);
-  background: var(--bg-secondary);
-}
-
-.phone__tab {
-  /* flex-basis 0 (not auto) plus min-width: 0 is what actually makes the
-     four segments equal width — flex items otherwise refuse to shrink below
-     their own content's min-content size, so "Keys" and "Remote" (the
-     longest labels) would win extra width over "Pad" and "Air". */
-  flex: 1 1 0;
-  min-width: 0;
-  text-align: center;
-  padding: 1.4cqw 0;
-  border-radius: calc(var(--r-sm) - 3px);
-  font-size: clamp(0.4rem, 1.9cqw, 0.6rem);
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.phone__tab-label {
-  display: inline-block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.phone__tab--active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-1);
-}
-
-.phone__touchpad {
-  position: relative;
-  flex: 1;
-  margin: 0 6% 8%;
-  border-radius: var(--r-md);
-  background: var(--bg-secondary);
+/* Positioning box for the animated finger dot, matching the touchpad
+   surface's actual footprint in the screenshot (roughly x 2–84% / y
+   13–80%) so it travels over real pad pixels instead of floating outside
+   them. */
+.phone__pad-area {
+  position: absolute;
+  left: 2%;
+  right: 16%;
+  top: 13%;
+  bottom: 20%;
 }
 
 .finger {
   position: absolute;
-  top: 28%;
-  left: 20%;
+  top: 30%;
+  left: 22%;
   width: 7cqw;
   height: 7cqw;
-  min-width: 14px;
-  min-height: 14px;
-  max-width: 26px;
-  max-height: 26px;
+  min-width: 11px;
+  min-height: 11px;
+  max-width: 22px;
+  max-height: 22px;
   border-radius: 50%;
   background: var(--accent);
   opacity: 0.85;
 }
 
-.cursor {
-  position: absolute;
-  top: 30%;
-  left: 16%;
-  width: 24px;
-  height: 24px;
-}
-
 /* -------------------------------------------------------------------------- */
-/* Loops: finger + cursor share one 6s timeline, paused until in view.        */
+/* Loops: finger + cursor + a Finder tile flash share one 6s timeline,        */
+/* paused until in view.                                                     */
 /* -------------------------------------------------------------------------- */
 
 @keyframes hero-finger-path {
@@ -495,25 +1273,31 @@
   }
 }
 
+/* Path shifted ~22% of the MacBook's width (--mac-w: 78, so +17.2cqw) to the
+   right (owner feedback: "the MacBook cursor can be a bit farther than it is
+   currently") so it crosses the Finder window's file-tile grid instead of
+   riding along the sidebar; endpoint re-measured against the flashing
+   Finder tile's actual rendered position (spec B: "cursor... re-tuned to...
+   land on the flashing tile"). */
 @keyframes hero-cursor-path {
   0% {
     transform: translate(0, 0);
   }
   38% {
-    transform: translate(14.4cqw, 0);
+    transform: translate(15.6cqw, -3.7cqw);
   }
   46% {
-    transform: translate(14.4cqw, 11.2cqw);
+    transform: translate(19.7cqw, -1.3cqw);
   }
   88% {
-    transform: translate(14.4cqw, 11.2cqw);
+    transform: translate(19.7cqw, -1.3cqw);
   }
   100% {
     transform: translate(0, 0);
   }
 }
 
-@keyframes hero-button-flash {
+@keyframes hero-tile-flash {
   0%,
   46% {
     opacity: 0;
@@ -530,7 +1314,7 @@
 
 .finger,
 .cursor,
-.mac__button-accent {
+.mac__finder-tile-accent {
   animation-duration: 6s;
   animation-timing-function: var(--ease-in-out);
   animation-iteration-count: infinite;
@@ -545,21 +1329,21 @@
   animation-name: hero-cursor-path;
 }
 
-.mac__button-accent {
-  animation-name: hero-button-flash;
+.mac__finder-tile-accent {
+  animation-name: hero-tile-flash;
   animation-timing-function: linear;
 }
 
 .hero__device.is-inview .finger,
 .hero__device.is-inview .cursor,
-.hero__device.is-inview .mac__button-accent {
+.hero__device.is-inview .mac__finder-tile-accent {
   animation-play-state: running;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .finger,
   .cursor,
-  .mac__button-accent {
+  .mac__finder-tile-accent {
     animation: none;
   }
 
@@ -568,48 +1352,68 @@
   }
 
   .cursor {
-    transform: translate(14.4cqw, 11.2cqw);
+    transform: translate(19.7cqw, -1.3cqw);
   }
 
-  .mac__button-accent {
-    opacity: 1;
+  /* Frozen at the idle (unflashed) frame, not mid-click — a permanently lit
+     accent tile would read as a real, always-selected file rather than a
+     decorative illustration. */
+  .mac__finder-tile-accent {
+    opacity: 0;
   }
 }
 
 /* -------------------------------------------------------------------------- */
-/* Narrow composition (< 40rem container width): the phone is the point of   */
-/* this illustration on a phone-sized viewport, so it grows and sheds text   */
-/* that would be unreadable at that size; the Mac window shrinks to make     */
-/* room and may lose some of its body content — that's fine, it's secondary. */
+/* Narrow composition (< 40rem container width): owner feedback was that the */
+/* mobile picture should be the SAME desktop arrangement (MacBook ~78% at    */
+/* left, phone ~27% overlapping its bottom-left by ~40% of its own width —   */
+/* the `.mac-parallax`/`.phone-parallax` base rules above), just scaled down */
+/* with the container — not a distinct phone-dominant re-layout. Since every */
+/* geometry measurement in this file is already expressed in `cqw` (relative */
+/* to `.hero__device`'s own inline size) or a plain `%` of it, the base      */
+/* rules already scale correctly on their own; there used to be a           */
+/* `@container hero-device (max-width: 40rem)` block here that swapped in a  */
+/* phone-dominant layout (phone 44% / MacBook 84% right-aligned, 4/5 aspect  */
+/* ratio, signal burst hidden) instead — removed, so the composition now     */
+/* just shrinks uniformly at every container width, signal burst included.  */
+/* -------------------------------------------------------------------------- */
+/* Scroll parallax (DESIGN-SPEC-v6.md §B.4) — progressive enhancement only:   */
+/* CSS scroll-driven animations, gated behind both feature support and       */
+/* reduced-motion. Lives on the placement wrappers (not .mac/.phone          */
+/* themselves, which already carry their own entrance animation above) so   */
+/* no element ever has two animations running at once.                       */
 /* -------------------------------------------------------------------------- */
 
-@container hero-device (max-width: 40rem) {
-  .device {
-    aspect-ratio: 4 / 5;
-  }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes hero-mac-parallax {
+      from {
+        transform: translateY(0);
+      }
+      to {
+        transform: translateY(-28px);
+      }
+    }
 
-  /* Mac keeps its own 16:10 aspect-ratio at every other size, but here both
-     width and height are set explicitly (78% / 64% of the now-taller 4:5
-     composition) so the window stays big enough for the phone (bottom-left,
-     42% wide, ~73% of the composition's height because of its own 9:19.5
-     aspect-ratio) to overlap its lower-left quadrant by roughly half the
-     phone's height — the same tucked-in relationship as the desktop
-     composition, just recomputed for a portrait container. */
-  .mac {
-    width: 78%;
-    height: 64%;
-  }
+    @keyframes hero-phone-parallax {
+      from {
+        transform: translateY(0);
+      }
+      to {
+        transform: translateY(-72px);
+      }
+    }
 
-  .phone {
-    width: 42%;
-  }
+    .mac-parallax {
+      animation: hero-mac-parallax linear both;
+      animation-timeline: view();
+      animation-range: exit 0% exit 100%;
+    }
 
-  .phone__app-name,
-  .phone__tab-label {
-    display: none;
-  }
-
-  .phone__tab {
-    min-height: 14px;
+    .phone-parallax {
+      animation: hero-phone-parallax linear both;
+      animation-timeline: view();
+      animation-range: exit 0% exit 100%;
+    }
   }
 }

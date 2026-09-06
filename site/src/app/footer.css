@@ -1,0 +1,226 @@
+/* -------------------------------------------------------------------------- */
+/* Footer (components/SiteFooter.tsx)                                         */
+/* Apple-quiet top: brand + link columns + legal text, on --bg-secondary.     */
+/* Modern giant-wordmark bottom: full-bleed "Air Control" clipped by the      */
+/* page's own bottom edge — no bottom padding on .footer itself. Light-only. */
+/* -------------------------------------------------------------------------- */
+
+.footer {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--separator);
+  padding-top: clamp(3rem, 6vw, 5rem);
+  color: var(--text-secondary);
+}
+
+/* ---- top row: brand column + 3 link columns ---- */
+
+.footer__top {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+@media (min-width: 48rem) {
+  .footer__top {
+    display: grid;
+    grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+    align-items: start;
+  }
+}
+
+.footer__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.footer__logo {
+  flex: none;
+  color: var(--accent);
+}
+
+.footer__brand-name {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.footer__brand-tagline {
+  margin: 0;
+  max-width: 32ch;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+}
+
+.footer__nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem 1.5rem;
+}
+
+@media (min-width: 48rem) {
+  /* Un-wrap the nav so its three columns become direct tracks of
+     .footer__top's grid, alongside the brand column. */
+  .footer__nav {
+    display: contents;
+  }
+}
+
+.footer__heading {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.footer__col ul {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer__col a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding-block: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.footer__col a:hover {
+  color: var(--text);
+}
+
+.footer__note {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding-block: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+}
+
+/* ---- legal block ---- */
+
+.footer__legal {
+  margin-top: 3rem;
+  display: grid;
+  max-width: 72ch;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.footer__legal p {
+  margin: 0;
+}
+
+/* ---- giant wordmark, clipped by the page's bottom edge ---- */
+
+.footer__mark {
+  display: flex;
+  width: 100%;
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+  overflow: hidden;
+  justify-content: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.footer__mark-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.09em;
+  /* 0.79em keeps ~75% of the glyphs' visible ink (measured, not the font's
+     full em-box — system fonts carry a lot of headroom above cap-height)
+     and cuts cleanly at the bottom only. See footer__mark-inner span's
+     line-height note below. */
+  height: 0.79em;
+  overflow: hidden;
+  font-size: clamp(4.5rem, 17vw, 15rem);
+  white-space: nowrap;
+}
+
+.footer__mark-inner span {
+  display: block;
+  font-weight: 700;
+  /* Deviation from spec's line-height: 0.85 — that value gives the line box
+     *negative* half-leading, which pushes glyph ink above the box's own top
+     edge and clips the TOP of the letters too (verified by measuring
+     Range.getBoundingClientRect() against the span's border box). `normal`
+     anchors the ink flush with the top so `.footer__mark-inner`'s
+     overflow: hidden only ever trims the bottom, matching "anchored to the
+     top" in the spec. Letterforms are unaffected — only the vertical
+     anchor point changes. */
+  line-height: normal;
+  letter-spacing: -0.045em;
+  white-space: nowrap;
+  /* Same grey fade as the CTA card's platform word stack (owner request):
+     mid grey at the cap line fading to near-transparent where the clip cuts
+     the glyphs (~79% of the line box), so mark and word read as one
+     watermark. */
+  background-image: linear-gradient(
+    180deg,
+    #8e8e93 0%,
+    #c7c7cc 42%,
+    rgba(199, 199, 204, 0.06) 79%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.footer__mark-logo {
+  flex: none;
+  /* The mark's own ink (mouse + arcs, incl. round stroke caps) fills ~93% of
+     its square viewBox, so a 0.76em box gives ~0.7em of visible ink —
+     matching the wordmark's cap height at this weight/font (measured via
+     canvas actualBoundingBoxAscent: ~0.7em, cross-checked against the
+     rendered pixels of the "A" apex in a screenshot). */
+  width: 0.76em;
+  height: 0.76em;
+  /* Aligns the mark's ink-top with the wordmark's actual cap-height start
+     (verified against rendered pixels, not just line-box metrics — a
+     glyph's cap-height begins noticeably below its line box's own top edge
+     because of font ascender headroom). */
+  margin-top: 0.26em;
+  /* The SVG can't use background-clip, so the same fade is a mask over a
+     solid grey fill. */
+  color: #8e8e93;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.8) 45%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.8) 45%, transparent 100%);
+}
+
+@media (max-width: 40rem) {
+  .footer__mark-logo {
+    display: none;
+  }
+}
+
+/* Browsers without text clipping: solid light grey, never invisible text. */
+@supports not (background-clip: text) {
+  .footer__mark-inner span {
+    background: none;
+    color: #e2e2e7;
+  }
+}
+
+@media (forced-colors: active) {
+  .footer__mark-inner span,
+  .footer__mark-logo {
+    background: none;
+    color: CanvasText;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}

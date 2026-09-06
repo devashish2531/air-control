@@ -1,0 +1,197 @@
+/*
+ * Gallery — owned by Gallery.tsx ("A look inside" screenshot strip).
+ *
+ * Reuses globals.css tokens/classes (.section, .section__head, .eyebrow,
+ * .h2, .muted, .container--wide, [data-reveal]) and sections.css's
+ * .strip-shell/.strip (via CardStrip) — nothing here redefines those.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Head row + Light/Dark segmented control                                    */
+/* -------------------------------------------------------------------------- */
+
+.gallery__top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: clamp(2.5rem, 5vw, 4rem);
+}
+
+/* The row owns the bottom margin above; the head itself sits flush inside it. */
+.gallery__top .section__head {
+  margin-bottom: 0;
+}
+
+@media (min-width: 48rem) {
+  .gallery__top {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+}
+
+.seg {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  padding: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 980px;
+}
+
+.seg__thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  background: var(--surface);
+  border-radius: 980px;
+  box-shadow: var(--shadow-1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .seg__thumb {
+    transition: transform var(--dur-ui) var(--ease-out);
+  }
+}
+
+.seg[data-selected="dark"] .seg__thumb {
+  transform: translateX(100%);
+}
+
+.seg__btn {
+  position: relative;
+  z-index: 1;
+  min-width: 4.5rem;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border: none;
+  background: transparent;
+  border-radius: 980px;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.seg__btn[aria-checked="true"] {
+  color: var(--text);
+}
+
+.seg__btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Shot cards (rendered inside CardStrip's .strip track)                      */
+/* -------------------------------------------------------------------------- */
+
+.shot {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 64vw;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 40rem) {
+  .shot {
+    flex-basis: min(260px, 40vw);
+  }
+}
+
+@media (min-width: 64rem) {
+  .shot {
+    flex-basis: clamp(220px, 19vw, 260px);
+  }
+}
+
+/* Peek fix (mobile audit): the base 64vw basis over-peeks badly by 320px
+   (~80px of the next card visible, well past the 16-32px target) because
+   the strip's inset/gap are flat px values that don't shrink with the
+   viewport. `100vw - 64px` holds the peek at a constant 24px from 320 to
+   390 and up to the >= 40rem breakpoint above — same fix as .strip-card and
+   .trust-card in sections.css. */
+@media (max-width: 39.9375rem) {
+  .shot {
+    flex-basis: calc(100vw - 64px);
+  }
+}
+
+/* iPhone frame: black bezel ~3% of the frame's own width on every edge
+   (padding percentages resolve against the containing block's width on all
+   four sides, so this stays a uniform bezel regardless of height), body
+   radius ~16% of width (border-radius percentages resolve against the
+   element's own box, unlike padding). */
+.shot__frame {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3%;
+  background: #000;
+  /* Percentage radii resolve per axis, so on a 1206:2622 frame a plain 16%
+     gives an elliptical, pill-shaped top. The slash form sets the vertical
+     radius to 16% × (1206/2622) ≈ 7.4% so both axes are the same length. */
+  border-radius: 16% / 7.4%;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .shot__frame {
+    transition:
+      transform var(--dur-ui) var(--ease-out),
+      box-shadow var(--dur-ui) var(--ease-out);
+  }
+
+  .shot__frame:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-2);
+  }
+}
+
+.shot__screen {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1206 / 2622;
+  border-radius: 12% / 5.5%;
+  background: var(--bg-tertiary);
+}
+
+/* Positioned relative to .shot__screen (not .shot__frame) so the percentages
+   resolve against the screenshot's own box — the screenshots include their
+   status bar, and real iPhone Pro island geometry relative to that box is
+   top ≈ 1.3%, height ≈ 4.3%, width ≈ 32%, centred. .shot__screen's overflow:
+   hidden keeps the pill's corners from poking past the rounded screen edge. */
+.shot__island {
+  position: absolute;
+  top: 1.3%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32%;
+  height: 4.3%;
+  background: #000;
+  border-radius: 980px;
+  z-index: 1;
+}
+
+.shot__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+.shot__img.is-active {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shot__img {
+    transition: opacity var(--dur-slow) var(--ease-out);
+  }
+}

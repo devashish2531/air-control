@@ -1,11 +1,11 @@
 /*
  * Sections — owned by Sections.tsx (Features, Devices, Stats, HowItWorks,
- * Security, OpenSource, Faq, FinalCta).
+ * Security, Download, Faq, FinalCta).
  *
- * Reuses globals.css tokens/classes (.container, .tile, .tile--outline,
- * .grouped, .grouped__row, .section, .section__head, .section--tint,
- * .band--dark, .link-arrow, .badge, .button, .grad-text, [data-reveal]) —
- * nothing here redefines them.
+ * Reuses globals.css tokens/classes (.container, .tile, .section,
+ * .section__head, .section--tint, .band--dark, .link-arrow, .badge, .button,
+ * .button--primary/--secondary/--light, .glass, .glass--dark, [data-reveal])
+ * — nothing here redefines them.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -13,17 +13,6 @@
 /* Apple's apple.com/apps "Health & Fitness" strip: one horizontal row of     */
 /* tall portrait cards that scroll sideways with prev/next round buttons.    */
 /* -------------------------------------------------------------------------- */
-
-/* Left-aligned section head variant — the strip's head is left-aligned in
-   the container, unlike the centered default `.section__head`. Chained onto
-   `.section__head` (rather than a bare `.section__head--start` rule) so its
-   two-class specificity beats globals.css's `.section__head` regardless of
-   import order (`@import`s are inlined at the top of globals.css, ahead of
-   its own later same-specificity rules). */
-.section__head.section__head--start {
-  margin-inline: 0;
-  text-align: left;
-}
 
 /*
  * So the first card's left edge lines up with `.container--wide`'s content
@@ -90,6 +79,20 @@
   }
 }
 
+/* Peek fix (mobile audit): a pure vw basis loses its "next card peeks
+   16-32px past the edge" hint as the viewport narrows, because the strip's
+   inset and gap are both flat px values that don't shrink with it — at
+   390px wide, 78vw already peeks correctly (~26px), but by 320px it's down
+   to ~10px. `100vw - 64px` holds the peek at a constant 24px across the
+   whole sub-40rem phone range (390 and 320 alike) — see the same fix on
+   .trust-card below and .shot in gallery.css. Scoped tighter than the usual
+   47.99rem ceiling so it never overlaps the >= 40rem flex-basis above. */
+@media (max-width: 39.9375rem) {
+  .strip-card {
+    flex-basis: calc(100vw - 64px);
+  }
+}
+
 .strip-card__top {
   display: flex;
   align-items: center;
@@ -133,18 +136,37 @@
   color: var(--text-secondary);
 }
 
+/* Body-sentence copy stays >= 16px on phones (mobile audit: "all body text
+   >= 16px") — the desktop 0.9375rem (15px) is a deliberate secondary size
+   next to the bigger headline, but reads too small as a standalone sentence
+   on a 320-390px screen. */
+@media (max-width: 47.99rem) {
+  .strip-card__benefit {
+    font-size: 1rem;
+  }
+}
+
 /* Fills the remaining vertical space between the copy above and the
-   compatibility footer below, centering the (enlarged) illustration. */
+   compatibility footer below, centering the (enlarged) illustration.
+   `margin-inline` bleeds it past the card's own 1.5rem padding, out to the
+   card's edges (`.strip-card` has `overflow: hidden`, so this lands flush
+   with the border box rather than clipping) — every illustration is drawn
+   on a fixed 280x140 (2:1) viewBox, so the only way to make it read bigger
+   at a fixed card width is to widen the box it scales against. */
 .strip-card__illustration {
   flex: 1;
   display: flex;
   align-items: center;
   min-height: 0;
+  /* Bleed past the card padding for size, but keep a 0.75rem breathing edge so
+     edge-to-edge art (the key row, the touchpad outline) never touches the card. */
+  margin-inline: -0.75rem;
 }
 
 .strip-card__illustration svg {
   display: block;
   width: 100%;
+  max-height: 100%;
   height: auto;
 }
 
@@ -320,6 +342,21 @@
   pointer-events: none;
 }
 
+/* 44px hit area around the visually-36px prev/next buttons (mobile audit) —
+   an invisible ::before extension, same pattern as .link-arrow, so the
+   button's own size stays unchanged everywhere. */
+@media (max-width: 47.99rem) {
+  .strip-nav__btn {
+    position: relative;
+  }
+
+  .strip-nav__btn::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /* Devices row — three 64px line icons + label + OS requirement (spec §4)     */
 /* -------------------------------------------------------------------------- */
@@ -327,8 +364,11 @@
 .devices-row {
   display: grid;
   grid-template-columns: 1fr;
+  justify-content: center;
   gap: clamp(1.75rem, 4vw, 2.5rem);
   margin-bottom: clamp(2rem, 4vw, 2.5rem);
+  max-width: 48rem;
+  margin-inline: auto;
   text-align: center;
 }
 
@@ -342,6 +382,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
 }
 
 .devices-row__icon {
@@ -367,13 +408,43 @@
   gap: 0.75rem 2rem;
 }
 
+/* Required fix #2: three columns side by side even on the narrowest phones
+   (previously a single stacked column below 40rem) — icons and type shrink
+   to match so 320px still fits three centred columns without wrapping. */
+@media (max-width: 47.99rem) {
+  .devices-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem 0.5rem;
+  }
+
+  .devices-row__icon svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .devices-row__label {
+    font-size: 0.9375rem;
+  }
+
+  .devices-row__requirement {
+    font-size: 0.75rem;
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /* Stats band — four giant numbers on a full-bleed black band                */
 /* -------------------------------------------------------------------------- */
 
+#numbers.section {
+  padding-block: clamp(2rem, 4vw, 3rem);
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  justify-content: center;
+  /* Top-align so the four values share a baseline even when a caption wraps. */
+  align-items: start;
   gap: clamp(2rem, 5vw, 3rem) clamp(1rem, 3vw, 2rem);
   text-align: center;
 }
@@ -387,23 +458,32 @@
 .stat-item__value {
   margin: 0;
   display: inline-block;
-  font-size: clamp(2.75rem, 6vw, 4.5rem);
+  font-size: clamp(2rem, 4vw, 3rem);
   line-height: 1.05;
   font-weight: 700;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .stat-item__caption {
   margin: 0.5rem 0 0;
+  font-size: 0.875rem;
   color: var(--text-secondary);
+  text-align: center;
 }
 
-.stats-note {
-  max-width: var(--measure);
-  margin: clamp(2rem, 5vw, 3rem) auto 0;
-  text-align: center;
-  color: var(--text-secondary);
+/* Mobile audit: the 2x2 grid's row/column gaps were uneven at phone widths
+   (clamp mins of 2rem vs 1rem resolve to a visible 2:1 ratio) and the
+   caption ran a step larger than the rest of the mobile caption scale. */
+@media (max-width: 47.99rem) {
+  .stats-grid {
+    gap: 1.5rem;
+  }
+
+  .stat-item__caption {
+    font-size: 0.8125rem;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -439,196 +519,339 @@
   color: var(--blue);
 }
 
-/* -------------------------------------------------------------------------- */
-/* Security — two-up value cards + three pillars (spec §7)                    */
-/* -------------------------------------------------------------------------- */
+/* Mobile audit: consistent 1.25rem card padding and a smaller numeral scale
+   proportionate to a stacked single-column phone layout. */
+@media (max-width: 47.99rem) {
+  .steps .tile {
+    padding: 1.25rem;
+  }
 
-.value-cards {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: clamp(1.25rem, 3vw, 2rem);
-  margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
-}
-
-@media (min-width: 48rem) {
-  .value-cards {
-    grid-template-columns: repeat(2, 1fr);
+  .step__num {
+    font-size: 2rem;
   }
 }
 
-.value-card {
+/* -------------------------------------------------------------------------- */
+/* Security — Apple Store "difference row": one CardStrip of five short      */
+/* statement cards (DESIGN-SPEC-v7-security.md). Tighter section padding     */
+/* than the shared `.section` default, since this section is now much       */
+/* shorter than a full card grid.                                            */
+/* -------------------------------------------------------------------------- */
+
+#security {
+  padding-block: clamp(3.5rem, 8vw, 6rem);
+}
+
+/* Smaller h2 than the shared `.h2` clamp (spec: clamp(1.75rem, 3.6vw, 2.5rem))
+   — this section's head is a compact "Store difference" style row, not a
+   full-width hero heading, so it keeps the section's total height down. */
+#security-title {
+  font-size: clamp(1.75rem, 3.6vw, 2.5rem);
+}
+
+/* Plain left-aligned line below the strip: "Full threat model ...". Reuses
+   `.link-arrow` as-is for the chevron + 44px hit area. */
+.trust-links {
+  margin: clamp(1.5rem, 3vw, 2rem) 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+/* Body text >= 16px on phones (mobile audit) — this line reads as a full
+   sentence, not a caption. */
+@media (max-width: 47.99rem) {
+  .trust-links {
+    font-size: 1rem;
+  }
+}
+
+.trust-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  min-height: 420px;
-  padding: clamp(2rem, 4vw, 3rem);
-  border-radius: var(--r-xl);
-  color: #fff;
+  flex: 0 0 78vw;
+  aspect-ratio: 300 / 220;
+  padding: 2rem;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  color: var(--text);
+  scroll-snap-align: start;
 }
 
-.value-card--aurora {
-  background: var(--card-aurora);
+@media (min-width: 40rem) {
+  .trust-card {
+    flex-basis: min(300px, 44vw);
+  }
 }
 
-.value-card--solid-blue {
-  background: var(--card-solid-blue);
+@media (min-width: 64rem) {
+  .trust-card {
+    flex-basis: clamp(250px, 23vw, 300px);
+  }
 }
 
-.value-card__glyph {
+/* Same peek fix as .strip-card above — see that rule's comment. */
+@media (max-width: 39.9375rem) {
+  .trust-card {
+    flex-basis: calc(100vw - 64px);
+  }
+}
+
+.trust-card__icon {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  margin-bottom: 1.5rem;
-  border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 1.25rem;
 }
 
-.value-card__headline {
-  margin: 0 0 0.75rem;
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  font-weight: 700;
-  color: #fff;
+.trust-card__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.trust-card__text {
+  margin: 0;
+  font-size: 1.375rem;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text);
   text-wrap: balance;
 }
 
-.value-card__body {
-  margin: 0 0 1.5rem;
-  max-width: 42ch;
-  font-size: 1.0625rem;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.85);
+/*
+ * Lead phrase colour per tone. The icon itself uses the bright system
+ * colour (non-text, so contrast doesn't apply); the lead phrase is TEXT so
+ * it needs a darker variant — `--blue` already clears 4.5:1 (it equals
+ * `--accent`), but `--green`/`--orange` (and, checked here for margin,
+ * `--indigo`/`--pink`) do not, so every tone below sets its own darker
+ * `--card-tone` for `.trust-card__lead` (verified with a Node luminance
+ * script against #fff — see report; green's spec value #1f8a3d measured
+ * 4.41:1 and was darkened to #1c7f38 at 5.07:1).
+ */
+.trust-card--blue {
+  --card-tone: var(--accent);
 }
 
-/* Higher-specificity descendant selector, not a source-order dependency —
-   wins regardless of where .link-arrow's own rule sits in the cascade. */
-.value-card .link-arrow {
-  color: #fff;
+.trust-card--blue .trust-card__icon {
+  color: var(--blue);
 }
 
-.pillar-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: clamp(1rem, 2.5vw, 1.5rem);
+.trust-card--green {
+  --card-tone: #1c7f38;
 }
 
-@media (min-width: 48rem) {
-  .pillar-row {
-    grid-template-columns: repeat(3, 1fr);
+.trust-card--green .trust-card__icon {
+  color: var(--green);
+}
+
+.trust-card--orange {
+  --card-tone: #c2410c;
+}
+
+.trust-card--orange .trust-card__icon {
+  color: var(--orange);
+}
+
+.trust-card--indigo {
+  --card-tone: #4b47c9;
+}
+
+.trust-card--indigo .trust-card__icon {
+  color: var(--indigo);
+}
+
+.trust-card--pink {
+  --card-tone: #c8123f;
+}
+
+.trust-card--pink .trust-card__icon {
+  color: var(--pink);
+}
+
+.trust-card__lead {
+  color: var(--card-tone);
+}
+
+/* Hover lift: pointer devices with real hover only, and never under reduced
+   motion — same treatment as `.strip-card:hover`. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .trust-card {
+    transition:
+      transform var(--dur-ui) var(--ease-out),
+      box-shadow var(--dur-ui) var(--ease-out);
+  }
+
+  .trust-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-2);
   }
 }
 
-.pillar__glyph {
+/* -------------------------------------------------------------------------- */
+/* Download — two equal device cards + a centered license line (spec C2, v4) */
+/* -------------------------------------------------------------------------- */
+
+.download-cards {
+  display: grid;
+  /* `minmax(0, 1fr)`, not bare `1fr` — an auto-basis track won't shrink
+     below its widest item's min-content size, and the nowrap Homebrew
+     chip inside `.download-card` has a wide one; `0` lets the track (and
+     the card inside it) actually shrink to the available width instead of
+     overflowing the document horizontally. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1.25rem, 3vw, 2rem);
+  margin-bottom: clamp(2rem, 4vw, 3rem);
+}
+
+@media (min-width: 48rem) {
+  .download-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.download-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* Same auto-min-size story as the grid track above, one level down: a
+     flex/grid item's default automatic minimum width is its content's
+     min-content size, which the nowrap Homebrew chip inflates. */
+  min-width: 0;
+  min-height: 360px;
+  padding: 2.25rem;
+  border-radius: var(--r-xl);
+  background: var(--card-gray);
+}
+
+/* 56px glass square (`.glass`, globals.css supplies the background/border/
+   shadow); this rule only sizes and centers the icon inside it. */
+.download-card__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 56px;
   height: 56px;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
   border-radius: var(--r-sm);
+  color: var(--accent);
 }
 
-.pillar__glyph--blue {
-  background: rgba(10, 132, 255, 0.14);
-  color: var(--blue);
+.download-card__title {
+  margin: 0 0 0.375rem;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  font-weight: 700;
 }
 
-.pillar__glyph--indigo {
-  background: rgba(94, 92, 230, 0.14);
-  color: var(--indigo);
-}
-
-.pillar__glyph--green {
-  background: rgba(48, 209, 88, 0.14);
-  color: var(--green);
-}
-
-.pillar h3 {
-  margin-bottom: 0.5rem;
-}
-
-.pillar p {
+.download-card__requirement {
+  margin: 0 0 1.5rem;
   color: var(--text-secondary);
 }
 
-/* -------------------------------------------------------------------------- */
-/* Open source — slim facts strip + Homebrew command (spec §8)               */
-/* -------------------------------------------------------------------------- */
-
-.facts-strip {
+/* Everything below the requirement line lives on one baseline grid — a flex
+   column with fixed gaps, so the button and the Homebrew/QR block underneath
+   never float independently of each other. */
+.download-card__body {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  margin-top: auto;
 }
 
-.facts-strip__grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.25rem 1.5rem;
+.download-card__brew {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
-@media (min-width: 40rem) {
-  .facts-strip__grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.facts-strip__item dt {
-  margin: 0 0 0.25rem;
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-}
-
-.facts-strip__item dd {
-  margin: 0;
-  font-weight: 500;
-}
-
-/* Invisible hit-area extension so the "MIT" / "Open a report" links clear
-   44px tall without growing their visible size. */
-.facts-strip__item dd a {
-  position: relative;
-}
-
-.facts-strip__item dd a::before {
-  content: "";
-  position: absolute;
-  inset: -12px 0;
-}
-
-.facts-strip__brew {
-  margin: 0;
-}
-
-.opensource__brew {
+.download-card__brew-code {
   display: inline-block;
   max-width: 100%;
   padding: 0.4rem 0.85rem;
   border-radius: var(--r-sm);
   background: var(--bg-tertiary);
   color: var(--text);
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
-  overflow-x: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  /* Stays scrollable — just hides the scrollbar chrome, which reads as
-     visual noise under a one-line command. */
-  scrollbar-width: none;
 }
 
-.opensource__brew::-webkit-scrollbar {
-  display: none;
-}
-
-.opensource__brew-note {
+.download-card__brew-note {
+  margin: 0;
   color: var(--text-secondary);
 }
 
-/* Shared button row: the final CTA's actions. */
+.download-card__qr-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.download-qr {
+  flex: none;
+}
+
+.download-qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.download-card__qr-text {
+  min-width: 0;
+}
+
+.download-card__qr-caption {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.download-card__qr-subcaption {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.download-license {
+  margin: 0;
+  text-align: left;
+  justify-content: flex-start;
+  color: var(--text-secondary);
+}
+
+/* Plain-text links here (no chevron, e.g. "MIT licensed") still need the
+   accent color and a 44px hit area — the `.link-arrow` items among them
+   already carry both via globals.css. */
+.download-license > a {
+  position: relative;
+  color: var(--accent-text);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.download-license > a:hover {
+  text-decoration: underline;
+}
+
+.download-license > a::before {
+  content: "";
+  position: absolute;
+  inset: -14px 0;
+}
+
+/* Shared button row: the Download iPhone card's actions and the final CTA's. */
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -636,9 +859,45 @@
   gap: 1rem;
 }
 
+/* Mobile audit: smaller card padding to fit the reduced measure; the CTA and
+   secondary button run full width inside that padding; the Homebrew chip
+   scrolls its own overflow instead of hiding the command behind an ellipsis
+   ("hide nothing that matters"); the QR row wraps to its own line rather
+   than squeezing the caption into a sliver next to the QR code. */
+@media (max-width: 47.99rem) {
+  .download-card {
+    padding: 1.5rem;
+  }
+
+  .download-card .button {
+    width: 100%;
+  }
+
+  .download-card__brew-code {
+    overflow-x: auto;
+    text-overflow: clip;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .download-card__qr-row {
+    flex-wrap: wrap;
+  }
+
+  .download-card__qr-text {
+    min-width: 12rem;
+  }
+}
+
 /* -------------------------------------------------------------------------- */
-/* FAQ — grouped <details> rows                                              */
+/* FAQ — one white panel of <details> rows (spec C3, v4)                     */
 /* -------------------------------------------------------------------------- */
+
+.faq-panel {
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
 
 .faq details {
   position: relative;
@@ -653,10 +912,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 56px;
-  padding: 1rem 1.25rem;
+  padding: 1.5rem 1.75rem;
   list-style: none;
-  font-weight: 500;
   cursor: pointer;
 }
 
@@ -664,22 +921,80 @@
   display: none;
 }
 
-.faq__chevron {
+.faq__question {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--text);
+}
+
+@media (min-width: 48rem) {
+  .faq__question {
+    font-size: 1.25rem;
+  }
+}
+
+/* 28px round chevron affordance — the button-look rotates 180° on open; the
+   chevron glyph inside it stays static (see ChevronIcon's own doc comment). */
+.faq__chevron-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
-  color: var(--text-tertiary);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text);
   transition: transform var(--dur-ui) var(--ease-out);
 }
 
-.faq details[open] .faq__chevron {
-  transform: rotate(90deg);
+.faq details[open] .faq__chevron-btn {
+  transform: rotate(180deg);
 }
 
 .faq__answer {
-  padding: 0 1.25rem 1.25rem;
+  padding: 0 1.75rem 1.5rem;
 }
 
 .faq__answer p {
+  max-width: 60ch;
+  font-size: 1.0625rem;
   color: var(--text-secondary);
+}
+
+/* Mobile audit: tighter panel padding, a question size that still clears
+   16px, and a slightly bigger chevron affordance with an invisible 44px hit
+   area (same ::before pattern as .strip-nav__btn above). */
+@media (max-width: 47.99rem) {
+  .faq summary {
+    padding: 1.25rem;
+  }
+
+  .faq__answer {
+    padding: 0 1.25rem 1.25rem;
+  }
+
+  .faq__question {
+    font-size: 1rem;
+  }
+
+  .faq__chevron-btn {
+    position: relative;
+    width: 32px;
+    height: 32px;
+  }
+
+  .faq__chevron-btn::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+  }
+}
+
+.faq-more {
+  margin-top: clamp(1.5rem, 3vw, 2rem);
+  text-align: left;
 }
 
 /* Animate the collapsible region's height where the browser supports it
@@ -708,7 +1023,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .faq__chevron {
+  .faq__chevron-btn {
     transition: none;
   }
 
@@ -718,55 +1033,147 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* Final CTA — full-bleed gradient band (spec §10)                           */
+/* Final CTA — light card with a platform word stack (spec v13 §E)           */
 /* -------------------------------------------------------------------------- */
 
 .cta {
-  text-align: center;
+  text-align: left;
 }
 
-.cta--band {
+/* Same page-language card as every other tile: `--bg-secondary` fill, 1px
+   `--separator` border, no glows (spec v13 §E — replaces the v8 dark
+   "Security Bounty" card). Reveal element itself (data-reveal from
+   Reveal.tsx), so it fades/slides in as one unit. */
+.cta-card {
   position: relative;
-  background: var(--band-cta);
-  color: #fff;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: clamp(2rem, 5vw, 3rem);
+  padding: clamp(2.5rem, 5vw, 4.5rem);
+  border-radius: var(--r-xl);
   overflow: hidden;
+  background: var(--bg-secondary);
+  border: 1px solid var(--separator);
 }
 
-/* Faint radial highlight layered on the gradient, top-left. */
-.cta__highlight {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    40% 50% at 20% 0%,
-    rgba(255, 255, 255, 0.18),
-    transparent 70%
-  );
-  pointer-events: none;
+@media (min-width: 64rem) {
+  .cta-card {
+    grid-template-columns: 1.1fr 1fr;
+    min-height: 460px;
+  }
 }
 
-.cta--band .container {
+.cta-card__copy {
   position: relative;
   z-index: 1;
-}
-
-.cta--band h2 {
-  color: #fff;
-}
-
-.cta__inner {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 1.25rem;
-  max-width: var(--measure);
-  margin-inline: auto;
+  text-align: left;
 }
 
-.cta__lede {
-  color: rgba(255, 255, 255, 0.85);
+.cta-card__title {
+  font-size: clamp(2.25rem, 4.5vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text);
 }
 
-.cta__proof {
+/* `--grad-text-cta` token lives in globals.css next to the other
+   `--grad-text-*` tokens; the `.grad-text--cta` modifier itself is CTA-only
+   so it's defined here alongside the rest of the card's rules. */
+.grad-text--cta {
+  background-image: var(--grad-text-cta);
+}
+
+/* Just the width clamp — color now comes from the shared `.lede` rule
+   (`--text-secondary`), same as every other section's lede. */
+.lede.cta-card__lede {
+  max-width: 40ch;
+}
+
+.cta-card__proof {
   margin-top: 0.25rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--text-secondary);
+}
+
+/* CTA buttons run bigger than the shared 44px `.button` (spec C4): 52px,
+   17px/600. Descendant + class selector already outranks the single-class
+   `.button` rule regardless of source order. */
+.cta-card .button {
+  min-height: 52px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+/* Decorative platform word stack (aria-hidden — the platforms are already
+   named in the Devices section). One <div> with <br> line breaks (not three
+   separate elements) so `background-clip: text` paints ONE gradient across
+   the whole three-line block instead of resetting per line (spec v8). The
+   gradient's last stop is a low-alpha violet rather than a solid color, so
+   it fades toward whatever `.cta-card`'s background is (v13 §E) without
+   needing a separate light/dark value. */
+.cta-card__stack {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(3rem, 7.5vw, 6.5rem);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  text-align: left;
+  /* Greyed-out gradient (owner request): dark grey at the top fading to a
+     near-invisible grey at the bottom, so the stack reads as a quiet
+     watermark rather than a colour accent. */
+  background-image: linear-gradient(
+    180deg,
+    #6e6e73 0%,
+    #a1a1a6 50%,
+    rgba(161, 161, 166, 0.16) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  /* Slight overflow past the card's right edge, clipped by `overflow:
+     hidden` on `.cta-card` (spec v8's "Apple look"). Combined with the
+     reveal's own 24px rise so both animate off one transform. */
+  transform: translate(4%, 24px);
+  opacity: 0;
+  transition:
+    opacity var(--dur-reveal) var(--ease-out),
+    transform var(--dur-reveal) var(--ease-out);
+  transition-delay: 120ms;
+}
+
+.cta-card.is-inview .cta-card__stack {
+  opacity: 1;
+  transform: translate(4%, 0);
+}
+
+/* Browsers without text-clip support: fall back to a solid indigo, not
+   invisible transparent-on-transparent text. */
+@supports not (background-clip: text) {
+  .cta-card__stack {
+    background: none;
+    color: #a1a1a6;
+  }
+}
+
+/* Forced/high-contrast colors mode: gradient text fights the user's chosen
+   palette — fall back to the system text color. */
+@media (forced-colors: active) {
+  .cta-card__stack {
+    background: none;
+    color: CanvasText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-card__stack {
+    transform: translate(4%, 0);
+    transition: opacity 200ms linear;
+    transition-delay: 0ms;
+  }
 }

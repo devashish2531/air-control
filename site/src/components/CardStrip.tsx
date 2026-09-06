@@ -40,7 +40,16 @@ function prefersReducedMotion(): boolean {
  * themselves are server-rendered `children` so the feature copy stays in the
  * initial HTML for SEO, matching the `Reveal` composition pattern.
  */
-export function CardStrip({ children }: { children: ReactNode }) {
+export function CardStrip({
+  children,
+  ariaLabel = "Feature cards",
+}: {
+  children: ReactNode;
+  /** Overridable so a non-Features strip (e.g. Security's trust row) gets an
+   * accurate `role="region"` label — defaults to the Features strip's label
+   * so that usage is unaffected. */
+  ariaLabel?: string;
+}) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const [atStart, setAtStart] = useState(true);
@@ -105,7 +114,7 @@ export function CardStrip({ children }: { children: ReactNode }) {
         className="strip"
         ref={trackRef}
         role="region"
-        aria-label="Feature cards"
+        aria-label={ariaLabel}
         tabIndex={0}
       >
         {children}

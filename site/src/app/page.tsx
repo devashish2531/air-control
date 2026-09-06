@@ -1,11 +1,12 @@
+import { Gallery } from "@/components/Gallery";
 import { Hero } from "@/components/Hero";
 import {
   Devices,
+  Download,
   Faq,
   Features,
   FinalCta,
   HowItWorks,
-  OpenSource,
   Security,
   Stats,
 } from "@/components/Sections";
@@ -59,10 +60,11 @@ export default function Home() {
         <Hero />
         <Features />
         <Devices />
-        <Stats />
+        <Gallery />
         <HowItWorks />
+        <Stats />
         <Security />
-        <OpenSource />
+        <Download />
         <Faq />
         <FinalCta />
       </main>

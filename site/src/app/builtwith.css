@@ -1,0 +1,153 @@
+/*
+ * "Built with" strip + "Works with" badge — owned by components/BuiltWith.tsx.
+ * Sits under the hero QR card, in the same right column (`.hero__top`'s
+ * second grid track at >= 64rem; below that it stacks under the QR card in
+ * normal flow — see hero.css `.hero__top` / `.hero__qr-card`). Reuses
+ * tokens/classes from globals.css; `.hero__in` / `--in-delay` come from
+ * hero.css.
+ */
+
+.builtwith {
+  display: flex;
+  flex-direction: column;
+  /* Polish pass: the three internal gaps (label -> chips, chips -> badge)
+     are no longer equal, so a single flex `gap` can't express them — each
+     is now set as margin-top on the relevant child below instead. */
+  margin-top: 1.5rem;
+}
+
+/*
+ * Composition fix, scoped to this file only (hero.css untouched): at
+ * >= 64rem `.hero__top` is a 2-column grid with `.hero__copy` (tall: h1 +
+ * lede + actions) alone in column 1's implicit row, and `.hero__qr-card` +
+ * `.builtwith` stacked in column 2 across two implicit rows. Row 1's height
+ * is driven by the taller column-1 content, so `.hero__qr-card`'s own
+ * `align-self: center` (hero.css) would float it in the middle of that tall
+ * row and leave a visible gap before `.builtwith`'s row. Bottom-anchoring
+ * the QR card instead keeps it flush with this block's `margin-top: 1rem`,
+ * which is what "sits below the QR card" needs. Higher specificity than
+ * hero.css's single-class rule, so it wins regardless of import order.
+ *
+ * Update: Hero.tsx now wraps the QR card and this block in a `.hero__aside`
+ * div so they form one vertical unit in the right column, so the rule above
+ * (which targeted `.hero__qr-card` as a direct child of `.hero__top`) no
+ * longer matches anything and is replaced below. At >= 64rem `.hero__aside`
+ * becomes a flex column so the QR card and `.builtwith` stack with a fixed
+ * 1rem gap between them (replacing `.builtwith`'s own `margin-top: 1rem`,
+ * which would otherwise double up with this gap) and share the column's
+ * width. `align-self: center` centers the aside vertically against the
+ * taller `.hero__copy` column, matching the QR card's own previous
+ * centering (hero.css). Below 64rem `.hero__aside` stays a plain block (no
+ * flex here), so the QR card and `.builtwith` simply stack in normal flow —
+ * `.builtwith`'s `margin-top: 1rem` provides the gap there instead.
+ */
+@media (min-width: 64rem) {
+  .hero__top > .hero__aside {
+    display: flex;
+    flex-direction: column;
+    /* Polish pass: inter-group gap (QR card -> Built-with block) widened to
+       1.5rem, one step above the intra-group gaps inside `.builtwith`
+       below, so the two groups read as distinct. */
+    gap: 1.5rem;
+    align-self: center;
+    min-width: 0;
+  }
+
+  /* hero.css centers `.hero__qr-card` (`align-self: center`) for its old
+     role as a direct grid child; as a flex child of `.hero__aside` that
+     same rule would instead shrink the card to content width and center it
+     horizontally. Stretch it back to the aside's full width — same
+     specificity concern as the block above. */
+  .hero__aside > .hero__qr-card {
+    align-self: stretch;
+  }
+
+  .builtwith {
+    margin-top: 0;
+  }
+}
+
+.builtwith__label {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.builtwith__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  /* label -> chips gap. */
+  margin: 0.625rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 30px;
+  padding: 0 0.75rem;
+  border-radius: var(--r-pill);
+  /* No border: chips sit beside the borderless QR card, so an outline here
+     would read as noise rather than structure. */
+  background: var(--bg-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.chip__glyph {
+  flex: none;
+}
+
+.workswith {
+  display: inline-flex;
+  flex: none;
+  /* Direct flex child of `.builtwith` now (the caption + `.builtwith__foot`
+     wrapper it used to sit in are gone) — `.builtwith`'s default
+     `align-items: stretch` would otherwise stretch this to the column's
+     full width instead of sizing to its own content. */
+  align-self: flex-start;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  /* chips -> badge gap (owner asked for more air between the two). */
+  margin-top: 1.75rem;
+  padding: 0.45rem 0.9rem;
+  /* Polish pass ("lighter"): a thinner, quieter outline than the previous
+     2px solid --text — the badge no longer needs to out-shout the chips
+     beside it. */
+  border: 1.5px solid var(--separator-strong);
+  border-radius: 10px;
+}
+
+.workswith__top {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--text-secondary);
+}
+
+.workswith__bottom {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.workswith__sep {
+  flex: none;
+  align-self: stretch;
+  width: 1px;
+  background: var(--separator-strong);
+}

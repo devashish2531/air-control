@@ -1,5 +1,8 @@
 @import "./hero.css";
 @import "./sections.css";
+@import "./footer.css";
+@import "./gallery.css";
+@import "./builtwith.css";
 
 /*
  * Air Control landing page — design foundation.
@@ -71,17 +74,21 @@
   --r-pill: 980px;
 
   /* Layout */
-  --page-max: 1024px; /* Apple uses 980-1024 for text-led content */
-  --wide-max: 1200px; /* tile grids */
+  /* v13: one shared edge for the whole page (UI Skills `better-layout`) —
+     --wide-max aliases --page-max so .container and .container--wide are
+     the same width and every section head, tile grid, the FAQ panel and
+     the CTA card line up on the same left edge. */
+  --page-max: 1200px;
+  --wide-max: var(--page-max);
   --gutter: clamp(1.25rem, 4vw, 2.5rem);
   --measure: 62ch;
 
   /*
-   * Floating pill nav (design spec v3 §B), referenced by .header, .header__pill,
-   * .menu-sheet, main and html below. `--pill-top` is the gap between the
-   * safe area and the pill's top edge; `--nav-h` is the pill's own height.
+   * Full-width local-nav header (design spec v4 §A), referenced by .header,
+   * .menu-panel, main and html below. `--nav-h` is the bar's content height
+   * (52px desktop / 48px mobile) — the bar itself also clears
+   * env(safe-area-inset-top) on top of this.
    */
-  --pill-top: 0.75rem;
   --nav-h: 48px;
 
   /* Z scale — no other z-index values belong anywhere in this codebase. */
@@ -124,6 +131,7 @@
   --grad-text-hero: linear-gradient(90deg, #0a84ff 0%, #5e5ce6 50%, #bf5af2 100%);
   --grad-text-warm: linear-gradient(90deg, #ff375f 0%, #ff9f0a 100%);
   --grad-text-cool: linear-gradient(90deg, #30d158 0%, #5ac8fa 100%);
+  --grad-text-cta: linear-gradient(90deg, #5ac8fa 0%, #5e5ce6 55%, #bf5af2 100%);
 
   /*
    * Bento card surfaces. Contrast measured with
@@ -169,8 +177,8 @@
   --text-secondary-on-card: #515154;
 }
 
-/* Pill grows slightly once it's no longer competing with the mobile menu
-   button for space (design spec v3 §B: "height 52px (48 on mobile)"). */
+/* Bar grows slightly once it's no longer competing with the mobile menu
+   button for space (design spec v4 §A: "height 52px (48 on mobile)"). */
 @media (min-width: 48rem) {
   :root {
     --nav-h: 52px;
@@ -226,9 +234,7 @@
     --material: var(--bg);
   }
 
-  .header__pill,
-  .header[data-scrolled] .header__pill,
-  .menu-sheet__card {
+  .header {
     background: var(--bg);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -255,10 +261,10 @@
 
 html {
   scroll-behavior: smooth;
-  /* Clear the floating pill (its own top offset + height) plus a little
-     breathing room — design spec v3 §B. */
+  /* Clear the fixed header (its safe-area padding + content height) plus a
+     little breathing room — design spec v4 §A. */
   scroll-padding-top: calc(
-    env(safe-area-inset-top, 0px) + var(--pill-top) + var(--nav-h) + 1rem
+    env(safe-area-inset-top, 0px) + var(--nav-h) + 1rem
   );
   -webkit-text-size-adjust: 100%;
 }
@@ -346,6 +352,9 @@ code {
   padding-inline: var(--gutter);
 }
 
+/* v13: --wide-max aliases --page-max above, so this is byte-for-byte
+   identical to .container — kept as a separate class only so call sites
+   can still say which grid a block belongs to. */
 .container--wide {
   width: 100%;
   max-width: var(--wide-max);
@@ -353,11 +362,11 @@ code {
   padding-inline: var(--gutter);
 }
 
-/* Same formula as html's scroll-padding-top above — the pill is fixed, so
+/* Same formula as html's scroll-padding-top above — the header is fixed, so
    main needs the matching top padding to keep it clear of content. */
 main {
   padding-top: calc(
-    env(safe-area-inset-top, 0px) + var(--pill-top) + var(--nav-h) + 1rem
+    env(safe-area-inset-top, 0px) + var(--nav-h) + 1rem
   );
 }
 
@@ -568,6 +577,60 @@ main {
   letter-spacing: 0.01em;
 }
 
+/*
+ * Glass utility (design spec v4 "Glass recipe") — translucency + a bright
+ * top edge + a hairline border + a soft shadow + a faint specular sweep.
+ * No backdrop blur, saturate only. Used as sprinkles on top of a surface
+ * (hero QR callout, phone chrome, CTA band button, card icon squares, …),
+ * never as a whole page's chrome. `.glass` is for light/mid surfaces;
+ * `.glass--dark` is for dark/saturated ones (e.g. inside `.band--dark` or
+ * the coloured value cards).
+ */
+.glass {
+  background:
+    linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.18) 40%,
+      rgba(255, 255, 255, 0.05) 60%,
+      rgba(255, 255, 255, 0.25) 100%
+    ),
+    rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.25),
+    0 10px 30px rgba(0, 0, 0, 0.08);
+  backdrop-filter: saturate(160%);
+  -webkit-backdrop-filter: saturate(160%);
+}
+
+.glass--dark {
+  background:
+    linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.28) 0%,
+      rgba(255, 255, 255, 0.1) 45%,
+      rgba(255, 255, 255, 0.04) 60%,
+      rgba(255, 255, 255, 0.14) 100%
+    ),
+    rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: #ffffff;
+  }
+
+  .glass--dark {
+    background: rgba(255, 255, 255, 0.22);
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /* Tiles & grouped lists                                                      */
 /* -------------------------------------------------------------------------- */
@@ -641,9 +704,9 @@ main {
 
 .section__head {
   max-width: var(--measure);
-  margin-inline: auto;
+  margin-inline: 0;
   margin-bottom: clamp(2.5rem, 5vw, 4rem);
-  text-align: center;
+  text-align: left;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -712,59 +775,50 @@ main {
 /* -------------------------------------------------------------------------- */
 
 /*
- * Floating glass pill nav (design spec v3 §B). `.header` is a full-width,
- * pointer-events:none positioning wrapper — the visible bar is `.header__pill`
- * inside it, so pointer events pass through the empty margins on either side
- * of the pill straight to the page.
+ * Full-width Apple "product local nav" bar (design spec v4 §A) — replaces the
+ * v3 floating pill. `.header` is the fixed bar itself (no positioning
+ * wrapper needed now that it spans the full width); `padding-top` clears the
+ * iOS safe area while the background still paints behind it, so `--nav-h`
+ * stays the *content* height React reads for scroll-padding math elsewhere.
  */
 .header {
   position: fixed;
   inset-inline: 0;
-  top: calc(env(safe-area-inset-top, 0px) + var(--pill-top));
+  top: 0;
+  height: calc(var(--nav-h) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   z-index: var(--z-nav);
-  pointer-events: none;
+  /* Near-opaque, no blur (spec v5 C4) — at 86% the page content showed
+     through as a smear; backdrop-filter is no longer needed at this opacity. */
+  background: #fff;
+  border-bottom: 1px solid var(--separator);
+  /* Bright top edge (glass recipe's specular highlight), always on; the soft
+     drop shadow below is added only once the page has scrolled. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: box-shadow var(--dur-ui) var(--ease-out);
 }
 
-.header__pill {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+.header[data-scrolled] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 1px 12px rgba(0, 0, 0, 0.06);
+}
+
+.header__inner {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1rem;
   height: var(--nav-h);
-  border-radius: var(--r-pill);
-  border: 1px solid var(--separator);
-  background: var(--material);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.6) inset,
-    0 8px 30px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  pointer-events: auto;
-  transition:
-    background-color var(--dur-ui) var(--ease-out),
-    box-shadow var(--dur-ui) var(--ease-out);
-}
-
-.header[data-scrolled] .header__pill {
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.6) inset,
-    0 12px 40px rgba(0, 0, 0, 0.12);
-}
-
-/* Keep the pill legible over the (also brightened) mobile menu card behind
-   it — headless/older browsers that skip backdrop-filter still need the
-   pill itself to read as near-opaque while the sheet is open. */
-.header[data-menu-open] .header__pill {
-  background: rgba(255, 255, 255, 0.85);
 }
 
 .brand {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   flex: none;
-  font-size: 1rem;
+  font-size: 1.3125rem; /* 21px — Apple local-nav product name */
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
@@ -772,9 +826,26 @@ main {
   white-space: nowrap;
 }
 
+/* Mobile audit: below 360px the label hides and the link shrinks to a bare
+   26px icon — an invisible ::before hit-area extension (same pattern as
+   .link-arrow) brings it to 44px without changing how it looks. */
+@media (max-width: 47.99rem) {
+  .brand::before {
+    content: "";
+    position: absolute;
+    inset: -9px;
+  }
+}
+
 .brand img {
   flex: none;
   border-radius: 22%;
+}
+
+.brand__logo {
+  color: var(--accent);
+  flex: none;
+  display: block;
 }
 
 /* Icon-only below 360px: the label would otherwise crowd the Download pill
@@ -785,61 +856,28 @@ main {
   }
 }
 
-.nav {
-  position: relative;
-  justify-self: center;
-}
-
-/* Sliding active-section indicator. Position comes from `--indicator-x`
-   (a transform, so it never triggers layout); width comes from
-   `--indicator-w`, which does affect layout but is only ever written when
-   the active section changes or the pill resizes — not per frame — which
-   design spec v3 §B calls out as an acceptable trade for the strict
-   transform-only rule. Hidden (opacity 0) until the scroll-spy below finds
-   an active section, so it doesn't flash at (0, 0) before first measurement. */
-.nav__indicator {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: var(--indicator-w, 0px);
-  height: 2.25rem;
-  border-radius: var(--r-pill);
-  background: var(--bg-tertiary);
-  opacity: 0;
-  transform: translate(var(--indicator-x, 0px), -50%);
-  transition:
-    transform var(--dur-ui) var(--ease-out),
-    width var(--dur-ui) var(--ease-out),
-    opacity var(--dur-ui) var(--ease-out);
-  pointer-events: none;
-}
-
-.nav__indicator[data-visible] {
-  opacity: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nav__indicator {
-    transition: none;
-  }
+.header__right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
 }
 
 .nav__links {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: clamp(1rem, 2.2vw, 2rem);
+  gap: 1.5rem; /* 24px, design spec v4 §A */
   list-style: none;
 }
 
 .nav__links a {
   display: inline-block;
-  padding: 0.5rem 0.25rem;
+  padding: 0.25rem 0;
   color: var(--text-secondary);
-  font-size: 0.9375rem;
+  font-size: 0.75rem; /* 12px — Apple local-nav size */
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
+  transition: color var(--dur-ui) var(--ease-out);
 }
 
 .nav__links a:hover {
@@ -848,6 +886,7 @@ main {
 
 .nav__links a[aria-current="true"] {
   color: var(--text);
+  font-weight: 600;
 }
 
 @media (max-width: 48rem) {
@@ -856,68 +895,68 @@ main {
   }
 }
 
-.nav__cta {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  justify-self: end;
-}
-
+/* GitHub text link: only ahead of Download on wide viewports (design spec
+   v4 §A) — under 64rem it lives in the mobile menu panel instead. */
 .nav__github {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+  display: none;
+  /* Same box as .nav__links a so the text sits on the same baseline. */
+  padding: 0.25rem 0;
   color: var(--text-secondary);
-  font-size: 0.9375rem;
+  font-size: 0.75rem;
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
+  transition: color var(--dur-ui) var(--ease-out);
 }
 
-/* Invisible hit-area extension so the icon-only link clears 44px tall
-   without growing its visible size. */
 .nav__github::before {
   content: "";
   position: absolute;
-  inset: -13px;
+  inset: -16px -8px;
 }
 
 .nav__github:hover {
   color: var(--text);
 }
 
-.nav__github-icon {
-  flex: none;
-}
-
-.nav__github-label {
-  display: none;
-}
-
 @media (min-width: 64rem) {
-  .nav__github-label {
-    display: inline;
+  .nav__github {
+    display: inline-block;
   }
 }
 
-/* Below 48rem the section nav collapses into the menu sheet, which already
-   carries this same GitHub link — hide the bar copy so Download + the menu
-   button are the only things left in nav__cta. */
-@media (max-width: 48rem) {
-  .nav__github {
+/* 28px small primary pill (design spec v4 §A) — overrides .button--small's
+   32px so the nav keeps its own scale without touching that shared
+   primitive, which nothing else in the header block uses. */
+.nav__download {
+  min-height: 28px;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+}
+
+/*
+ * Two visually-identical Download pills (mobile design pass v18a): the
+ * desktop one keeps the Mac release URL, the mobile one points at the
+ * on-page Download section instead (a phone visitor cannot run a Mac
+ * installer). Toggled by `display` only, so the choice stays server-
+ * rendered with no JS viewport detection.
+ */
+.nav__download--mobile {
+  display: inline-flex;
+}
+
+.nav__download--desktop {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  .nav__download--mobile {
     display: none;
   }
-}
 
-.nav__download-icon {
-  display: none;
-  flex: none;
-}
-
-@media (min-width: 64rem) {
-  .nav__download-icon {
-    display: inline-block;
+  .nav__download--desktop {
+    display: inline-flex;
   }
 }
 
@@ -944,13 +983,35 @@ main {
   }
 }
 
-/* Two-line hamburger that morphs into an X when the sheet is open. */
+/*
+ * Hamburger -> X (mobile design pass v18a, required fix #1): two 18px bars,
+ * 6px apart (top bar's bottom edge at 6px, bottom bar's top edge at 12px, in
+ * an 18px-tall box), each rotating around its own center once translated to
+ * the box's vertical middle — transform-only, 200ms ease-out.
+ */
+.menu-button__icon {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+}
+
 .menu-button__bar {
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  transform-origin: 10px 10px;
+  position: absolute;
+  left: 0;
+  width: 18px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--text);
   transition: transform var(--dur-ui) var(--ease-out);
+}
+
+.menu-button__bar--top {
+  top: 4px;
+}
+
+.menu-button__bar--bottom {
+  top: 12px;
 }
 
 .menu-button[aria-expanded="true"] .menu-button__bar--top {
@@ -967,93 +1028,41 @@ main {
   }
 }
 
-/* Translucent scrim behind the mobile menu card — closes the menu on click. */
-.menu-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-menu);
-  background: rgba(0, 0, 0, 0.28);
-}
-
-.menu-backdrop[hidden] {
-  display: none;
-}
-
 /*
- * `.menu-sheet` is a full-width fixed wrapper, exactly like `.header` — the
- * visible floating card is `.menu-sheet__card` inside it, reusing `.container`
- * for the same max-width/gutter alignment as `.header__pill` above it.
+ * Mobile disclosure panel: the bar "expands" into a full-width white panel
+ * directly under it. Only `opacity`/`transform` are animated — the show/hide
+ * itself is instant via the `hidden` attribute, which also resets the CSS
+ * animation below every time the panel reopens (design spec v4 §A).
  */
-.menu-sheet {
+.menu-panel {
   position: fixed;
   inset-inline: 0;
-  top: calc(
-    env(safe-area-inset-top, 0px) + var(--pill-top) + var(--nav-h) + 0.5rem
-  );
+  top: calc(var(--nav-h) + env(safe-area-inset-top, 0px));
   z-index: var(--z-menu);
+  background: #ffffff;
+  border-bottom: 1px solid var(--separator);
+  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.06);
+  max-height: calc(
+    100vh - var(--nav-h) - env(safe-area-inset-top, 0px)
+  );
+  overflow-y: auto;
+  animation: menu-panel-in var(--dur-ui) var(--ease-out) both;
 }
 
-.menu-sheet[hidden] {
+.menu-panel[hidden] {
   display: none;
 }
 
 @media (min-width: 48rem) {
-  .menu-sheet,
-  .menu-backdrop {
+  .menu-panel {
     display: none !important;
   }
 }
 
-.menu-sheet__card {
-  border-radius: var(--r-lg);
-  /* Brighter than the shared --material token (0.72): this card sits
-     directly over the hero photo/illustration with no scroll behind it to
-     dim it, so it needs to read as near-opaque even where backdrop-filter
-     isn't applied (e.g. headless Chrome screenshots). */
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--separator);
-  box-shadow: var(--shadow-3);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  overflow: hidden;
-  max-height: calc(100vh - env(safe-area-inset-top, 0px) - var(--pill-top) - var(--nav-h) - 1.5rem);
-  overflow-y: auto;
-}
-
-.menu-sheet__links {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  padding: 0 var(--gutter) env(safe-area-inset-bottom, 0px);
-}
-
-.menu-sheet__links a {
-  display: flex;
-  align-items: center;
-  min-height: 52px;
-  color: var(--text);
-  font-size: 1.0625rem;
-  font-weight: 500;
-  text-decoration: none;
-  border-bottom: 1px solid var(--separator);
-}
-
-.menu-sheet__links li:last-child a {
-  border-bottom: none;
-}
-
-/* Staggered reveal (0/40/80/120ms — design spec v3 §B) each time the sheet
-   goes from [hidden] to visible; `hidden` uses `display:none`, which resets
-   CSS animations, so this replays on every open without any JS. */
-.menu-sheet__links li {
-  animation: menu-item-in var(--dur-ui) var(--ease-out) both;
-  animation-delay: var(--stagger-delay, 0ms);
-}
-
-@keyframes menu-item-in {
+@keyframes menu-panel-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
@@ -1062,51 +1071,51 @@ main {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .menu-sheet__links li {
+  .menu-panel {
     animation: none;
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* Footer (components/SiteFooter.tsx)                                         */
-/* -------------------------------------------------------------------------- */
-
-.footer {
-  border-top: 1px solid var(--separator);
-  padding-block: 2.5rem 3rem;
-  color: var(--text-secondary);
-  font-size: 0.8125rem;
-  line-height: 1.5;
-}
-
-.footer__top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem 1.5rem;
-}
-
-.footer__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
+.menu-panel__links {
   list-style: none;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-.footer__links a {
-  color: var(--text-secondary);
-  text-decoration: none;
-}
-
-.footer__links a:hover {
+.menu-panel__links a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
   color: var(--text);
-  text-decoration: underline;
+  font-size: 1.0625rem; /* 17px */
+  font-weight: 500;
+  text-decoration: none;
+  border-bottom: 1px solid var(--separator);
 }
 
-.footer__legal {
-  margin-top: 1.75rem;
-  display: grid;
-  gap: 0.5rem;
-  max-width: var(--measure);
+.menu-panel__links a[aria-current="true"] {
+  color: var(--accent-text);
+  font-weight: 600;
 }
+
+.menu-panel__links li:last-child a {
+  border-bottom: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile-only overrides (design pass v18a) — desktop (>= 64rem) unaffected.  */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 47.99rem) {
+  /* Fluid h2 that tracks the viewport instead of pinning to the desktop
+     clamp's 2rem floor, which reads oversized against a 320-390px measure. */
+  .h2 {
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+  }
+
+  /* Tighter vertical rhythm between sections on narrow phones — the desktop
+     clamp's 4rem floor is more space than a 320-390px viewport needs. */
+  .section {
+    padding-block: clamp(3rem, 10vw, 4rem);
+  }
+}
+

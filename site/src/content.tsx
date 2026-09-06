@@ -387,7 +387,7 @@ export const features: Feature[] = [
     headline: "Point the phone. The cursor follows.",
     benefit:
       "Gyroscope and accelerometer fusion with drift correction and a clutch button that holds the pointer still while you gesture.",
-    body: "Point the phone like a laser pointer and the cursor follows — gyroscope and accelerometer fusion with drift correction and a clutch button, so the pointer holds still while you gesture.",
+    body: "Point the phone like a laser pointer and the cursor follows. Gyroscope and accelerometer fusion with drift correction and a clutch button keep the pointer still while you gesture.",
     icon: (
       <Glyph>
         <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" />
@@ -440,7 +440,7 @@ export const features: Feature[] = [
     headline: "Your shortcuts, as buttons.",
     benefit:
       "Define a key combo, an app or a Shortcut on the Mac, and it appears as a button on the phone.",
-    body: "Define buttons on the Mac — a key combo, an app to launch, a Shortcut to run — and they appear as a button deck on the phone, with scripts kept behind an explicit opt-in.",
+    body: "Define buttons on the Mac, such as a key combo, an app to launch or a Shortcut to run, and they appear as a button deck on the phone, with scripts kept behind an explicit opt-in.",
     icon: (
       <Glyph>
         <rect x="3" y="3" width="7.5" height="7.5" rx="1.8" />
@@ -562,7 +562,7 @@ export const devices: Device[] = [
 export const steps = [
   {
     title: "Install the Mac helper",
-    body: "A menu-bar app that asks for Accessibility once — its only permission — then starts at login and stays out of the way.",
+    body: "A menu-bar app that asks for Accessibility once, its only permission, then starts at login and stays out of the way.",
   },
   {
     title: "Scan the QR code",
@@ -575,133 +575,131 @@ export const steps = [
 ];
 
 /* -------------------------------------------------------------------------- */
-/* Value cards — two-up trust cards above the security pillars (spec §7)      */
-/* -------------------------------------------------------------------------- */
-
-/** Which `--card-*` surface a value card uses: dark aurora gradient or the solid blue. */
-export type ValueCardTone = "aurora" | "solid-blue";
-
-export type ValueCard = {
-  id: string;
-  tone: ValueCardTone;
-  icon: ReactNode;
-  headline: string;
-  body: string;
-  linkLabel: string;
-  href: string;
-};
-
-function LockIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="22"
-      height="22"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <rect x="5" y="11" width="14" height="9" rx="2.2" />
-      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-      <circle cx="12" cy="15.3" r="1.3" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-/** A "</>" glyph standing in for "open source". */
-function OpenSourceIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="22"
-      height="22"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M9 6.5l-5.5 5.5L9 17.5M15 6.5l5.5 5.5-5.5 5.5" />
-    </svg>
-  );
-}
-
-export const valueCards: ValueCard[] = [
-  {
-    id: "privacy",
-    tone: "aurora",
-    icon: <LockIcon />,
-    headline: "Your keystrokes never leave your network.",
-    body: "Local Wi‑Fi only, mutual TLS 1.3, and a one-time pairing secret — nothing about what you type or click is ever sent anywhere else.",
-    linkLabel: "Read the threat model",
-    href: site.links.security,
-  },
-  {
-    id: "open-source",
-    tone: "solid-blue",
-    icon: <OpenSourceIcon />,
-    headline: "Open. Free. Yours.",
-    body: "MIT licensed and native Swift throughout — both apps and the wire protocol they speak are public, so you can read every line that touches your Mac.",
-    linkLabel: "View on GitHub",
-    href: site.links.github,
-  },
-];
-
-/* -------------------------------------------------------------------------- */
-/* Security                                                                   */
+/* Security — five-card "Apple Store difference" trust row (DESIGN-SPEC-v7)   */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Three pillars shown on the landing page's Security section, below the
- * two-up value cards (spec §7) — a condensed, landing-page-scale summary;
- * SECURITY.md carries the complete threat model.
+ * Which coloured system tone a trust card uses. The icon renders in the
+ * bright system colour (`--blue`/`--green`/etc, non-text); the card's lead
+ * phrase uses a darker variant set per `.trust-card--<tone>` in sections.css
+ * because the bright `--green`/`--orange` fail 4.5:1 text contrast on white
+ * (verified with a Node luminance script — see report).
  */
-export type SecurityPillar = {
-  title: string;
-  body: string;
-  /** 24×24 stroke icon shown in a 56px accent-tint square (see .pillar__glyph). */
+export type TrustCardTone = "blue" | "green" | "orange" | "indigo" | "pink";
+
+export type TrustCard = {
+  id: string;
+  tone: TrustCardTone;
   icon: ReactNode;
+  /** Bold coloured lead phrase, e.g. "Local Wi‑Fi only." */
+  lead: string;
+  /** Remainder of the statement in `--text`, e.g. "Nothing leaves your network." */
+  rest: string;
 };
 
-export const securityPillars: SecurityPillar[] = [
+/** 40×40 stroke icons for the trust cards — a bigger, 1:1 viewBox sibling of `Glyph`. */
+function TrustGlyph({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 40 40"
+      width="40"
+      height="40"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {children}
+    </svg>
+  );
+}
+
+function WifiIcon() {
+  return (
+    <TrustGlyph>
+      <path d="M6 20a20 20 0 0 1 28 0" />
+      <path d="M12 26a11 11 0 0 1 16 0" />
+      <circle cx="20" cy="32" r="2.2" fill="currentColor" stroke="none" />
+    </TrustGlyph>
+  );
+}
+
+function ShieldCheckIcon() {
+  return (
+    <TrustGlyph>
+      <path d="M20 5l11.67 5v8.33c0 8.33-5 14.17-11.67 16.67-6.67-2.5-11.67-8.33-11.67-16.67V10z" />
+      <path d="M15 20l3.33 3.33 6.67-6.67" />
+    </TrustGlyph>
+  );
+}
+
+function QrGridIcon() {
+  return (
+    <TrustGlyph>
+      <rect x="5.83" y="5.83" width="10" height="10" rx="1.67" />
+      <rect x="24.17" y="5.83" width="10" height="10" rx="1.67" />
+      <rect x="5.83" y="24.17" width="10" height="10" rx="1.67" />
+      <path d="M24.17 24.17h3.67v3.67h-3.67zM31.67 24.17v3.67M24.17 31.67h3.33M31.67 31.67h2.5" />
+    </TrustGlyph>
+  );
+}
+
+function EyeSlashIcon() {
+  return (
+    <TrustGlyph>
+      <path d="M4 20c3.5-6 9-10 16-10s12.5 4 16 10c-3.5 6-9 10-16 10S7.5 26 4 20z" />
+      <circle cx="20" cy="20" r="4" />
+      <path d="M6 6l28 28" />
+    </TrustGlyph>
+  );
+}
+
+function CodeBracketsIcon() {
+  return (
+    <TrustGlyph>
+      <path d="M15 10.83l-9.17 9.17L15 29.17M25 10.83l9.17 9.17-9.17 9.17" />
+    </TrustGlyph>
+  );
+}
+
+export const trustCards: TrustCard[] = [
   {
-    title: "Local Wi‑Fi only",
-    body: "No relay, no cloud, no server in the middle — the phone talks to your Mac directly.",
-    icon: (
-      <Glyph>
-        <path d="M4 12a11 11 0 0 1 16 0" />
-        <path d="M7.4 15.6a6.4 6.4 0 0 1 9.2 0" />
-        <circle cx="12" cy="19" r="1.3" fill="currentColor" stroke="none" />
-      </Glyph>
-    ),
+    id: "local-wifi",
+    tone: "blue",
+    icon: <WifiIcon />,
+    lead: "Local Wi‑Fi only.",
+    rest: "Nothing leaves your network.",
   },
   {
-    title: "Mutual TLS 1.3",
-    body: "Both ends verify each other's certificate; motion packets carry authenticated encryption with replay protection.",
-    icon: (
-      <Glyph>
-        <path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z" />
-        <path d="M9 12l2 2 4-4" />
-      </Glyph>
-    ),
+    id: "mutual-tls",
+    tone: "green",
+    icon: <ShieldCheckIcon />,
+    lead: "Mutual TLS 1.3.",
+    rest: "Both ends verify each other’s certificate.",
   },
   {
-    title: "One-time pairing",
-    body: "The QR secret is valid for 60 seconds and used once; only paired devices are accepted, revocable from either end.",
-    icon: (
-      <Glyph>
-        <rect x="3.5" y="3.5" width="6" height="6" rx="1" />
-        <rect x="14.5" y="3.5" width="6" height="6" rx="1" />
-        <rect x="3.5" y="14.5" width="6" height="6" rx="1" />
-        <path d="M14.5 14.5h2.2v2.2h-2.2zM19 14.5v2.2M14.5 19h2M19 19h1.5" />
-      </Glyph>
-    ),
+    id: "one-time-pairing",
+    tone: "orange",
+    icon: <QrGridIcon />,
+    lead: "One-time pairing code.",
+    rest: "Valid for 60 seconds, used exactly once.",
+  },
+  {
+    id: "zero-telemetry",
+    tone: "indigo",
+    icon: <EyeSlashIcon />,
+    lead: "Zero telemetry.",
+    rest: "Nothing is collected, counted or phoned home.",
+  },
+  {
+    id: "open-source",
+    tone: "pink",
+    icon: <CodeBracketsIcon />,
+    lead: "Open source.",
+    rest: "Every line is public and MIT licensed.",
   },
 ];
 
@@ -738,7 +736,7 @@ export const faqs: { q: string; a: ReactNode; plain: string }[] = [
       <>
         Moving the cursor and pressing keys on your behalf is exactly what the
         Accessibility permission governs on macOS, so there is no way around it.
-        It is the only permission the helper asks for — it never requests Input
+        It is the only permission the helper asks for. It never requests Input
         Monitoring or Screen Recording, so it cannot read your keystrokes or see
         your screen.
       </>
@@ -751,7 +749,7 @@ export const faqs: { q: string; a: ReactNode; plain: string }[] = [
     a: (
       <>
         Yes. Everything happens on the local network. A router with no uplink,
-        or the phone&rsquo;s own hotspot, is enough — Air Control never needs to
+        or the phone&rsquo;s own hotspot, is enough. Air Control never needs to
         reach the internet to pair, connect or run.
       </>
     ),
@@ -762,7 +760,7 @@ export const faqs: { q: string; a: ReactNode; plain: string }[] = [
     q: "Does it use Bluetooth?",
     a: (
       <>
-        No — Wi‑Fi only. iOS does not let an app act as a Bluetooth HID
+        No. Wi‑Fi only. iOS does not let an app act as a Bluetooth HID
         peripheral, so a Bluetooth mouse or keyboard is not something any iPhone
         app can offer. Wi‑Fi is also considerably faster.
       </>
