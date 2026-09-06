@@ -23,7 +23,7 @@ jobs:
       AIRCONTROL_FUZZ_ITERATIONS: "1000000"
       FUZZ_ITERATIONS: "1000000"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Select Xcode (.xcode-version)
         run: |
