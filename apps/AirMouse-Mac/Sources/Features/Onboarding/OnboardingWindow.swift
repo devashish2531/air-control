@@ -1,4 +1,7 @@
-// spec §5.2 — single window, 4 steps (Accessibility, Launch at login, Firewall, Pair).
+// spec §5.2 — single window, 4 steps (Accessibility, Launch at login, Firewall, Pair). docs/08 §5.1:
+// "onboarding ends by opening the main window" / "first launch after onboarding opens it" — the
+// "Done" button now opens `WindowID.main` (selecting Overview) and dismisses this window, instead of
+// just flipping `setupCompleted`.
 import SwiftUI
 
 struct OnboardingWindow: View {
@@ -28,6 +31,9 @@ struct OnboardingWindow: View {
 
 private struct OnboardingStepper: View {
     @Bindable var viewModel: OnboardingViewModel
+    @Environment(MainWindowRouter.self) private var router
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -39,8 +45,13 @@ private struct OnboardingStepper: View {
                 }
                 Spacer()
                 if viewModel.isLastStep {
-                    Button("Done") { viewModel.markCompleted() }
-                        .keyboardShortcut(.defaultAction)
+                    Button("Done") {
+                        viewModel.markCompleted()
+                        router.select(.overview)
+                        openWindow(id: WindowID.main)
+                        dismiss()
+                    }
+                    .keyboardShortcut(.defaultAction)
                 } else {
                     Button("Next") { viewModel.goToNextStep() }
                         .keyboardShortcut(.defaultAction)

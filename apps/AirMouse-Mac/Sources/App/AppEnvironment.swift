@@ -26,7 +26,7 @@ public final class AppEnvironment {
     public var diagnosticsSink: any DiagnosticsSink
 
     /// The richer macro CRUD/engine surface (`Services/MacroEngine/MacroEngine+Environment.swift`),
-    /// shared with `MacroEditorWindow` once `wireLiveServices()` has run so the menu bar's tiny
+    /// shared with `MacroEditorContentView` once `wireLiveServices()` has run so the menu bar's tiny
     /// `macroStore` slot and the editor read/write the same `MacroStore` instance. `nil` in the
     /// placeholder/preview state (before `wireLiveServices()` / outside `.live`).
     public private(set) var macroFeature: MacroFeature?

@@ -2,10 +2,12 @@
 // connected; exclamationmark.triangle badge when Accessibility is missing or input is paused." This view
 // is the MenuBarExtra `label`, which SwiftUI renders eagerly at launch (unlike the lazily-built menu
 // `content`), so it also doubles as the "run once at launch" hook for starting services.
+import AppKit
 import SwiftUI
 
 struct MenuBarIconLabel: View {
     @Environment(AppEnvironment.self) private var environment
+    @Environment(MainWindowRouter.self) private var router
     @Environment(\.openWindow) private var openWindow
     @State private var didRunLaunchTasks = false
 
@@ -29,9 +31,23 @@ struct MenuBarIconLabel: View {
                 didRunLaunchTasks = true
                 await runLaunchTasks()
             }
+            // docs/08 §5.1 "Show in Dock" setting: `initial: true` applies the stored preference the
+            // moment this (eagerly-rendered) view appears, in addition to any later toggle.
+            .onChange(of: environment.settings.showInDock, initial: true) { _, showInDock in
+                NSApp.setActivationPolicy(showInDock ? .regular : .accessory)
+            }
+            // docs/08 §5.1 "re-activating the app re-opens it" / "launching the app while running
+            // re-opens/raises the main window": `AppDelegate.applicationShouldHandleReopen` (no
+            // `openWindow` access there) bumps this token; this persistent view is where it's acted on.
+            .onChange(of: router.reopenRequestToken) { _, _ in
+                openWindow(id: WindowID.main)
+            }
     }
 
     private func runLaunchTasks() async {
+        // docs/08 §5.2: lets `AppDelegate.applicationShouldHandleReopen` (no environment/`openWindow`
+        // access) reach this run's single `MainWindowRouter` instance.
+        MainWindowRouter.appDelegateBridge = router
         environment.startBackgroundRefresh()
         environment.permissions.startPolling(interval: .seconds(10)) // spec §5.2 runtime cadence
         await environment.wireLiveServices()

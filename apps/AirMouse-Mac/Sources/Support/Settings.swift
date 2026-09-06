@@ -43,6 +43,14 @@ public final class HostSettings {
         set { defaults.set(newValue, forKey: Keys.launchAtLogin) }
     }
 
+    /// docs/08 §5.1 "Show in Dock" (default on). Off routes `NSApp.activationPolicy` to `.accessory`
+    /// at launch (`MenuBarIconLabel`'s launch task) so the menu bar item becomes the only entry point;
+    /// on routes it to `.regular` (Dock icon + menu bar). Not in arch §6.2 (added by this revamp).
+    public var showInDock: Bool {
+        get { bool(Keys.showInDock, default: true) }
+        set { defaults.set(newValue, forKey: Keys.showInDock) }
+    }
+
     /// Off by default: a second `LaunchAgent` watchdog is only installed when the user opts in (spec §5.7.1).
     public var relaunchWatchdog: Bool {
         get { bool(Keys.relaunchWatchdog, default: false) }
@@ -140,6 +148,7 @@ public final class HostSettings {
     private enum Keys {
         static let setupCompleted = "am.helper.setupCompleted"
         static let launchAtLogin = "am.helper.launchAtLogin"
+        static let showInDock = "am.helper.showInDock"
         static let relaunchWatchdog = "am.helper.relaunchWatchdog"
         static let deviceDisplayName = "am.helper.deviceDisplayName"
         static let pointerAccelerationDefault = "am.helper.pointerAccelerationDefault"

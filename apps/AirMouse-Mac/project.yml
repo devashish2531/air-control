@@ -64,10 +64,12 @@ targets:
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: Air Mouse
+        # docs/08 §5.1: Dock icon from the existing AppIcon; bundle id (PRODUCT_BUNDLE_IDENTIFIER,
+        # below) is unchanged so the Accessibility grant survives the rename.
+        CFBundleDisplayName: Air Control
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        LSUIElement: true
+        LSUIElement: false
         LSMinimumSystemVersion: "15.0"
         LSApplicationCategoryType: public.app-category.utilities
         NSHumanReadableCopyright: "© 2026 Air Mouse contributors. MIT License."

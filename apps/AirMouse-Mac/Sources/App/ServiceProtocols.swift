@@ -31,6 +31,13 @@ public protocol HostServing: Sendable {
     func stop() async
     /// Snapshot of currently connected sessions, for the menu's status line and submenu (spec §5.1.2).
     var connectedSessions: [ConnectedSessionInfo] { get async }
+    /// docs/08 §5.2 Overview card "server Running/Stopped". `true` once `start()` has finished
+    /// binding both listeners; `false` before `start()` or after `stop()`/a bind failure.
+    var isRunning: Bool { get async }
+    /// docs/08 §5.2 Overview card "TCP/UDP ports". `nil` before the listener is bound (or, for the
+    /// UDP hub, if that read races the bind — same caveat `HostServer`'s own loopback banner has).
+    var tcpPort: UInt16? { get async }
+    var udpPort: UInt16? { get async }
     /// Opens the pairing secret/window lifecycle (spec §5.1.3) and returns the QR payload string to render.
     func openPairingWindow() async throws -> String
     /// Closes the pairing window and invalidates the current secret (spec §5.1.3 "Closing invalidates the secret").

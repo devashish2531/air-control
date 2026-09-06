@@ -115,6 +115,20 @@ public actor HostServer: HostServing {
         get async { await sessionManager.connectedSessions }
     }
 
+    // docs/08 §5.2 Overview card: a minimal read surface for the main window's status card, additive
+    // to the pre-existing `HostServing` conformance above.
+    public var isRunning: Bool {
+        get async { networkStatus == .ready }
+    }
+
+    public var tcpPort: UInt16? {
+        get async { tcpListener?.port?.rawValue }
+    }
+
+    public var udpPort: UInt16? {
+        get async { udpHub.boundPort }
+    }
+
     public func openPairingWindow() async throws -> String {
         Log.net.debug("openPairingWindow: enter")
         _ = try await pairingService.openWindow()

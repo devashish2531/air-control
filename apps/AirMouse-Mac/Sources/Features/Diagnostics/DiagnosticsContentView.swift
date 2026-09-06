@@ -1,7 +1,9 @@
-// spec §5.1.3 "Diagnostics" window: per-session stats table, inject p50/p95, log level, export.
+// spec §5.1.3 "Diagnostics": per-session stats table, inject p50/p95, log level, export. docs/08 §5.2:
+// embedded as the main window's "Diagnostics" sidebar section (`Features/MainWindow/
+// DiagnosticsScreen.swift`) instead of its own `Window` scene — renamed from `DiagnosticsWindow`.
 import SwiftUI
 
-struct DiagnosticsWindow: View {
+struct DiagnosticsContentView: View {
     @Environment(AppEnvironment.self) private var environment
     @State private var viewModel: DiagnosticsViewModel?
 
@@ -13,7 +15,6 @@ struct DiagnosticsWindow: View {
                 ProgressView()
             }
         }
-        .frame(minWidth: 640, minHeight: 420)
         .onAppear {
             if viewModel == nil {
                 viewModel = DiagnosticsViewModel(sink: environment.diagnosticsSink)

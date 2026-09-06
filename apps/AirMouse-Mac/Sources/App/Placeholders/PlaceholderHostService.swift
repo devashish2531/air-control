@@ -18,6 +18,11 @@ public actor PlaceholderHostService: HostServing {
         get async { sessions }
     }
 
+    // docs/08 §5.2 Overview card surface — no real listener in the placeholder.
+    public var isRunning: Bool { get async { false } }
+    public var tcpPort: UInt16? { get async { nil } }
+    public var udpPort: UInt16? { get async { nil } }
+
     public func openPairingWindow() async throws -> String {
         "airmouse://pair?placeholder=1"
     }

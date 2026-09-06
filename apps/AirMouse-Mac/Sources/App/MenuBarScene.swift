@@ -4,6 +4,7 @@ import SwiftUI
 
 struct MenuBarScene: View {
     @Environment(AppEnvironment.self) private var environment
+    @Environment(MainWindowRouter.self) private var router
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -22,8 +23,12 @@ struct MenuBarScene: View {
 
         Divider()
 
+        // docs/08 §5.2: the standalone pairing/macros/trusted-devices/diagnostics/preferences windows
+        // are gone — every menu item below deep-links into the single main window's sidebar instead
+        // (`MainWindowRouter`, `Open Air Control` below opens it plain).
         Button("Pair New Device…") {
-            openWindow(id: WindowID.pairing)
+            router.requestPairing()
+            openWindow(id: WindowID.main)
         }
 
         Toggle("Pause Input", isOn: Binding(
@@ -33,20 +38,28 @@ struct MenuBarScene: View {
 
         Divider()
 
+        Button("Open Air Control") {
+            openWindow(id: WindowID.main)
+        }
+
         Button("Macros…") {
-            openWindow(id: WindowID.macroEditor)
+            router.select(.macros)
+            openWindow(id: WindowID.main)
         }
 
         Button("Trusted Devices…") {
-            openWindow(id: WindowID.trustedDevices)
+            router.select(.devices)
+            openWindow(id: WindowID.main)
         }
 
         Button("Diagnostics…") {
-            openWindow(id: WindowID.diagnostics)
+            router.select(.diagnostics)
+            openWindow(id: WindowID.main)
         }
 
-        Button("Settings…") {
-            openWindow(id: WindowID.preferences)
+        Button("Preferences…") {
+            router.select(.settings)
+            openWindow(id: WindowID.main)
         }
         .keyboardShortcut(",", modifiers: .command)
 

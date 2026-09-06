@@ -23,6 +23,11 @@ struct GeneralSettingsTab: View {
             Toggle("Relaunch automatically if it quits unexpectedly", isOn: $settings.relaunchWatchdog)
                 .help("Installs a lightweight LaunchAgent watchdog (spec §5.7.1). Off by default.")
 
+            // docs/08 §5.1 "Show in Dock" (default on). Applied by `MenuBarIconLabel`'s
+            // `onChange(of: environment.settings.showInDock)`.
+            Toggle("Show in Dock", isOn: $settings.showInDock)
+                .help("Off hides the Dock icon; Air Control stays reachable from the menu bar.")
+
             Toggle("Pause input", isOn: Binding(
                 get: { environment.isInputPaused },
                 set: { _ in Task { await environment.toggleInputPaused() } }

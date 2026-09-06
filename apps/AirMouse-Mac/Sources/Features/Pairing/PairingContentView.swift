@@ -1,6 +1,9 @@
-// PairingWindow — spec §5.1.3 "Pairing / QR" window, §3.1.3 (QR payload / error correction),
-// §3.1.4 (60 s secret rotation). Replaces the networking-agent placeholder noted in this file's
-// previous revision. Owned by the networking agent (assignment: "Features/Pairing/").
+// PairingWindow.swift — spec §5.1.3 "Pairing / QR" surface, §3.1.3 (QR payload / error correction),
+// §3.1.4 (60 s secret rotation). Owned by the networking agent (assignment: "Features/Pairing/").
+// docs/08 §5.2: the standalone "Pair New Device" window is gone — `PairingContentView` below is now
+// embedded directly in `Features/MainWindow/OverviewScreen.swift`'s status card (and still in
+// `Features/Onboarding/OnboardingWindow.swift`'s "Pair" step), so this file keeps only the reusable
+// content view and its QR renderer, not a window-chrome wrapper.
 //
 // Talks to the shell's `HostServing` (`App/ServiceProtocols.swift`) only — `openPairingWindow()`
 // returns the QR/manual-fallback URL string; this view owns the countdown/regeneration polling and
@@ -13,29 +16,10 @@ import AirMouseCore
 import CoreImage.CIFilterBuiltins
 import SwiftUI
 
-struct PairingWindow: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        VStack(spacing: 16) {
-            PairingContentView()
-            Button("Cancel") {
-                dismiss()
-            }
-            .keyboardShortcut(.cancelAction)
-        }
-        .padding(24)
-        .frame(width: 420, height: 520)
-        .background(Color.white)
-    }
-}
-
 /// The reusable QR/status/disclosure content, with no window-sized frame, background, or Cancel
-/// button of its own — safe to embed either as `PairingWindow`'s standalone-window body (above) or
-/// directly inside `Features/Onboarding/OnboardingWindow.swift`'s "Pair" step, which lays it out
-/// inside its own, differently-sized page (embedding the old all-in-one `PairingWindow`, with its
-/// hardcoded 420×520 frame and opaque white background, inside that smaller page pushed the step's
-/// title/instructions and the Next/Done bar off-window, leaving only a blank white rectangle).
+/// button of its own — safe to embed inside `Features/Onboarding/OnboardingWindow.swift`'s "Pair"
+/// step or `Features/MainWindow/OverviewScreen.swift`'s status card, each laying it out inside its
+/// own differently-sized container.
 struct PairingContentView: View {
     @Environment(AppEnvironment.self) private var environment
     @Environment(\.dismiss) private var dismiss
@@ -48,6 +32,11 @@ struct PairingContentView: View {
     @State private var pairedDeviceName: String?
     @State private var optionHeldAtPairing = false
     @State private var pollTask: Task<Void, Never>?
+
+    /// docs/08 §5.2 Overview card "Copy pairing link": lets an embedder (`OverviewScreen`) mirror the
+    /// current pairing URL into its own `@State` without this view owning a Copy button itself —
+    /// `OnboardingWindow`'s "Pair" step passes nothing and is unaffected.
+    var onURLChange: ((String) -> Void)?
 
     static let secretLifetimeSeconds = 60
 
@@ -158,6 +147,7 @@ struct PairingContentView: View {
             return
         }
         pairingURLString = urlString
+        onURLChange?(urlString)
         qrImage = PairingQRCode.image(for: urlString)
         secondsRemaining = Self.secretLifetimeSeconds
         if statusPhase != .paired {

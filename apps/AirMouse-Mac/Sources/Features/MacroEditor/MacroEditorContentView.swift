@@ -1,8 +1,9 @@
-// spec §5.5.3 Macro editor: "Window with a left page list (Pages 1–6, reorder by drag) and a right grid
-// mirroring the phone layout (drag to reorder across pages)." Replaces the placeholder window (arch
-// §3.3 `WIN` node, spec §5.1.3 "Macro editor: §5.5.3").
+// spec §5.5.3 Macro editor: "a left page list (Pages 1–6, reorder by drag) and a right grid mirroring
+// the phone layout (drag to reorder across pages)." docs/08 §5.2: embedded as the main window's
+// "Macros" sidebar section (`Features/MainWindow/MacrosScreen.swift`) instead of its own `Window`
+// scene — renamed from `MacroEditorWindow` accordingly.
 //
-// This window builds its own `MacroStore`/`MacroEngine` via `MacroFeature.make(environment:)` rather
+// This view builds its own `MacroStore`/`MacroEngine` via `MacroFeature.make(environment:)` rather
 // than reading `environment.macroStore` (the shell's tiny `MacroStoring` DI slot only exposes
 // `macroCount` for the menu bar, per `App/ServiceProtocols.swift` — not owned by this module). See
 // `MacroEngine+Environment.swift`'s doc comment: the integration agent is expected to eventually share
@@ -14,7 +15,7 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct MacroEditorWindow: View {
+struct MacroEditorContentView: View {
     @Environment(AppEnvironment.self) private var environment
     @State private var viewModel: MacroEditorViewModel?
 
@@ -24,10 +25,9 @@ struct MacroEditorWindow: View {
                 MacroEditorContent(viewModel: viewModel)
             } else {
                 ProgressView("Loading macros…")
-                    .frame(minWidth: 720, minHeight: 480)
+                    .frame(minWidth: 480, minHeight: 360)
             }
         }
-        .frame(minWidth: 720, minHeight: 480)
         .task {
             if viewModel == nil {
                 // Prefer the shared instance `AppEnvironment.wireLiveServices()` already built (so the
@@ -68,6 +68,7 @@ struct MacroJSONDocument: FileDocument {
 
 private struct MacroEditorContent: View {
     @Bindable var viewModel: MacroEditorViewModel
+    @Environment(MainWindowRouter.self) private var router
     @Environment(\.openWindow) private var openWindow
     @State private var isImporterPresented = false
     @State private var isExporterPresented = false
@@ -133,7 +134,12 @@ private struct MacroEditorContent: View {
                             }
                         }
                     },
-                    onOpenSecurityPreferences: { openWindow(id: WindowID.preferences) }
+                    // docs/08 §5.2: Preferences is now the main window's "Settings" sidebar section,
+                    // not its own `Window` scene.
+                    onOpenSecurityPreferences: {
+                        router.select(.settings)
+                        openWindow(id: WindowID.main)
+                    }
                 )
             }
         }

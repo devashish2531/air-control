@@ -1,7 +1,9 @@
-// spec §5.6 — Trusted Devices window: table + Revoke (confirmation sheet) + Revoke All.
+// spec §5.6 — Trusted Devices: table + Revoke (confirmation sheet) + Revoke All. docs/08 §5.2:
+// embedded as the main window's "Devices" sidebar section (`Features/MainWindow/DevicesScreen.swift`)
+// instead of its own `Window` scene — renamed from `TrustedDevicesWindow` accordingly.
 import SwiftUI
 
-struct TrustedDevicesWindow: View {
+struct TrustedDevicesContentView: View {
     @Environment(AppEnvironment.self) private var environment
     @State private var viewModel: TrustedDevicesViewModel?
 
