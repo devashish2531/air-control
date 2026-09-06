@@ -44,7 +44,7 @@ clean:
 mac-run: mac-build
 	-pkill -f "AirMouse.app/Contents/MacOS/AirMouse"
 	@APP="$$(ls -d ~/Library/Developer/Xcode/DerivedData/AirMouseHelper-*/Build/Products/Debug/AirMouse.app | head -1)"; \
-	ID="$$(security find-identity -v -p codesigning | grep -m1 -o '"Apple Development: [^"]*"' | tr -d '"')"; \
+	ID="$$(security find-identity -v -p codesigning | grep 'Apple Development:' | grep -m1 -oE '[0-9A-F]{40}')"; \
 	if [ -n "$$ID" ]; then \
 	  echo "Signing with $$ID"; \
 	  codesign --force --options runtime --timestamp=none \
