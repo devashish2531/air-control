@@ -7,7 +7,7 @@
 | Date | 2026-09-05 |
 | Upstream | `docs/00-decisions.md` Addendum F, `docs/01-requirements.md` §1–2 |
 | Scope | `site/**`, `.github/workflows/site.yml` |
-| Live URL | https://devashish2531.github.io/air-control/ (after the owner enables Pages) |
+| Live URL | https://devashish.cc/air-control/ |
 
 ---
 
@@ -206,7 +206,7 @@ cd site && npm run assets
 
 | Deployment | `NEXT_PUBLIC_BASE_PATH` | Result |
 |---|---|---|
-| GitHub Pages project site | `/air-control` | assets at `/air-control/_next/…`, canonical `https://devashish2531.github.io/air-control/` |
+| GitHub Pages project site | `/air-control` | assets at `/air-control/_next/…`, canonical `https://devashish.cc/air-control/` |
 | Custom domain, and `npm run dev` | unset / empty | assets at `/_next/…` |
 
 `basePath` and `assetPrefix` are both set from it. `trailingSlash: true` makes
@@ -247,7 +247,7 @@ Two properties make this work, and both are verified in CI:
 
 Once Sparkle lands (M8) the release workflow should write real entries into this
 file (or generate it), signed with `sign_update`. The final feed URL is
-`https://devashish2531.github.io/air-control/appcast.xml`, which is what
+`https://devashish.cc/air-control/appcast.xml`, which is what
 `SUFeedURL` in the Mac app's `Info.plist` must point at — note that it includes
 the `/air-control` basePath, so **moving to a custom domain changes the feed URL
 and requires an app update** to match. If a custom domain is likely, set it up
@@ -288,29 +288,20 @@ The workflow cannot enable Pages for the repository. Once, by hand:
 3. Actions → **Site** → *Run workflow* to publish immediately, or just push a
    change under `site/`.
 4. The URL appears on the workflow run and under Settings → Pages:
-   `https://devashish2531.github.io/air-control/`.
+   `https://devashish.cc/air-control/`.
 
 If step 2 is skipped, the deploy job fails with a "Pages is not enabled" error;
 the build job still passes.
 
-### 7.3 Switching to a custom domain
+### 7.3 Custom domain
 
-1. DNS: `CNAME` from `www.example.com` to `devashish2531.github.io`, or four
-   `A` records for an apex domain pointing at GitHub Pages' IPs.
-2. Add `site/public/CNAME` containing exactly the hostname, e.g.
-   `aircontrol.app` (one line, no scheme). `public/` is copied verbatim, so it
-   lands at `out/CNAME` where Pages expects it.
-3. `.github/workflows/site.yml` → set `NEXT_PUBLIC_BASE_PATH: ""` in the build
-   step's `env` (the site now lives at the root of its own host).
-4. `site/src/site.config.ts` → change `origin` to `https://aircontrol.app`.
-   That single constant drives the canonical link, the Open Graph image URL, the
-   sitemap and `robots.txt`.
-5. Settings → Pages → Custom domain: enter the hostname, then tick
-   **Enforce HTTPS** once the certificate is issued.
-6. Update `SUFeedURL` in the Mac app if a Sparkle-enabled build has shipped
-   (§6), and the appcast's own `<link>` element.
-
----
+The owner's GitHub Pages user site already carries the custom domain `devashish.cc`,
+so this project site is served at `https://devashish.cc/air-control/` automatically
+(the `www` host is the canonical origin in `site/src/site.config.ts`; the apex
+redirects to it). No `CNAME` file is needed in `site/public/` and `NEXT_PUBLIC_BASE_PATH`
+stays `/air-control`. If the site ever moves to its own hostname, add
+`site/public/CNAME` with that hostname, set `NEXT_PUBLIC_BASE_PATH` to empty in
+`site.yml`, and update `ORIGIN` in `site.config.ts`.
 
 ## 8. Local workflow
 

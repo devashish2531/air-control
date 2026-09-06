@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 /**
  * `NEXT_PUBLIC_BASE_PATH` decides where the site is mounted.
  *
- *   - GitHub Pages project site (https://devashish2531.github.io/air-control/)
+ *   - GitHub Pages project site (https://devashish.cc/air-control/)
  *       NEXT_PUBLIC_BASE_PATH=/air-control
  *   - custom domain, or `npm run dev`
  *       unset (or empty)

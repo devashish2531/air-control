@@ -60,7 +60,7 @@ cat > "$appcast_path" <<EOF
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
   <channel>
     <title>Air Control Changelog</title>
-    <link>https://OWNER.github.io/air-control/appcast.xml</link>
+    <link>https://devashish.cc/air-control/appcast.xml</link>
     <item>
       <title>${version_tag}</title>
       <pubDate>${pub_date}</pubDate>

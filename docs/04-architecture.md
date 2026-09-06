@@ -360,7 +360,7 @@ targets:
         NSLocalNetworkUsageDescription: "Air Control finds and connects to your Mac on your local network. Nothing is sent over the internet."
         NSBonjourServices: [_aircontrol._tcp, _aircontrol._udp]
         NSAppleEventsUsageDescription: "Only used by macros you create on this Mac that run AppleScript. Off by default."
-        SUFeedURL: https://<owner>.github.io/air-control/appcast.xml
+        SUFeedURL: https://devashish.cc/air-control/appcast.xml
         SUPublicEDKey: "<base64 EdDSA public key — generated at M9-04>"
         SUEnableAutomaticChecks: false                      # opt-in (FR-MB-007)
         SUScheduledCheckInterval: 86400

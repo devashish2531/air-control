@@ -18,15 +18,12 @@
 </p>
 
 <p align="center">
-  <a href="https://devashish2531.github.io/air-control/">Landing page</a> ·
+  <a href="https://devashish.cc/air-control/">Landing page</a> ·
   <a href="https://github.com/devashish2531/air-control/releases/latest">Download for Mac</a> ·
   <a href="https://github.com/devashish2531/air-control/issues/new?title=iOS+waitlist&body=Please+let+me+know+when+the+Air+Control+iPhone+app+is+available+for+testing.">iPhone waitlist</a> ·
   <a href="docs/protocol.md">Protocol</a> ·
   <a href="SECURITY.md">Security</a>
 </p>
-
-> The landing page link goes live once the repository owner enables GitHub Pages
-> (Settings → Pages → Build and deployment → Source: **GitHub Actions**).
 
 Air Control turns your iPhone or iPad into a trackpad, air pointer, keyboard and presenter
 remote for your Mac. It's free, open source, and it never leaves your local Wi‑Fi network:
@@ -179,7 +176,7 @@ real devices today. Not yet done:
 ## Landing page
 
 The marketing site lives in [`site/`](site) (Next.js, static export) and is published to
-GitHub Pages at <https://devashish2531.github.io/air-control/> by
+GitHub Pages at <https://devashish.cc/air-control/> by
 [`site.yml`](.github/workflows/site.yml). See [`site/README.md`](site/README.md) and
 [`docs/07-landing-page.md`](docs/07-landing-page.md) for local dev and deploy details.
 
